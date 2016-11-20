@@ -2,7 +2,7 @@
 wait until ship:unpacked.
 // Only run boot when launching, not when reloading vessel already
 // in space:
-if ship:periapsis < 100 and ship:body = Kerbin and (status = "LANDED" or status = "PRELAUNCH") {
+if ship:periapsis < 100 and ship:body:name = "Kerbin" and (status = "LANDED" or status = "PRELAUNCH") {
 
   hudtext( "Unpacked. Now loading launch software.", 2, 2, 45, green, true).
   switch to 1.

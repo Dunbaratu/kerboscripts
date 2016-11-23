@@ -1,6 +1,6 @@
-run once lib_land.
+run once "lib/land".
 
-parameter safety_margin is 5.
+parameter safety_margin is 1.
 
 local first_aim is true.
 
@@ -57,6 +57,7 @@ wait until status="LANDED" or status="SPLASHED".
 brakes on.
 unlock steering.
 unlock throttle.
+SAS on.
 set vd1 to 0.
 wait until ship:velocity:surface:mag < 0.1. 
 lights on.
@@ -66,6 +67,10 @@ if hasLas {
   lasMod:setfield("Visible", false).
 }
 
+
+print "waiting 10 seconds before turning off SAS".
+wait 10.
+SAS off.
 
 // =================== END OF MAIN - START OF FUNCTIONS =============================
 

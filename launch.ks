@@ -1,4 +1,4 @@
-run once lib_launch.
+run once "lib/launch".
 parameter
   compass is 90,
   orbit_height is 80000,

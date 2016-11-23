@@ -9,7 +9,7 @@ if ship:periapsis < 100 and ship:body = Kerbin and (status = "LANDED" or status 
   copypath("0:/lib/launch","").
   copypath("0:/launch","").
   //copypath("0:/prediction","").
-  copypath("0:/lib/burn_util","").
+  copypath("0:/lib/burn","").
   //copypath("0:/rendezvous","").
   //copypath("0:/match_inc","").
   copypath("0:/consts","").

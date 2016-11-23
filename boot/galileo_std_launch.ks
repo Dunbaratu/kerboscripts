@@ -2,29 +2,33 @@
 wait until ship:unpacked.
 // Only run boot when launching, not when reloading vessel already
 // in space:
-if ship:periapsis < 100 and ship:body:name = "Kerbin" and (status = "LANDED" or status = "PRELAUNCH") {
+parameter launchbody is "Gael".
+if ship:periapsis < 100 and ship:body:name = launchbody and (status = "LANDED" or status = "PRELAUNCH") {
 
   hudtext( "Unpacked. Now loading launch software.", 2, 2, 45, green, true).
   switch to 1.
-  copypath("0:/lib/launch","").
+  if not exists("1:/lib")
+    createdir("1:/lib/").
+  copypath("0:/lib/launch","lib/").
+  copypath("0:/lib/burn","lib/").
+  copypath("0:/lib/land.ks","lib/").
   copypath("0:/launch","").
-  //copypath("0:/prediction","").
-  copypath("0:/lib/burn_util","").
-  //copypath("0:/rendezvous","").
-  //copypath("0:/match_inc","").
   copypath("0:/consts","").
   copypath("0:/stager","").
+  copypath("0:/land_it.ks","").
+  copypath("0:/just_obey_nodes.ks","").
+
+  //copypath("0:/prediction","").
+  //copypath("0:/rendezvous","").
+  //copypath("0:/match_inc","").
   //copypath("0:/station_dock_server","").
   //copypath("0:/station_dock_client","").
-  copypath("0:/lib/land.ks","").
-  copypath("0:/land_it.ks","").
   //copypath("0:/ca_land.ks","").
   //copypath("0:/lib_rover.ks","").
   //copypath("0:/use_rover.ks","").
-  copypath("0:/just_obey_nodes.ks","").
 
   set core:bootfilename to "".
-  run launch( 110, 80000).
+  run launch( 100, 80000).
   lock steering to north.
   wait 15.
   unlock steering.

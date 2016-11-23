@@ -1,7 +1,7 @@
 clearscreen.
 print "This is a program that just obeys whatever manuever nodes you put in front of it.".
 
-run once burn_util.
+run once "lib/burn".
 
 local prev_ag10 is ag10.
 

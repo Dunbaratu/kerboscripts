@@ -1,4 +1,6 @@
-run once "lib/land".
+run once "/lib/land".
+run once "/lib/song".
+run once "/songs/happy".
 
 parameter safety_margin is 1.
 
@@ -68,7 +70,9 @@ if hasLas {
 }
 
 
-print "waiting 10 seconds before turning off SAS".
+clearscreen.
+print "====== Landed!!  Celebration Music! ======" at (2, terminal:height/2).
+playsong(song_happy).
 wait 10.
 SAS off.
 
@@ -112,21 +116,20 @@ function has_safe_distance {
   {
     aim_laser_at(lasMod, pos).
     if first_aim {
-      wait 0.  // let the laser aim acutally happen by waiting 2 ticks.
-      wait 0.  // let the laser aim acutally happen by waiting 2 ticks.
+      wait 0. wait 0. // let the laser aim actually happen by waiting 2 ticks.
       set first_aim to false.
     }
     local dist is lasMod:getfield("distance").
     if dist >= 0 {
       set use_fallback to false.
-      set compare_dist to dist - (safety_margin+ship:velocity:surface:mag*deltaT*3.5).
+      set compare_dist to dist - (safety_margin+ship:velocity:surface:mag*deltaT*2.5).
       set test_dist to pos:mag.
       set label_prefix to "Margin (laser measured): ".
     }
   }
   if use_fallback {
     local groundPos to ship:body:geopositionof(pos):position.
-    set test_dist to (safety_margin+abs(verticalspeed)*deltaT*3.5).
+    set test_dist to (safety_margin+abs(verticalspeed)*deltaT*2.5).
     set compare_dist to vdot(pos-groundPos,ship:up:vector).
     set label_prefix to "Margin (terrain database guess): ".
   }

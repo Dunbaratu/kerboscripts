@@ -9,14 +9,18 @@ if ship:periapsis < 100 and ship:body:name = launchbody and (status = "LANDED" o
   switch to 1.
   if not exists("1:/lib")
     createdir("1:/lib/").
+  if not exists("1:/songs")
+    createdir("1:/songs/").
   copypath("0:/lib/launch","lib/").
   copypath("0:/lib/burn","lib/").
   copypath("0:/lib/land.ks","lib/").
+  copypath("0:/lib/song", "lib/").
   copypath("0:/launch","").
   copypath("0:/consts","").
   copypath("0:/stager","").
   copypath("0:/land_it.ks","").
   copypath("0:/just_obey_nodes.ks","").
+  copypath("0:/songs/happy", "songs/").
 
   //copypath("0:/prediction","").
   //copypath("0:/rendezvous","").
@@ -26,6 +30,7 @@ if ship:periapsis < 100 and ship:body:name = launchbody and (status = "LANDED" o
   //copypath("0:/ca_land.ks","").
   //copypath("0:/lib_rover.ks","").
   //copypath("0:/use_rover.ks","").
+
 
   set core:bootfilename to "".
   run launch( 100, 80000).

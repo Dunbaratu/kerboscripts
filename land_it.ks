@@ -2,7 +2,7 @@ run once "/lib/land".
 run once "/lib/song".
 run once "/songs/happy".
 
-parameter safety_margin is 1.
+parameter safety_margin is 5.
 
 local first_aim is true.
 
@@ -52,7 +52,7 @@ until burn_now {
 }
 lock throttle to 1.
 wait until verticalspeed > -2.0.
-set descendPID to pidloop(0.08,0.002,0.02,0,1).
+set descendPID to pidloop(0.08,0.015,0.02,0,1).
 lock throttle to descendPID:update(time:seconds, verticalspeed+descentSpeed()).
 lock steering to retro_or_up().
 wait until status="LANDED" or status="SPLASHED".

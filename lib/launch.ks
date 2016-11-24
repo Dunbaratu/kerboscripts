@@ -60,7 +60,7 @@ function launch {
   lock throttle to 0.
   lock steering to heading(dest_compass, 0).
 
-  wait until verticalspeed < 0.5.
+  wait until eta:apoapsis < 10.
 
   if do_circ {
     circularize().

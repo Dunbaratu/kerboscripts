@@ -60,7 +60,7 @@ function launch {
   lock throttle to 0.
   lock steering to heading(dest_compass, 0).
 
-  wait until ship:verticalspeed < 5.
+  wait until eta:apoapsis < 10.
 
   if do_circ {
     circularize().
@@ -95,6 +95,15 @@ function east_for {
 
   return vcrs(ves:up:vector, ves:north:vector).
 }
+// Return eta:apoapsis but with times behind you
+// rendered as negative numbers in the past:
+function eta_ap_with_neg {
+  local ret_val is eta:apoapsis.
+  if ret_val > ship:obt:period / 2 {
+    set ret_val to ret_val - ship:obt:period.
+  }
+  return ret_val.
+}
 
 function compass_of_vel {
   local pointing is ship:velocity:orbit.
@@ -114,7 +123,7 @@ function compass_of_vel {
 
 function circularize {
   print "Circularizing.".
-  lock steering to heading(compass_of_vel(), -(ship:verticalspeed/3)).
+  lock steering to heading(compass_of_vel(), -(eta_ap_with_neg()/3)).
   print "..Waiting for steering to finish locking in place.".
   wait until
     abs(steeringmanager:yawerror) < 2 and

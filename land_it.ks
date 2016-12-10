@@ -50,9 +50,10 @@ until burn_now {
   set deltaT to time:seconds - prev_time.
   set prev_time to time:seconds.
 }
+local initial_twr is ship:availablethrust / (ship:mass * ship:body:mu / (ship:body:radius+ship:altitude)^2).
 lock throttle to 1.
 wait until verticalspeed > -2.0.
-set descendPID to pidloop(0.08,0.015,0.02,0,1).
+set descendPID to pidloop(0.08, 0.04/initial_twr, 0.02, 0,1).
 lock throttle to descendPID:update(time:seconds, verticalspeed+descentSpeed()).
 lock steering to retro_or_up().
 wait until status="LANDED" or status="SPLASHED".
@@ -82,8 +83,7 @@ function descentSpeed {
 
   local twr is ship:availablethrust / (ship:mass * ship:body:mu / (ship:body:radius+ship:altitude)^2).
   local up_accel is (twr-1)/ship:mass.
-  print "eraseme: TWR="+twr.
-  return max(1.5, (alt:radar - safety_margin)*up_accel/5).
+  return max(1.5, (alt:radar - safety_margin)*up_accel/10).
 }
 
 // Return retrograde or up vectors depending on

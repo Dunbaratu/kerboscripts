@@ -3,8 +3,8 @@
 parameter other. // i.e. target, vessel("name"), or body("name").
 parameter skips. // number of steps to skip over.
 
-run prediction.
-run burn_util.
+run once "lib/prediction".
+run once "lib/burn".
 
 set ship:control:pilotmainthrottle to 0.
 

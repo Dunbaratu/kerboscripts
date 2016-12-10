@@ -1,7 +1,7 @@
 parameter other_thing. // i.e. target, vessel("name"), or body("name").
 
-run prediction.
-run burn_util.
+run once "/lib/prediction".
+run once "/lib/burn".
 
 
 set burn to inclination_match_burn(ship, other_thing:obt).

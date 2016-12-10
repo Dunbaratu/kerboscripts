@@ -2,7 +2,22 @@ print "Program to try to Rescue a Kerbal in Kerbin orbit.".
 
 wait until ship:unpacked.
 
-// Only run boot when launching, not when reloading vessel already
+switch to 1.
+if not exists("1:/lib")
+  createdir("1:/lib/").
+copypath("0:/lib/launch","/lib/").
+copypath("0:/lib/burn","/lib/").
+copypath("0:/lib/prediction","/lib/").
+copypath("0:/launch","").
+copypath("0:/rendezvous","").
+copypath("0:/match_inc","").
+copypath("0:/consts","").
+copypath("0:/stager","").
+// copypath("0:/station_dock_server","").
+// copypath("0:/station_dock_client","").
+
+
+// Only run lauch portion when launching, not when reloading vessel already
 // in space:
 if ship:periapsis < 100 and ship:body:name = "Gael" and (status = "LANDED" or status = "PRELAUNCH") {
 
@@ -27,20 +42,6 @@ if ship:periapsis < 100 and ship:body:name = "Gael" and (status = "LANDED" or st
     wait 0.
   }
 
-  switch to 1.
-  createdir("0:/lib").
-  copypath("0:/lib/launch","/lib/").
-  copypath("0:/lib/burn","/lib/").
-  copypath("0:/launch","").
-  copypath("0:/prediction","").
-  copypath("0:/rendezvous","").
-  copypath("0:/match_inc","").
-  copypath("0:/consts","").
-  copypath("0:/stager","").
-  // copypath("0:/station_dock_server","").
-  // copypath("0:/station_dock_client","").
-
-  set core:bootfilename to "".
   run launch( 90, target:periapsis, 0).
   lock steering to north.
   wait 15.

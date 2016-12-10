@@ -20,9 +20,10 @@ function burn_seconds {
   local F is SHIP:AVAILABLETHRUST.  // Force of burn.
   local m0 is SHIP:MASS. // starting mass
   local g0 is 9.802. 
-  local a0 is F/m0. // accel at start of burn.
   
-  // Getting ISP of first engine found active:
+  // The ISP of first engine found active:
+  // (For more accuracy with multiple differing engines,
+  // some kind of weighted average would be needed.)
   local ENGLIST is LIST().
   list ENGINES in ENGLIST.
   local ISP is 0.

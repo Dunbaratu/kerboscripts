@@ -13,8 +13,6 @@ function get_terrain_lasers {
   local laser_set is LIST().
   for p in parts {
     local module is p:getmodule("LaserDistModule").
-    if module:hasfield("Bend X") { module:setfield("Bend X", 0). }
-    if module:hasfield("Bend Y") { module:setfield("Bend Y", 0). }
     laser_set:add( module ).
     if laser_set:length >= 3 { break. } // only get the first 3 found.
   }
@@ -45,7 +43,7 @@ function get_laser_normal {
   if give_up { return ship:up:vector. }
   local points is LIST().
   for i in range(0,3) {
-    local hitPos is las[i]:part:position + dists[i]*(las[i]:part:facing:vector).
+    local hitPos is laser_set[i]:part:position + dists[i]*(laser_set[i]:part:facing:vector).
     points:add(hitPos).
   }
   local norm is VCRS( points[1] - points[0], points[2] - points[0]):normalized.

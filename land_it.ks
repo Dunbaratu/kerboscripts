@@ -122,14 +122,14 @@ function has_safe_distance {
     local dist is lasMod:getfield("distance").
     if dist >= 0 {
       set use_fallback to false.
-      set compare_dist to dist - (safety_margin+ship:velocity:surface:mag*deltaT*2.5).
+      set compare_dist to dist - (safety_margin+ship:velocity:surface:mag*deltaT*1.5).
       set test_dist to pos:mag.
       set label_prefix to "Margin (laser measured): ".
     }
   }
   if use_fallback {
     local groundPos to ship:body:geopositionof(pos):position.
-    set test_dist to (safety_margin+abs(verticalspeed)*deltaT*2.5).
+    set test_dist to (safety_margin+abs(verticalspeed)*deltaT*1.5).
     set compare_dist to vdot(pos-groundPos,ship:up:vector).
     set label_prefix to "Margin (terrain database guess): ".
   }

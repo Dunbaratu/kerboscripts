@@ -7,6 +7,7 @@ if not exists("1:/lib")
   createdir("1:/lib/").
 copypath("0:/lib/launch","/lib/").
 copypath("0:/lib/burn","/lib/").
+copypath("0:/lib/isp","/lib/").
 copypath("0:/lib/prediction","/lib/").
 copypath("0:/launch","").
 copypath("0:/rendezvous","").

@@ -2,7 +2,7 @@
 wait until ship:unpacked.
 // Only run boot when launching, not when reloading vessel already
 // in space:
-if ship:periapsis < 100 and ship:body = Kerbin and (status = "LANDED" or status = "PRELAUNCH") {
+if ship:periapsis < 100 and ship:body:name = "Gael" and (status = "LANDED" or status = "PRELAUNCH") {
 
   hudtext( "Unpacked. Now loading launch software.", 2, 2, 45, green, true).
   switch to 1.
@@ -10,6 +10,7 @@ if ship:periapsis < 100 and ship:body = Kerbin and (status = "LANDED" or status 
   copypath("0:/launch","").
   //copypath("0:/prediction","").
   copypath("0:/lib/burn","").
+  copypath("0:/lib/isp","lib/").
   //copypath("0:/rendezvous","").
   //copypath("0:/match_inc","").
   copypath("0:/consts","").

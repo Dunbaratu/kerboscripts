@@ -3,6 +3,7 @@
 
 run once consts.
 run once stager.
+run once "/lib/isp".
 
 // How many seconds will it take to perform the
 // given burn (given as a delta V scalar magnitude)
@@ -24,17 +25,7 @@ function burn_seconds {
   // The ISP of first engine found active:
   // (For more accuracy with multiple differing engines,
   // some kind of weighted average would be needed.)
-  local ENGLIST is LIST().
-  list ENGINES in ENGLIST.
-  local ISP is 0.
-  for eng in ENGLIST {
-    if eng:ISP > 0 {
-      set ISP to eng:ISP.
-    }
-  }
-  if ISP = 0 {
-    return 999999999.
-  }
+  local ISP is isp_calc().
 
   // From rocket equation, and definition of ISP:
   return (g0*ISP*m0/F)*( 1 - e^(-dv_mag/(g0*ISP)) ).
@@ -64,9 +55,9 @@ function do_burn_with_display {
   local dv_to_go is 9999999.
 
   // Throttle at max most of the way, but start throttling
-  // back when it seems like there's about 2 seconds left to thust:
+  // back when it seems like there's about 1.2 seconds left to thust:
   local avail_accel is ship:availablethrust / ship:mass.
-  lock mythrot to min(1, 0.05 + dv_to_go/(avail_accel)).
+  lock mythrot to min(1, 0.01 + dv_to_go/(1.2*avail_accel)).
   lock throttle to mythrot.
 
   print  "Burn dV remaining:         m/s" at (col,row).

@@ -30,7 +30,7 @@ until burn_now {
     ship:body:mu,
     ship:body:position,
     ship:availablethrust,
-    345,
+    isp_calc(),
     ship:mass,
     ship:velocity:surface,
     0.5,

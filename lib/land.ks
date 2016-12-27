@@ -1,4 +1,5 @@
 global draws is LIST(). // has to be global because of scoping bugs in vecdraw.
+run once "/lib/isp".
 
 // Run a math simulation of a retro landing thrust that locks to
 // retro direction at full throttle the whole time.  Result is a

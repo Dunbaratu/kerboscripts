@@ -89,13 +89,19 @@ function do_burn_with_display {
 // Go into a mode where it will obey all future maneuver nodes you may put in
 // it's way:
 function obey_node_mode {
-  parameter quit_condition.  // pass in a delegate that will return boolean true when you want it to end.
+  parameter
+    quit_condition,  // pass in a delegate that will return boolean true when you want it to end.
+    node_edit is "n/a".       // pass in a delegate that will edit precise nodes if called.
 
   until quit_condition:call() {
     clearscreen.
+    print "Type 'P' for precise node editor.".
     if not hasnode {
       hudtext("Waiting for a node to exist...", 10, 2, 30, red, true).
-      wait until hasnode or quit_condition:call().
+      until hasnode or quit_condition:call() {
+        wait 0.
+        just_obey_p_check(node_edit).
+      }
     }
     hudtext("I See a Node.  Waiting until just before it's supposed to burn.", 5, 2, 30, red, true).
 
@@ -108,6 +114,7 @@ function obey_node_mode {
           (nextnode:eta < 120 + half_burn_length) {
       set half_burn_length to burn_seconds(nextnode:deltaV:mag / 2).
       wait 0.2. // Don't re-calculate burn_seconds() more often than needed.
+      just_obey_p_check(node_edit).
     }
     if hasnode { // just in case the user deleted the node - don't want to crash.
       set warp to 0.
@@ -119,6 +126,17 @@ function obey_node_mode {
       hudtext("Node done, removing node.", 10, 5, 20, red, true).
       remove(n).
     }
+    just_obey_p_check(node_edit).
   }
 }
+function just_obey_p_check {
+  parameter node_edit. // a delegate to call when P is hit.
 
+  if node_edit:istype("Delegate") {
+    if terminal:input:haschar {
+      if terminal:input:getchar() = "p" {
+        node_edit:call().
+      }
+    }
+  }
+}

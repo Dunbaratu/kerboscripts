@@ -15,5 +15,4 @@ until count = 0 {
 hudtext("Launch!", 2, 2, 50, yellow, true).
 set ship:control:pilotmainthrottle to 0.
 
-print "Proof I am trying to call launch(). eraseme.".
-launch(compass, orbit_height, true, second_height, second_height_long).
+launch(compass, orbit_height, true, second_height, second_height_long, atmo_end).

@@ -33,37 +33,46 @@ if ship:periapsis < 100 and ship:body:name = launchbody and (status = "LANDED" o
   //copypath("0:/ca_land.ks","").
   //copypath("0:/lib_rover.ks","").
   //copypath("0:/use_rover.ks","").
+}
 
-  run once "/lib/menu".
+run once "/lib/menu".
+clearscreen.
 
-  clearscreen.
+local launch_params is get_launch_params().
 
-  local launch_params is get_launch_params().
-
-  if launch_params["go"] {
-    set core:bootfilename to "".
-    run launch( launch_params["heading"], launch_params["apoapsis"]).
-    lock steering to north.
-    wait 15.
-    unlock steering.
-    panels on.
-    lights on.
-    print "launch done.".
-    set core:bootfilename to "just_obey_nodes.ks".
-    print "Rebooting into just obey nodes mode.".
-    wait 1.
-    reboot.
-  } else {
-    print "Launch Cancelled.  Reboot kOS computer to try again.".
-  }
+if launch_params["go"] {
+  set core:bootfilename to "".
+  run launch(
+    launch_params["heading"],
+    launch_params["apoapsis"],
+    5,
+    -1,
+    -1,
+    launch_params["atmo_end"]
+    ).
+  lock steering to north.
+  wait 15.
+  unlock steering.
+  panels on.
+  lights on.
+  print "launch done.".
+  set core:bootfilename to "just_obey_nodes.ks".
+  print "Rebooting into just obey nodes mode.".
+  wait 1.
+  reboot.
+} else {
+  print "Launch Cancelled.  Reboot kOS computer to try again.".
 }
 
 function get_launch_params {
   local params is LEX(
     "heading", 90,
     "apoapsis", 80000,
+    "atmo_end", 70000,
     "go", false
     ).
+
+  redraw_params(params).
 
   local param_menu is make_menu( 0, 0, 40, 10, "Launch Parameters",
       LIST(
@@ -91,6 +100,19 @@ function get_launch_params {
             )
           )
         ),
+        LIST( "Atmo Alt", make_menu (0, 0, 20, 15, "Atmosphere Altitude",
+            LIST(
+              LIST("+10000",  inc_tuple_thing@:bind(params, "atmo_end", 10000)   ),
+              LIST("+1000",   inc_tuple_thing@:bind(params, "atmo_end", 1000)    ),
+              LIST("+100",    inc_tuple_thing@:bind(params, "atmo_end", 100)     ),
+              LIST("+10",     inc_tuple_thing@:bind(params, "atmo_end", 10)      ),
+              LIST("-10",     inc_tuple_thing@:bind(params, "atmo_end", -10)     ),
+              LIST("-100",    inc_tuple_thing@:bind(params, "atmo_end", -100)    ),
+              LIST("-1000",   inc_tuple_thing@:bind(params, "atmo_end", -1000)   ),
+              LIST("-10000",  inc_tuple_thing@:bind(params, "atmo_end", -10000)  )
+            )
+          )
+        ),
         LIST( "GO!", { set params["go"] to true. redraw_params(params). } ),
         LIST( "Abort!", { set params["go"] to false. redraw_params(params). } )
       )
@@ -114,9 +136,10 @@ function redraw_params {
 
   print " Heading: " + the_lex[ "heading"] + "   " at (terminal:width - 17, 0).
   print "Apoapsis: " + the_lex["apoapsis"] + "   " at (terminal:width - 17, 1).
+  print "Atmo Alt: " + the_lex["atmo_end"] + "   " at (terminal:width - 17, 2).
   if the_lex["go"] {
-    print "  Launch is GO! " at (terminal:width - 17, 2).
+    print "  Launch is GO! " at (terminal:width - 17, 3).
   } else {
-    print " Will Not Launch" at (terminal:width - 17, 2).
+    print " Will Not Launch" at (terminal:width - 17, 3).
   }
 }

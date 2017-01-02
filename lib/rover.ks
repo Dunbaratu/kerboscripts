@@ -22,6 +22,7 @@ local obstacle_lasers is 0.
 local leveler_lasers is 0.
 local battery_full is 0.
 local debug is false.
+local leveler_deadzone is 3. // don't let leveler steering get integral windup for sitting unlevel.
 
 on abort {
   brakes on.
@@ -37,13 +38,20 @@ on abort {
 function drive_to {
   parameter geopos, cruise_spd, proximity_needed is 10, offset_pitch is 0.
 
-  local steer_pid is PIDLOOP(0.010, 0.0001, 0.005, -1, 1).
+  local steer_pid is PIDLOOP(0.003, 0.0001, 0.002, -1, 1).
   local throttle_pid is PIDLOOP(0.5, 0.01, 0.2, -1, 1).
   
   local steering_off_timestamp is 0.
   local steering_backup_timestamp is 0.
   local collision_eta is 0.
   local collision_steer_sign is 1.
+
+  local v1 is getvoice(1).
+  set v1:wave to "pulse".
+  set v1:volume to 1.
+  set v1:attack to 0.1.
+  set v1:sustain to 1.
+  set v1:release to 0.1.
 
   if debug {
     set debug_drawnorm to vecdraw(v(0,0,0), ship:up:vector, white, "collision_norm", 1, true).
@@ -105,12 +113,21 @@ function drive_to {
     
     if is_upsidedown(offset_pitch) {
       flip_me(offset_pitch).
+      v1:play(list(note(250,0.1), note(200,0.1))).
       unlock steering.
       steer_pid:reset().
       throttle_pid:reset().
     }
     if has_leveler_lasers {
       lock steering to level_orientation(leveler_lasers).
+
+      // Prevent integral windup that comes from having a rover
+      // that doesn't sit level on it's wheels and is always a
+      // few degrees off from lined up with the terrain:
+      if steeringmanager:angleerror < leveler_deadzone {
+        steeringmanager:resetpids().
+      }
+
     }
     if has_obstacle_lasers {
       set collision_eta to collision_danger(obstacle_lasers).
@@ -126,7 +143,7 @@ function drive_to {
           // Force it to keep going backward for several seconds ignoring all other factors,
           // unless it's already in the midst of doing that:
           if time:seconds > steering_backup_timestamp {
-            set steering_backup_timestamp to time:seconds + 2.
+            set steering_backup_timestamp to time:seconds + 5.
           }
         }
       }
@@ -146,6 +163,7 @@ function drive_to {
     print "LASERS: obstacle detect: " + has_obstacle_lasers + ", leveler: " + has_leveler_lasers.
     if time:seconds < steering_off_timestamp {
       print "NOW IN COLLISION AVOIDANCE MODE!".
+      v1:play(slidenote(300,500,0.2,0.1)).
       if collision_eta < 0 {
         print "FORCING AIM TO THE LEFT.".
       } else if collision_eta > 0 {
@@ -164,6 +182,12 @@ function drive_to {
       las:SETFIELD("Enabled", false).
     }
   }
+  if has_leveler_lasers {
+    for las in leveler_lasers {
+      las:SETFIELD("Enabled", false).
+    }
+  }
+  wait 0.
 }
 
 function level_orientation {

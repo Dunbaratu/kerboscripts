@@ -83,7 +83,13 @@ function descentSpeed {
 
   local twr is ship:availablethrust / (ship:mass * ship:body:mu / (ship:body:radius+ship:altitude)^2).
   local up_accel is (twr-1)/ship:mass.
-  return max(1.5, (alt:radar - safety_margin)*up_accel/10).
+
+  // This formula is supposed to be:
+  //    "What speed could I have in which I would be able to stop
+  //    in the available distance?" (Times a fudge factor of 0.9
+  //    to give a speed a little bit slower than that.)
+  // WARNING: THIS IS TOTALLY UNTESTED!!!
+  return max(1.5, 0.9*sqrt(alt:radar - safety_margin)*up_accel*2)).
 }
 
 // Return retrograde or up vectors depending on

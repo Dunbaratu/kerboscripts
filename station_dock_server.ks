@@ -56,57 +56,60 @@ function process_dockwanted {
   }
   if did_find {
     local port_name is found_part:TAG.
-    other_ves:connection:sendMessage(LEXICON("TYPE", "DOCKALLOWED", "TAG", port_name)).
-    print "Found a suitable docking port: " + found_part.
+    local other_port_name is data["TAG"].
+    local other_port_list is other_ves:partstagged(other_port_name).
+    if other_port_list:LENGTH = 0 {
+      print "Client sent us a port name that's not there.".
+    } else {
+      local other_port is other_port_list[0].
+      other_ves:connection:sendMessage(LEXICON("TYPE", "DOCKALLOWED", "TAG", port_name)).
+      print "Found a suitable docking port: " + found_part.
 
 
-    if found_part:hasmodule("ModuleAnimateGeneric") {
-      local mod is found_part:getmodule("ModuleAnimateGeneric").
-      if mod:hasevent("open shield") {
-        mod:doevent("open shield").
-        print "Opening Shield for the port.".
+      if found_part:hasmodule("ModuleAnimateGeneric") {
+        local mod is found_part:getmodule("ModuleAnimateGeneric").
+        if mod:hasevent("open shield") {
+          mod:doevent("open shield").
+          print "Opening Shield for the port.".
+        }
+        if mod:hasevent("open") {
+          mod:doevent("open").
+          print "Opening Shield for the port.".
+        }
       }
-      if mod:hasevent("open") {
-        mod:doevent("open").
-        print "Opening Shield for the port.".
+
+
+      local light_name is port_name + "_light".
+      local indicator_lights is ship:partstagged(light_name).
+      light_change( indicator_lights, yellow, true ).
+
+
+      print "Orienting port to face client. Color will turn green when ready.".
+      found_part:CONTROLFROM().
+      lock steering to orient_to_client(found_part, other_ves).
+
+      wait 0.001.
+      wait 0.001.
+
+
+      wait until abs(steeringmanager:angleerror) < 1 and abs(steeringmanager:rollerror) < 1.
+      light_change( indicator_lights, green, true ).
+
+      set old_steering to orient_to_client(found_part, other_port).
+      lock steering to old_steering.
+
+      other_ves:connection:sendMessage(LEXICON("TYPE", "DOCKREADY", "TAG", port_name)).
+      print "Waiting for dock to happen.".
+      until found_part:STATE = "Docked (docker)" or
+            found_part:STATE = "Docked (dockee)" or
+            found_part:STATE = "Docked (same vessel)" {
+        wait 0.0001.
       }
+      print "Dock Happened.".
+      light_change( indicator_lights, red, false ).
+      unlock steering.
+      set ship:control:neutralize to true.
     }
-
-
-    local light_name is port_name + "_light".
-    local indicator_lights is ship:partstagged(light_name).
-    light_change( indicator_lights, yellow, true ).
-
-
-    print "Orienting port to face client. Color will turn green when ready.".
-    found_part:CONTROLFROM().
-    lock steering to orient_to_client(found_part, other_ves).
-
-    wait 0.001.
-    wait 0.001.
-
-
-    wait until abs(steeringmanager:angleerror) < 1 and abs(steeringmanager:rollerror) < 1.
-    light_change( indicator_lights, green, true ).
-
-    set old_steering to orient_to_client(found_part, other_ves).
-    lock steering to old_steering.
-
-    other_ves:connection:sendMessage(LEXICON("TYPE", "DOCKREADY", "TAG", port_name)).
-    print "Waiting for dock to happen.".
-    until found_part:STATE = "Docked (docker)" or
-          found_part:STATE = "Docked (dockee)" or
-          found_part:STATE = "Docked (same vessel)" {
-      set new_steering to orient_to_client(found_part, other_ves).
-      if VANG(new_steering, old_steering) < 2 {
-        set old_steering to new_steering.
-      }
-      wait 0.0001.
-    }
-    print "Dock Happened.".
-    light_change( indicator_lights, red, false ).
-    unlock steering.
-    set ship:control:neutralize to true.
   } else {
     print "Could not find a docking port of that size that had a name tag.".
     print "  - Refusing dock request.".
@@ -151,9 +154,9 @@ function light_change {
 }
 
 function orient_to_client {
-  parameter port, clientship.
+  parameter port, clientport.
 
+  local positionVec is clientport:position - port:position.
 
-  local positionVec is clientship:position - ship:position.
   return positionVec.
 }

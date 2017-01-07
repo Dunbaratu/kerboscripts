@@ -25,12 +25,11 @@ if ship:periapsis < 100 and ship:body:name = launchbody and (status = "LANDED" o
   copypath("0:/precise_node","").
   copypath("0:/songs/happy", "songs/").
 
-  //copypath("0:/prediction","").
-  //copypath("0:/rendezvous","").
-  //copypath("0:/match_inc","").
-  //copypath("0:/station_dock_server","").
-  //copypath("0:/station_dock_client","").
-  //copypath("0:/ca_land.ks","").
+  copypath("0:/prediction","").
+  copypath("0:/rendezvous","").
+  copypath("0:/match_inc","").
+  copypath("0:/station_dock_server","").
+  copypath("0:/station_dock_client","").
   //copypath("0:/lib_rover.ks","").
   //copypath("0:/use_rover.ks","").
 }

@@ -7,7 +7,7 @@ parameter safety_margin is 5.
 local first_aim is true.
 
 set burn_now to false.
-sas off.
+SAS off.
 lock steering to srfretrograde.
 gear on.
 
@@ -89,7 +89,7 @@ function descentSpeed {
   //    in the available distance?" (Times a fudge factor of 0.9
   //    to give a speed a little bit slower than that.)
   // WARNING: THIS IS TOTALLY UNTESTED!!!
-  return max(1.5, 0.9*sqrt(alt:radar - safety_margin)*up_accel*2)).
+  return max( 1.5, sqrt((alt:radar - safety_margin)/(2*up_accel)) ).
 }
 
 // Return retrograde or up vectors depending on
@@ -98,6 +98,9 @@ function descentSpeed {
 function retro_or_up {
   if ship:verticalspeed > -0.2
     return lookdirup(ship:up:vector, ship:facing:topVector).
+  else if ship:verticalspeed > -10
+    // Aim at a vector exactly halfway between true surface retro and straight up:
+    return lookdirup(ship:up:vector:normalized + srfretrograde:vector:normalized, ship:facing:topVector).
   else
     return lookdirup(srfretrograde:vector, ship:facing:topvector).
 }

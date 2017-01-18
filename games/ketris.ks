@@ -501,11 +501,11 @@ function full_row_check {
       set y to y - 1. // iterate the loop counter (don't do if we deleted a row because that shifts rows down).
     }
   }
-  set prev_row_wipe_timestamp to time:seconds.
 
   if rows_removed > 0 {
     redraw_playfield().
     row_delete_sound(rows_removed).
+    set prev_row_wipe_timestamp to time:seconds.
   }
 }
 

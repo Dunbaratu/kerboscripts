@@ -55,7 +55,7 @@ until worked {
 
           print "Remote side said I should dock with '"+msg:content["TAG"]+"' port.".
           local tgt_port is tgt:partstagged( msg:content["TAG"] )[0].
-          lock steering to lookdirup(-tgt_port:portfacing:vector, tgt_port:portfacing,topvector).
+          lock steering to lookdirup(-tgt_port:portfacing:vector, tgt_port:portfacing:topvector).
 
           print "Controlling from my port".
           thePort:controlfrom().

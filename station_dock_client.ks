@@ -109,30 +109,37 @@ function do_dock {
   RCS on.
 
   local fore_control      is PIDLoop( 2, 0.001, 0.5, -1, 1 ).
-  local top_control       is PIDLoop( 2, 0.001, 0.5, -1, 1 ).
-  local starboard_control is PIDLoop( 2, 0.001, 0.5, -1, 1 ).
+  local top_control       is PIDLoop( 0.2, 0.001, 0.4, -1, 1 ).
+  local starboard_control is PIDLoop( 0.2, 0.0001, 0.4, -1, 1 ).
 
   until from_port:STATE = "Docked (docker)" or
         from_port:STATE = "Docked (dockee)" or
         from_port:STATE = "PreAttached" or
+        from_port:STATE = "ACQUIRE" or
         from_port:STATE = "Docked (same vessel)" {
 
     local rel_spd_fore is vdot(ship:facing:forevector,
-    from_port:ship:velocity:orbit - to_port:ship:velocity:orbit ).
-    local rel_spd_top is vdot(ship:facing:topvector,
-    from_port:ship:velocity:orbit - to_port:ship:velocity:orbit ).
-    local rel_spd_starboard is vdot(ship:facing:starvector,
-    from_port:ship:velocity:orbit - to_port:ship:velocity:orbit ).
+      from_port:ship:velocity:orbit - to_port:ship:velocity:orbit ).
 
+    local rel_port_pos is to_port:position - from_port:position.
+    local rel_pos_top is vdot(ship:facing:topvector, rel_port_pos).
+    local rel_pos_starboard is vdot(ship:facing:starvector, rel_port_pos).
 
+    // ----- Was this ----- :
+    // local rel_spd_top is vdot(ship:facing:topvector,
+    //   from_port:ship:velocity:orbit - to_port:ship:velocity:orbit ).
+    // local rel_spd_starboard is vdot(ship:facing:starvector,
+    //   from_port:ship:velocity:orbit - to_port:ship:velocity:orbit ).
+
+    // Note, this drives the forward part of the RCS thrust vector by
+    // our relative SPEED, but drives the top and starboard parts of
+    // the RCS thrust vector by our relative POSITIONS:
     set ship:control:fore to fore_control:UPDATE(
-    time:seconds, rel_spd_fore - wanted_approach_speed(from_port, to_port) ).
-
-
+      time:seconds, rel_spd_fore - wanted_approach_speed(from_port, to_port) ).
     set ship:control:top to top_control:UPDATE(
-    time:seconds, rel_spd_top ).
+      time:seconds, - rel_pos_top ).
     set ship:control:starboard to starboard_control:UPDATE(
-    time:seconds, rel_spd_starboard ).
+      time:seconds, - rel_pos_starboard ).
 
     wait 0.0001.
   }

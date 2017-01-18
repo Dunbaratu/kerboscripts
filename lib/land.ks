@@ -27,6 +27,11 @@ function sim_land_spot {
     t_delta, // seconds per timestep in the simulation loop.
     do_draws is false.
 
+  if t_max <= 0 {
+    // THIS FUNCTION WOULD LOOP FOREVER AND NEVER END
+    // IF CALLED WITH NO THRUST CAPABILITY:
+    return Lex( "pos", V(0,0,0), "vel", V(0,0,0), "seconds", 99999999, "mass", 0, "draws", false).
+  }
   local pos is V(0,0,0). // current new position relative to start pos.
   local t is 0. // elapsed time since burn start.
   local vel is v_init. // current new velocity.  Goal is for this to zero out.

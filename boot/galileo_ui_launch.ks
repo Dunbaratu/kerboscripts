@@ -24,6 +24,7 @@ if ship:periapsis < 100 and ship:body:name = launchbody and (status = "LANDED" o
   copypath("0:/just_obey_nodes.ks","").
   copypath("0:/precise_node","").
   copypath("0:/songs/happy", "songs/").
+  copypath("0:/songs/sad", "songs/").
 
   copypath("0:/prediction","").
   copypath("0:/rendezvous","").

@@ -1,19 +1,19 @@
 set song_happy to  LEXICON(
   "setup", {
-    local v is getvoice(0).
-    set v:attack to 0.02.
-    set v:decay to 0.01.
-    set v:sustain to 0.8.
-    set v:release to 0.02.
-    set v:wave to "triangle".
-    set v:tempo to 1.5.
-    set v to getvoice(1).
-    set v:attack to 0.05.
-    set v:decay to 0.0.
-    set v:sustain to 1.0.
-    set v:release to 0.2.
-    set v:wave to "sine".
-    set v:tempo to 1.5.
+    local vv is getvoice(0).
+    set vv:attack to 0.02.
+    set vv:decay to 0.01.
+    set vv:sustain to 0.8.
+    set vv:release to 0.02.
+    set vv:wave to "triangle".
+    set vv:tempo to 1.5.
+    set vv to getvoice(1).
+    set vv:attack to 0.05.
+    set vv:decay to 0.0.
+    set vv:sustain to 1.0.
+    set vv:release to 0.2.
+    set vv:wave to "sine".
+    set vv:tempo to 1.5.
     },
   "voices", LIST(0, 1),
   0, LIST( // rhythm line

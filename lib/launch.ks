@@ -27,6 +27,13 @@ function launch {
   lock steering to heading(dest_compass, 90 - 90*(altitude/alt_divisor)^(2/5)).
   lock throttle to 1.
    
+  // Flip steering to use whatever current prograde heading is once
+  // the ship has been going a while:
+  local launch_start is time:seconds.
+  when time:seconds > launch_start + 30 then {
+    print "Now aiming at whatever direction velocity already is.".
+    lock steering to heading(compass_of_vel(ship:velocity:surface), 90 - 90*(altitude/alt_divisor)^(2/5)).
+  }
   // set staging_on to false to effectively remove this trigger:
   global staging_on is true.
   when true then {
@@ -43,7 +50,6 @@ function launch {
   }
 
 
-
   wait until ship:apoapsis > first_dest_ap.
 
   print "Apoapsis now " + first_dest_ap + ".".
@@ -58,7 +64,7 @@ function launch {
 
   print "Coasting to Ap.".
   lock throttle to 0.
-  lock steering to heading(dest_compass, 0).
+  lock steering to heading(compass_of_vel(ship:velocity:orbit), 0).
 
   wait until eta:apoapsis < 10.
 
@@ -106,7 +112,7 @@ function eta_ap_with_neg {
 }
 
 function compass_of_vel {
-  local pointing is ship:velocity:orbit.
+  parameter pointing. // ship:velocity:orbit or ship:velocity:surface
   local east is east_for(ship).
 
   local trig_x is vdot(ship:north:vector, pointing).
@@ -123,7 +129,7 @@ function compass_of_vel {
 
 function circularize {
   print "Circularizing.".
-  lock steering to heading(compass_of_vel(), -(eta_ap_with_neg()/3)).
+  lock steering to heading(compass_of_vel(ship:velocity:orbit), -(eta_ap_with_neg()/3)).
   print "..Waiting for steering to finish locking in place.".
   wait until
     abs(steeringmanager:yawerror) < 2 and

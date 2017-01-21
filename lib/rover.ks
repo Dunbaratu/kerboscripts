@@ -38,7 +38,7 @@ on abort {
 function drive_to {
   parameter geopos, cruise_spd, proximity_needed is 10, offset_pitch is 0.
 
-  local steer_pid is PIDLOOP(0.003, 0.0001, 0.002, -1, 1).
+  local steer_pid is PIDLOOP(0.002, 0.00002, 0.002, -1, 1).
   local throttle_pid is PIDLOOP(0.5, 0.01, 0.2, -1, 1).
   
   local steering_off_timestamp is 0.

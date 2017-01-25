@@ -3,6 +3,12 @@ print "This is a program that just obeys whatever manuever nodes you put in fron
 
 run once "lib/burn".
 
+if not SHIP:UNPACKED {
+  print "Waiting for ship to unpack.".
+  wait until SHIP:UNPACKED.
+  print "Ship is now unpacked.".
+}
+
 local prev_ag10 is ag10.
 
 print "Toggle action group 10 to quit.".

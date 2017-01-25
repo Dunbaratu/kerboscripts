@@ -2,6 +2,7 @@
 // Time mark 4min 40sec of the twitch stream for 2016-12-27:
 // ----------------------------------------------------------------
 function isp_calc {     //-----calculates the average isp of all of the active engins on the ship-----
+
   LIST ENGINES IN engineList.
   LOCAL totalFlow IS 0.
   LOCAL totalThrust IS 0.

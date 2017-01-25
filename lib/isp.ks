@@ -8,7 +8,8 @@ function isp_calc {     //-----calculates the average isp of all of the active e
   LOCAL totalThrust IS 0.
   FOR engine IN engineList {
     IF engine:IGNITION AND NOT engine:FLAMEOUT {
-      SET totalFlow TO totalFlow + (engine:AVAILABLETHRUST / (engine:ISP * 9.802)).
+      // the 9.802 term is wrong?: SET totalFlow TO totalFlow + (engine:AVAILABLETHRUST / (engine:ISP * 9.802)).
+      SET totalFlow TO totalFlow + (engine:AVAILABLETHRUST / engine:ISP).
       SET totalThrust TO totalThrust + engine:AVAILABLETHRUST.
     }
   }

@@ -1,13 +1,16 @@
 clearscreen.
 print "This is a program that just obeys whatever manuever nodes you put in front of it.".
 
-run once "lib/burn".
-
 if not SHIP:UNPACKED {
   print "Waiting for ship to unpack.".
   wait until SHIP:UNPACKED.
+  // give it time after unpacking to "really" work:
+  wait 0.
+  wait 0.
   print "Ship is now unpacked.".
 }
+
+run once "lib/burn".
 
 local prev_ag10 is ag10.
 

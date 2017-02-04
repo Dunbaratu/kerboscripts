@@ -1,4 +1,4 @@
-parameter dest, speed.
+parameter dest, speed, prox is 10, offpitch is 0.
 
 run once "/lib/rover".
 
@@ -15,5 +15,5 @@ if dest:istype("vessel") or dest:istype("waypoint") {
   set do_it to false.
 }
 if do_it {
-  drive_to(point, speed).
+  drive_to(point, speed, prox, offpitch).
 }

@@ -16,6 +16,11 @@ function launch {
 
   if second_dest_ap < 0 { set second_dest_ap to first_dest_ap. }
 
+  local fairings is ship:modulesnamed("ModuleProceduralFairing").
+  if fairings:length > 0 {
+    print fairings:length + " Part(s) with fairing deployment found.".
+    print "Will engage fairings at high altitude.".
+  }
 
   // For all atmo launches with fins it helps to teach it that the fins help
   // torque, which it fails to realize:
@@ -24,7 +29,7 @@ function launch {
   if atmo_end = 0 {
     set alt_divisor to first_dest_ap / 3.
   }
-  lock steering to heading(dest_compass, 90 - 90*(altitude/alt_divisor)^(2/5)).
+  lock steering to heading(dest_compass, 90 - 90*(use_alt()/alt_divisor)^(2/5)).
   lock throttle to 1.
    
   // Flip steering to use whatever current prograde heading is once
@@ -47,8 +52,16 @@ function launch {
       stage.
       steeringmanager:resetpids().
     }
+    if fairings:length > 0 {
+      if ship:Q < 2.5 and ship:altitude > atmo_end/2 {
+        print "!!Deploying all fairings!!".
+        for fairing in fairings {
+          fairing:doevent("deploy").
+        }
+        set fairings to LIST().  // Make it empty so it won't re-trigger this.
+      }
+    }
   }
-
 
   wait until ship:apoapsis > first_dest_ap.
 
@@ -94,6 +107,14 @@ function launch {
 
   set staging_on to false.
   wait 0.01. // make sure there's one run through the trigger to unpreserve it.
+}
+
+function use_alt {
+  local rad_alt is alt:radar.
+  if rad_alt > 0 and rad_alt < 2000 
+    return rad_alt.
+  else
+    return altitude.
 }
 
 function east_for {

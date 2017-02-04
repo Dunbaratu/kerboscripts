@@ -14,25 +14,25 @@ run once "lib/menu".
     "eta, seconds",
     { return nextnode:eta. },
     { parameter val. set nextnode:eta to val. },
-    { print "ETA secs: " + round(nextNode:eta,2) + "   " at (terminal:width - 25, terminal:height - 3). }
+    { print "ETA secs: " + round(nextNode:eta,2) + "   " at (terminal:width - 28, terminal:height - 4). }
     ).
   local pro_menu is make_knob_menu(
     "(retro/pro)grade",
     { return nextnode:prograde. },
     { parameter val. set nextnode:prograde to val. },
-    { print "Prograde: " + round(nextNode:prograde,2) + "   " at (terminal:width - 25, terminal:height - 2). }
+    { print "Prograde: " + round(nextNode:prograde,2) + "   " at (terminal:width - 28, terminal:height - 3). }
     ).
   local normal_menu is make_knob_menu(
     "(anti)normal",
     { return nextnode:normal. },
     { parameter val. set nextnode:normal to val. },
-    { print "  Normal: " + round(nextNode:normal,2) + "   " at (terminal:width - 25, terminal:height - 1). }
+    { print "  Normal: " + round(nextNode:normal,2) + "   " at (terminal:width - 28, terminal:height - 2). }
     ).
   local radial_menu is make_knob_menu(
     "radial (in/out)",
     { return nextnode:radialout. },
     { parameter val. set nextnode:radialout to val. },
-    { print "  Radial: " + round(nextNode:radialout,2) + "   " at (terminal:width - 25, terminal:height - 0). }
+    { print "  Radial: " + round(nextNode:radialout,2) + "   " at (terminal:width - 28, terminal:height - 1). }
     ).
 
   local node_menu is make_menu(3,3,40,10, "Adjust Node",
@@ -72,5 +72,11 @@ function make_knob_menu {
         )
       ).
 
+  // Also call the draw-ers once as we make the menu, so
+  // the screen starts with the node's current values
+  // all being shown:
+  drawer:call().
+
   return submenu.
 }
+

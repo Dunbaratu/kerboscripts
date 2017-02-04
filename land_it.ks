@@ -4,6 +4,7 @@ run once "/songs/happy".
 run once "/songs/sad".
 
 parameter safety_margin is 5.
+parameter skycrane is false.
 
 if ship:availablethrust <= 0 {
   // BIG WARNING:
@@ -92,6 +93,12 @@ local partCount_before is ship:parts:length.
 wait until status="LANDED" or status="SPLASHED".
 brakes on.
 unlock steering.
+if skycrane {
+  // stage the skycrane away before cutting throttle.
+  print "SkyCrane Staging Event!".
+  stage.
+  wait 0.1.
+}
 unlock throttle.
 SAS on.
 set vd1 to 0.

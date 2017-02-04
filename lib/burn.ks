@@ -109,12 +109,19 @@ function obey_node_mode {
     // so this has to keep re-calculating whether or not it's time to 
     // drop from time warp based on the new changes the user is doing:
     local half_burn_length is 0.
+    local full_burn_length is 0.
+    local dv_mag is 0.
     until (not hasnode) // escape early if the user deleted the node
           or
           (nextnode:eta < 120 + half_burn_length) {
-      set half_burn_length to burn_seconds(nextnode:deltaV:mag / 2).
-      wait 0.2. // Don't re-calculate burn_seconds() more often than needed.
+      set dv_mag to nextnode:deltaV:mag.
+      set half_burn_length to burn_seconds(dv_mag/ 2).
+      set full_burn_length to burn_seconds(dv_mag).
+      print "Dv: " + round(dv_mag,2) + " m/s  " at (0,7).
+      print "Est Full Dv Burn: " + round(full_burn_length,1) + " s  " at (0,8).
+      print "Est Half Dv Burn: " + round(half_burn_length,1) + " s  " at (0,9).
       just_obey_p_check(node_edit).
+      wait 0.2. // Don't re-calculate burn_seconds() more often than needed.
     }
     if hasnode { // just in case the user deleted the node - don't want to crash.
       set warp to 0.

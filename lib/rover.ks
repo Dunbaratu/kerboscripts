@@ -38,7 +38,7 @@ on abort {
 function drive_to {
   parameter geopos, cruise_spd, proximity_needed is 10, offset_pitch is 0.
 
-  local steer_pid is PIDLOOP(0.002, 0.00002, 0.002, -1, 1).
+  local steer_pid is PIDLOOP(0.01, 0.00002, 0.01, -1, 1).
   local throttle_pid is PIDLOOP(0.5, 0.01, 0.2, -1, 1).
   
   local steering_off_timestamp is 0.
@@ -81,14 +81,7 @@ function drive_to {
     // with telling it to level itself, then make sure that
     // doesn't interfere with the ability to steer in the
     // yaw axis when ship:control:wheelsteer is set to nonzero values:
-    set steeringmanager:RollControlAngleRange to 180.
-    local yawkiller to steeringmanager:yawpid.
-    set yawkiller:Kp to 0.
-    set yawkiller:Kd to 0.
-    set yawkiller:Ki to 0.
-    // Trick it into thinking it has way more torque than it does, so it
-    // will only issue very nerf'ed inputs that are wimpy:
-    set steeringManager:yawts to 999999999.
+    disable_yaw().
   }
 
   brakes off.
@@ -119,7 +112,7 @@ function drive_to {
       throttle_pid:reset().
     }
     if has_leveler_lasers {
-      lock steering to level_orientation(leveler_lasers).
+      lock steering to level_orientation(offset_pitch, leveler_lasers).
 
       // Prevent integral windup that comes from having a rover
       // that doesn't sit level on it's wheels and is always a
@@ -187,14 +180,48 @@ function drive_to {
       las:SETFIELD("Enabled", false).
     }
   }
+  enable_yaw().
   wait 0.
 }
 
+global yaw_disable_roll_angle_orig is 0.
+global yaw_disable_Kp_orig is 0.
+global yaw_disable_Ki_orig is 0.
+global yaw_disable_Kd_orig is 0.
+global yaw_disable_Ts_orig is 0.
+
+function disable_yaw {
+  set raw_disable_roll_angle_orig to  steeringmanager:RollControlAngleRange.
+  set steeringmanager:RollControlAngleRange to 180.
+  local yawkiller to steeringmanager:yawpid.
+  set yaw_disable_Kp_orig to yawkiller:Kp.
+  set yaw_disable_Ki_orig to yawkiller:Ki.
+  set yaw_disable_Kd_orig to yawkiller:Kd.
+  set yawkiller:Kp to 0.
+  set yawkiller:Ki to 0.
+  set yawkiller:Kd to 0.
+  // Trick it into thinking it has way more torque than it does, so it
+  // will only issue very nerf'ed inputs that are wimpy:
+  set yaw_disable_Ts_orig to steeringManager:yawts.
+  set steeringManager:yawts to 999999999.
+}
+
+function enable_yaw {
+  set steeringmanager:RollControlAngleRange to yaw_disable_roll_angle_orig.
+  local yawkiller to steeringmanager:yawpid.
+  set yawkiller:Kp to yaw_disable_Kp_orig.
+  set yawkiller:Kd to yaw_disable_Ki_orig.
+  set yawkiller:Ki to yaw_disable_Kd_orig.
+  // Trick it into thinking it has way more torque than it does, so it
+  // will only issue very nerf'ed inputs that are wimpy:
+  set steeringManager:yawts to yaw_disable_Ts_orig.
+}
+
 function level_orientation {
-  parameter leveler_lasers.
+  parameter offset_pitch, leveler_lasers.
   local norm is get_laser_normal(leveler_lasers).
 
-  return lookdirup(ship:facing:forevector, norm).
+  return lookdirup(rotated_forevector(offset_pitch), norm).
 }
 
 // Use forward facing collision lasers to detect the slope ahead of us.  If it's

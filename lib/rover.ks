@@ -38,7 +38,7 @@ on abort {
 function drive_to {
   parameter geopos, cruise_spd, proximity_needed is 10, offset_pitch is 0.
 
-  local steer_pid is PIDLOOP(0.01, 0.00002, 0.01, -1, 1).
+  local steer_pid is PIDLOOP(0.01, 0.00002, 0.003, -1, 1).
   local throttle_pid is PIDLOOP(0.5, 0.01, 0.2, -1, 1).
   
   local steering_off_timestamp is 0.
@@ -402,10 +402,8 @@ function wanted_speed {
   local bear is rotated_bearing(spot, offset_pitch).
   local return_val is 0.
   if bear = 0 {
-    set return_val to min( 0.5 + spot:distance / 10, cruise_spd).
-  } else {
-    set return_val to min( abs(90/bear), min( 0.5 + spot:distance / 10, cruise_spd)).
-  }
+    set bear to 0.001. // avoid divide-by-zero in next line.
+  set return_val to min( abs(90/bear), min( 0.5 + spot:distance / 20, cruise_spd)).
   // If there is an obstacle detector laser, use it.
   if has_obstacle_lasers {
     local dist is obstacle_lasers[0]:GetField("Distance").

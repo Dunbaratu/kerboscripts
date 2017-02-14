@@ -86,7 +86,7 @@ local initial_twr is ship:availablethrust / (ship:mass * ship:body:mu / (ship:bo
 lock throttle to 1.
 wait until verticalspeed > -2.0.
 print "Now in final touchdown vertical descent.".
-set descendPID to pidloop(0.5/initial_twr, 0.1/initial_twr, 0.05/initial_twr, 0, 1).
+set descendPID to pidloop(1/initial_twr, 0.1/initial_twr, 0.5/initial_twr, 0, 1).
 lock throttle to descendPID:update(time:seconds, verticalspeed+descentSpeed()).
 lock steering to retro_or_up().
 local partCount_before is ship:parts:length.

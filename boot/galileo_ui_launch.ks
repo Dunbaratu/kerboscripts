@@ -3,7 +3,7 @@ wait until ship:unpacked.
 // Only run boot when launching, not when reloading vessel already
 // in space:
 parameter launchbody is "Gael".
-if ship:periapsis < 100 and ship:body:name = launchbody and (status = "LANDED" or status = "PRELAUNCH") {
+if ship:apoapsis < 500 and ship:body:name = launchbody and (status = "LANDED" or status = "PRELAUNCH") {
 
   hudtext( "Unpacked. Now loading launch software.", 2, 2, 45, green, true).
   switch to 1.
@@ -11,12 +11,12 @@ if ship:periapsis < 100 and ship:body:name = launchbody and (status = "LANDED" o
     createdir("1:/lib/").
   if not exists("1:/songs")
     createdir("1:/songs/").
-  copypath("0:/lib/launch","lib/").
-  copypath("0:/lib/burn","lib/").
-  copypath("0:/lib/isp","lib/").
-  copypath("0:/lib/land.ks","lib/").
-  copypath("0:/lib/song", "lib/").
-  copypath("0:/lib/menu", "lib/").
+  copypath("0:/lib/launch","/lib/").
+  copypath("0:/lib/burn","/lib/").
+  copypath("0:/lib/isp","/lib/").
+  copypath("0:/lib/land.ks","/lib/").
+  copypath("0:/lib/song", "/lib/").
+  copypath("0:/lib/menu", "/lib/").
   copypath("0:/launch","").
   copypath("0:/consts","").
   copypath("0:/stager","").

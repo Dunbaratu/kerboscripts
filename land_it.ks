@@ -86,7 +86,7 @@ local initial_twr is ship:availablethrust / (ship:mass * ship:body:mu / (ship:bo
 lock throttle to 1.
 wait until verticalspeed > -2.0.
 print "Now in final touchdown vertical descent.".
-set descendPID to pidloop(1/initial_twr, 0.1/initial_twr, 0.5/initial_twr, 0, 1).
+set descendPID to pidloop(0.3/initial_twr, 0.01/initial_twr, 0.05/initial_twr, 0, 1).
 lock throttle to descendPID:update(time:seconds, verticalspeed+descentSpeed()).
 lock steering to retro_or_up().
 local partCount_before is ship:parts:length.
@@ -146,8 +146,8 @@ function descentSpeed {
   // This formula is supposed to be:
   //    "What speed could I have in which I would be able to stop
   //    in the available distance?" (with a fudge factor of pretending
-  //    the engine is only 80% as strong as it really is:).
-  local return_val is sqrt( (max(0, 0.8*(alt_radar_or_sea() - 2*safety_margin) ))*(2*accel) ).
+  //    the engine is only 70% as strong as it really is:).
+  local return_val is sqrt( (max(0, 0.7*(alt_radar_or_sea() - 2*safety_margin) ))*(2*accel) ).
   local return_val is max(1.5, return_val).
   print "Desired Spd: " + round(return_val,1) + " m/s   " at (5,terminal:height/2-3).
   print "Current Spd: " + round(abs(verticalspeed),1) + " m/s   " at (5,terminal:height/2-2).

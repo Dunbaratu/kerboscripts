@@ -1,5 +1,6 @@
-
 wait until ship:unpacked.
+if core:hasevent("Open Terminal") { core:doevent("Open Terminal"). }
+
 // Only run boot when launching, not when reloading vessel already
 // in space:
 parameter launchbody is "Gael".

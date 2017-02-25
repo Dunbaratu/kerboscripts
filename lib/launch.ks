@@ -53,7 +53,7 @@ function launch {
       steeringmanager:resetpids().
     }
     if fairings:length > 0 {
-      if ship:Q < 0.01 and ship:altitude > atmo_end/2 {
+      if ship:Q < 0.003 and ship:altitude > atmo_end/2 {
         print "!!Deploying all fairings!!".
         for fairing in fairings {
           fairing:doevent("deploy").

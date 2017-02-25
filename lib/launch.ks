@@ -1,3 +1,5 @@
+run once "/lib/sanity".
+
 function countdown {
   parameter count.
   from { local i is count. } until i = 0 step { set i to i - 1. } do {
@@ -21,6 +23,8 @@ function launch {
     print fairings:length + " Part(s) with fairing deployment found.".
     print "Will engage fairings at high altitude.".
   }
+
+  sane_steering().
 
   // For all atmo launches with fins it helps to teach it that the fins help
   // torque, which it fails to realize:
@@ -152,11 +156,13 @@ function circularize {
   print "Circularizing.".
   lock steering to heading(compass_of_vel(ship:velocity:orbit), -(eta_ap_with_neg()/3)).
   print "..Waiting for steering to finish locking in place.".
+  local vdraw is vecdraw(v(0,0,0), steering:vector*50, white, "waiting to point here", 1, true).
   wait until
     abs(steeringmanager:yawerror) < 2 and
     abs(steeringmanager:pitcherror) < 2 and
     abs(steeringmanager:rollerror) < 2.
   print "..Steering locked.  Now throttling.".
+  set vdraw:show to false.
 
   lock throttle to 0.02 + (30*ship:obt:eccentricity).
 

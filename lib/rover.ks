@@ -401,7 +401,7 @@ function wanted_speed {
 
   local bear is rotated_bearing(spot, offset_pitch).
   local return_val is 0.
-  if bear = 0 {
+  if bear = 0 
     set bear to 0.001. // avoid divide-by-zero in next line.
   set return_val to min( abs(90/bear), min( 0.5 + spot:distance / 20, cruise_spd)).
   // If there is an obstacle detector laser, use it.

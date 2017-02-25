@@ -2,6 +2,7 @@ run once "/lib/land".
 run once "/lib/song".
 run once "/songs/happy".
 run once "/songs/sad".
+run once "/lib/sanity".
 
 parameter safety_margin is 5.
 parameter skycrane is false.
@@ -103,6 +104,7 @@ unlock throttle.
 SAS on.
 set vd1 to 0.
 clearscreen.
+sane_steering().
 wait 0.
 local partCount_after is ship:parts:length.
 local already_played_song is false.

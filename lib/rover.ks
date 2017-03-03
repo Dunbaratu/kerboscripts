@@ -36,7 +36,7 @@ on abort {
 // Given a location, drive there.
 // stop when you get there.
 function drive_to {
-  parameter geopos, cruise_spd, proximity_needed is 10, offset_pitch is 0.
+  parameter geopos, cruise_spd, jump_detect is true, proximity_needed is 10, offset_pitch is 0.
 
   local steer_pid is PIDLOOP(0.01, 0.00002, 0.003, -1, 1).
   local throttle_pid is PIDLOOP(0.5, 0.01, 0.2, -1, 1).
@@ -96,7 +96,7 @@ function drive_to {
       set battery_panic to true.
     }
     local speed_diff is 0.
-    set speed_diff to forward_speed(offset_pitch) - wanted_speed(geopos, cruise_spd, offset_pitch, battery_panic).
+    set speed_diff to forward_speed(offset_pitch) - wanted_speed(geopos, cruise_spd, offset_pitch, battery_panic, jump_detect).
     local use_wheelthrottle is throttle_pid:update(time:seconds, speed_diff).
     if speed_diff > 5 { brakes on.  } else { brakes off. }
     if battery_ratio < 0.02 {
@@ -151,7 +151,7 @@ function drive_to {
     print "current control:wheelsteer is " + round(ship:control:wheelsteer,3).
     print "brakes on? " + brakes + ". ".
     print "forward_speed is " + round(forward_speed(offset_pitch), 3).
-    print "wanted_speed is  " + round(wanted_speed(geopos,cruise_spd, offset_pitch, battery_panic),3).
+    print "wanted_speed is  " + round(wanted_speed(geopos,cruise_spd, offset_pitch, battery_panic, jump_detect),3).
     print "geodist to target is " + round(geo_dist(geopos),2).
     print "LASERS: obstacle detect: " + has_obstacle_lasers + ", leveler: " + has_leveler_lasers.
     if time:seconds < steering_off_timestamp {
@@ -396,6 +396,7 @@ function wanted_speed {
   parameter cruise_spd.
   parameter offset_pitch.
   parameter battery_panic.
+  parameter jump_detecting.
 
   if battery_panic { return 0. }
 
@@ -405,7 +406,7 @@ function wanted_speed {
     set bear to 0.001. // avoid divide-by-zero in next line.
   set return_val to min( abs(90/bear), min( 0.5 + spot:distance / 20, cruise_spd)).
   // If there is an obstacle detector laser, use it.
-  if has_obstacle_lasers {
+  if has_obstacle_lasers and jump_detecting {
     local dist is obstacle_lasers[0]:GetField("Distance").
     if dist < 0 or dist > 500 {
       set return_val to min(5,return_val). // slow down over a jump unless it was already slower than that.

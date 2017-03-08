@@ -19,6 +19,7 @@ if ship:apoapsis < 500 and ship:body:name = launchbody and (status = "LANDED" or
   copypath("0:/lib/song", "/lib/").
   copypath("0:/lib/menu", "/lib/").
   copypath("0:/lib/sanity", "/lib/").
+  copypath("0:/lib/prediction","/lib").
   copypath("0:/launch","").
   copypath("0:/consts","").
   copypath("0:/stager","").

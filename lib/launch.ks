@@ -18,9 +18,15 @@ function launch {
 
   if second_dest_ap < 0 { set second_dest_ap to first_dest_ap. }
 
-  local fairings is ship:modulesnamed("ModuleProceduralFairing").
+  local all_fairings is ship:modulesnamed("ModuleProceduralFairing").
+  local fairings is LIST().
+  for f_mod in all_fairings {
+    if f_mod:hasevent("deploy") {
+      fairings:add(f_mod).
+    }
+  }
   if fairings:length > 0 {
-    print fairings:length + " Part(s) with fairing deployment found.".
+    print fairings:length + " Part(s) needing fairing deployment found.".
     print "Will engage fairings at high altitude.".
   }
 

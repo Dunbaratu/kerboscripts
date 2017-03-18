@@ -96,13 +96,17 @@ function drive_to {
       set battery_panic to true.
     }
     local speed_diff is 0.
-    set speed_diff to forward_speed(offset_pitch) - wanted_speed(geopos, cruise_spd, offset_pitch, battery_panic, jump_detect).
+    local forSpeed is forward_speed(offset_pitch).
+    set speed_diff to forSpeed - wanted_speed(geopos, cruise_spd, offset_pitch, battery_panic, jump_detect).
     local use_wheelthrottle is throttle_pid:update(time:seconds, speed_diff).
-    if speed_diff > 5 { brakes on.  } else { brakes off. }
+    if speed_diff > 5 or forSpeed < -4 { brakes on.  } else { brakes off. }
     if battery_ratio < 0.02 {
       brakes on.
     }
-    if battery_panic and battery_ratio > 0.5 { set battery_panic to false. }
+    if battery_panic and battery_ratio > 0.5 {
+      set battery_panic to false. 
+      steeringmanager:resetpids().
+    }
     
     if is_upsidedown(offset_pitch) {
       flip_me(offset_pitch).
@@ -165,7 +169,9 @@ function drive_to {
         print "CENTERING AIM.".
       }
     }
-    if battery_panic { print "BATTERY LOW PANIC MODE.". }
+    if battery_panic {
+      print "BATTERY LOW PANIC MODE.". 
+    }
     wait 0.001.
   }
   set ship:control:wheelthrottle to 0.
@@ -236,7 +242,33 @@ function level_orientation {
 function collision_danger {
   parameter obstacle_lasers.
   // call it an obstacle if the lasers hit something who's gradient shows a slope > 55 deg.
-  local dist is obstacle_lasers[0]:GETFIELD("Distance").
+  local dist0 is obstacle_lasers[0]:GETFIELD("Distance").
+  local dist1 is obstacle_lasers[1]:GETFIELD("Distance").
+  local dist2 is obstacle_lasers[2]:GETFIELD("Distance").
+  local dist is min(min(dist0,dist1),dist2).
+  if dist0 >= 0 and dist0 + 100 < dist1 and dist0 + 100 < dist2 {
+    // Dist0 is way less than dist1 and 2 were - so it's a one wheel hit on laser 0:
+    if vdot(obstacle_lasers[0]:part:position,ship:facing:starvector) > 0 {
+      return -1. // laser is on the right side, so turn left
+    } else {
+      return 1. // laser is on the left side, so turn right
+    }
+  } else if dist1 >= 0 and dist1 + 100 < dist0 and dist0 + 100 < dist2 {
+    // Dist1 is way less than dist0 and 2 were - so it's a one wheel hit on laser 1:
+    if vdot(obstacle_lasers[1]:part:position,ship:facing:starvector) > 0 {
+      return -1. // laser is on the right side, so turn left
+    } else {
+      return 1. // laser is on the left side, so turn right
+    }
+  } else if dist2 >= 0 and dist2 + 100 < dist1 and dist2 + 100 < dist0 {
+    // Dist2 is way less than dist0 and 1 were - so it's a one wheel hit on laser 2:
+    if vdot(obstacle_lasers[2]:part:position,ship:facing:starvector) > 0 {
+      return -1. // laser is on the right side, so turn left
+    } else {
+      return 1. // laser is on the left side, so turn right
+    }
+  }
+
   // If a hit detected on something within a distance ahead (bigger distance if going faster):
   if dist >= 0 and dist < 5 + 8*vdot(ship:velocity:surface,obstacle_lasers[0]:part:facing:vector) {
     // Then see if the hit is for something with a quite vertical slope.  If so, call it an obstacle:

@@ -17,6 +17,7 @@ if ship:apoapsis < 500 and ship:body:name = launchbody and (status = "LANDED" or
   copypath("0:/lib/isp","/lib/").
   copypath("0:/lib/land.ks","/lib/").
   copypath("0:/lib/song", "/lib/").
+  copypath("0:/lib/dock", "/lib/").
   copypath("0:/lib/menu", "/lib/").
   copypath("0:/lib/sanity", "/lib/").
   copypath("0:/lib/prediction","/lib").
@@ -34,6 +35,7 @@ if ship:apoapsis < 500 and ship:body:name = launchbody and (status = "LANDED" or
   copypath("0:/match_inc","").
   copypath("0:/station_dock_server","").
   copypath("0:/station_dock_client","").
+  copypath("0:/dock_passive_target","").
   //copypath("0:/lib_rover.ks","").
   //copypath("0:/use_rover.ks","").
 }

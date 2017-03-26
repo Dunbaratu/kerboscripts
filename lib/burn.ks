@@ -13,6 +13,7 @@ run once "/lib/isp".
 //   It's going to be done by the current SHIP.
 //   You aren't going to change the thrust limiters from current setting.
 //   All engines active right now are the same ISP.
+global burn_seconds_msg_cooldown is 0.
 function burn_seconds {
   parameter dv_mag.  // delta V magnitude (scalar)
 
@@ -22,6 +23,20 @@ function burn_seconds {
   local m0 is SHIP:MASS. // starting mass
   local g0 is 9.802. 
   
+  // IF no thrust, return bogus value until there is thrust.
+  if F = 0 {
+    if time:seconds > burn_seconds_msg_cooldown {
+      clearscreen.
+      getvoice(0):play(slidenote(250,300,1)).
+      hudtext("NO ACTIVE ENGINE - CAN'T Calc BURN seconds", 2, 2, 20, white, true).
+      set burn_seconds_msg_cooldown to time:seconds + 3.
+    }
+    return 0.
+  } else if burn_seconds_msg_cooldown > 0 { // clear the message if we had been showing it.
+    set burn_seconds_msg_cooldown to 0.
+    clearscreen.
+  }
+
   // The ISP of first engine found active:
   // (For more accuracy with multiple differing engines,
   // some kind of weighted average would be needed.)

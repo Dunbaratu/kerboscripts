@@ -6,6 +6,10 @@ run once "/lib/sanity".
 
 parameter safety_margin is 5.
 parameter skycrane is false.
+// The following two are for fixing it if the
+// probe core isn't oriented right
+parameter off_pitch is 0.
+parameter off_yaw is 0.
 
 if ship:availablethrust <= 0 {
   // BIG WARNING:
@@ -39,7 +43,7 @@ local first_aim is true.
 
 set burn_now to false.
 SAS off.
-lock steering to srfretrograde.
+lock steering to rotate_for_probe_core(srfretrograde, off_pitch, off_yaw).
 gear on.
 
 local lasParts is ship:partstagged("landing laser").
@@ -89,7 +93,7 @@ wait until verticalspeed > -2.0.
 print "Now in final touchdown vertical descent.".
 set descendPID to pidloop(1/initial_twr, 0.05/initial_twr, 0.2/initial_twr, 0, 1).
 lock throttle to descendPID:update(time:seconds, verticalspeed+descentSpeed()).
-lock steering to retro_or_up().
+lock steering to rotate_for_probe_core(retro_or_up(), pitch_off, yaw_off).
 local partCount_before is ship:parts:length.
 wait until status="LANDED" or status="SPLASHED".
 brakes on.
@@ -167,6 +171,21 @@ function retro_or_up {
     return lookdirup(ship:up:vector:normalized + srfretrograde:vector:normalized, ship:facing:topVector).
   else
     return lookdirup(srfretrograde:vector, ship:facing:topvector).
+}
+
+// Rotates a given steering direction to
+// compensate for a poorly mounted probe core.
+function rotate_for_probe_core {
+  parameter dirIn, pitchRot, yawRot.
+
+  // Adjust for pitch, then yaw:
+  local dirOut is dirIn:forevector.
+  set dirOut to 
+    angleaxis(yawRot, ship:facing:topvector) *
+    angleaxis(pitchRot, ship:facing:starvector) *
+    dirOut.
+
+  return lookdirup(dirOut, ship:facing:topvector).
 }
 
 // If alt:radar is > altitude then you're seeing the

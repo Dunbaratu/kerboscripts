@@ -8,7 +8,8 @@ run once "/lib/terrain". // for laser terrain usage.
 // (and a little down by a few degrees if you like) that can be used to see the
 // terrain slope in front of the vessel.
 // Give them all this same tag name:
-local forward_lasers_name is "obstacle detector".
+local left_lasers_name is "left obstacle detector".
+local right_lasers_name is "right obstacle detector".
 
 // Make your rover also have a tuple of at least 3 parallel lasers facing downward
 // at the terrain just under it.  They are used to make the rover try to rotate
@@ -16,13 +17,18 @@ local forward_lasers_name is "obstacle detector".
 // those terrain level detecting lasers this tag name:
 local downward_lasers_name is "level detector".
 
-local has_obstacle_lasers is false.
+local has_left_lasers is false.
+local has_right_lasers is false.
 local has_leveler_lasers is false.
-local obstacle_lasers is 0.
+local left_lasers is 0.
+local right_lasers is 0.
 local leveler_lasers is 0.
 local battery_full is 0.
 local debug is false.
 local leveler_deadzone is 3. // don't let leveler steering get integral windup for sitting unlevel.
+global g_left_slope is 0.
+global g_right_slope is 0.
+global g_dist is 0.
 
 on abort {
   brakes on.
@@ -64,16 +70,13 @@ function drive_to {
     }
   }
 
-  set obstacle_lasers to get_terrain_lasers(forward_lasers_name).
-  if obstacle_lasers:length > 0 {
-    set has_obstacle_lasers to true.
-    for las in obstacle_lasers { las:setfield("enabled",true). }
-  }
+  set left_lasers to get_terrain_lasers(left_lasers_name).
+  set has_left_lasers to left_lasers:length > 0.
+  set right_lasers to get_terrain_lasers(right_lasers_name).
+  set has_right_lasers to right_lasers:length > 0.
   set leveler_lasers to get_terrain_lasers(downward_lasers_name).
-  if leveler_lasers:length > 0 {
-    set has_leveler_lasers to true.
-    for las in leveler_lasers { las:setfield("enabled",true). }
-  }
+  set has_leveler_lasers to leveler_lasers:length > 0.
+  all_lasers_toggle(true).
   
   if has_leveler_lasers { 
 
@@ -94,17 +97,23 @@ function drive_to {
     local battery_ratio is ship:electriccharge / battery_full.
     if battery_ratio < 0.1 {
       set battery_panic to true.
+      all_lasers_toggle(false).
     }
     local speed_diff is 0.
     local forSpeed is forward_speed(offset_pitch).
     set speed_diff to forSpeed - wanted_speed(geopos, cruise_spd, offset_pitch, battery_panic, jump_detect).
     local use_wheelthrottle is throttle_pid:update(time:seconds, speed_diff).
     if speed_diff > 5 or forSpeed < -4 { brakes on.  } else { brakes off. }
-    if battery_ratio < 0.02 {
+
+    // in battery panic mode once we slow down enough just hit the brakes and hold there.
+    if battery_panic and ship:velocity:surface:mag < 0.4 {
       brakes on.
+      set use_wheelthrottle to 0.
     }
+
     if battery_panic and battery_ratio > 0.5 {
       set battery_panic to false. 
+      all_lasers_toggle(true).
       steeringmanager:resetpids().
     }
     
@@ -115,7 +124,7 @@ function drive_to {
       steer_pid:reset().
       throttle_pid:reset().
     }
-    if has_leveler_lasers {
+    if has_leveler_lasers and not battery_panic {
       lock steering to level_orientation(offset_pitch, leveler_lasers).
 
       // Prevent integral windup that comes from having a rover
@@ -126,25 +135,29 @@ function drive_to {
       }
 
     }
-    if has_obstacle_lasers {
-      set collision_eta to collision_danger(obstacle_lasers).
+    if has_left_lasers and has_right_lasers {
+      set collision_eta to collision_danger(left_lasers, right_lasers).
       local abs_collision_eta to abs(collision_eta).
       if abs_collision_eta > 0 and abs_collision_eta < 20 or
          time:seconds < steering_backup_timestamp {
-        set steering_off_timestamp to time:seconds + 2.
+        set steering_off_timestamp to time:seconds + 1.
         // If really close, then panic and actually try to back up straight.
-        if abs_collision_eta > 0 and abs_collision_eta < 0.2 or
+        if abs_collision_eta > 0 and abs_collision_eta < 0.5 or
            time:seconds < steering_backup_timestamp {
           set use_wheelthrottle to -1.
-          set use_wheelsteer to 0.
           // Force it to keep going backward for several seconds ignoring all other factors,
           // unless it's already in the midst of doing that:
           if time:seconds > steering_backup_timestamp {
-            set steering_backup_timestamp to time:seconds + 5.
+            set steering_backup_timestamp to time:seconds + 1.5. 
           }
         }
       }
     }
+    // Whenever we have negative speed, reverse steering:
+    if vdot(ship:velocity:surface, rotated_forevector(offset_pitch)) < 0 {
+      set use_wheelsteer to -use_wheelsteer.
+    }
+    
     set ship:control:wheelsteer to use_wheelsteer.
     set ship:control:wheelthrottle to use_wheelthrottle.
 
@@ -157,9 +170,14 @@ function drive_to {
     print "forward_speed is " + round(forward_speed(offset_pitch), 3).
     print "wanted_speed is  " + round(wanted_speed(geopos,cruise_spd, offset_pitch, battery_panic, jump_detect),3).
     print "geodist to target is " + round(geo_dist(geopos),2).
-    print "LASERS: obstacle detect: " + has_obstacle_lasers + ", leveler: " + has_leveler_lasers.
+    print " -------- obstacle detection: --------  ".
+    print "LASERS: left: " + has_left_lasers + ", right: " + has_right_lasers + ", leveler: " + has_leveler_lasers.
+    if has_left_lasers and has_right_lasers {
+      print "  Dist: " + round(g_dist,2)+ "m, L slope: " + round(g_left_slope,2) + ", R slope: " + round(g_right_slope,2).
+      print "  Collision ETA: " + round(collision_eta,1) + "s".
+    }
     if time:seconds < steering_off_timestamp {
-      print "NOW IN COLLISION AVOIDANCE MODE!".
+      print "AVOIDING OBSTACLE!!".
       v1:play(slidenote(300,500,0.2,0.1)).
       if collision_eta < 0 {
         print "FORCING AIM TO THE LEFT.".
@@ -174,20 +192,39 @@ function drive_to {
     }
     wait 0.001.
   }
+  all_lasers_toggle(false).
   set ship:control:wheelthrottle to 0.
   brakes on.
-  if has_obstacle_lasers {
-    for las in obstacle_lasers {
-      las:SETFIELD("Enabled", false).
-    }
-  }
-  if has_leveler_lasers {
-    for las in leveler_lasers {
-      las:SETFIELD("Enabled", false).
-    }
-  }
   enable_yaw().
   wait 0.
+}
+
+function lasers_toggle {
+  parameter lasers, newState.
+
+  // operates on a list or a single laser.  If a single
+  // laser was passed in then make it a list of one thing
+  // so the rest of the code can continue the same way:
+  if not lasers:ISTYPE("LIST") 
+    set lasers to LIST(lasers).
+
+  for las in lasers {
+    las:SETFIELD("Enabled", newState).
+  }
+}
+
+function all_lasers_toggle {
+  parameter newState.
+
+  if has_left_lasers {
+    lasers_toggle( left_lasers, newState ).
+  }
+  if has_right_lasers {
+    lasers_toggle( right_lasers, newState ).
+  }
+  if has_leveler_lasers {
+    lasers_toggle( leveler_lasers, newState ).
+  }
 }
 
 global yaw_disable_roll_angle_orig is 0.
@@ -240,70 +277,104 @@ function level_orientation {
 //
 // Warning: causes a one-tick wait 0 to ensure reasonable readings.
 function collision_danger {
-  parameter obstacle_lasers.
+  parameter left_lasers, right_lasers.
+
+  wait 0. // ensure the laser caculations happen in the same tick.
   // call it an obstacle if the lasers hit something who's gradient shows a slope > 55 deg.
-  local dist0 is obstacle_lasers[0]:GETFIELD("Distance").
-  local dist1 is obstacle_lasers[1]:GETFIELD("Distance").
-  local dist2 is obstacle_lasers[2]:GETFIELD("Distance").
-  local dist is min(min(dist0,dist1),dist2).
-  if dist0 >= 0 and dist0 + 100 < dist1 and dist0 + 100 < dist2 {
-    // Dist0 is way less than dist1 and 2 were - so it's a one wheel hit on laser 0:
-    if vdot(obstacle_lasers[0]:part:position,ship:facing:starvector) > 0 {
-      return -1. // laser is on the right side, so turn left
-    } else {
-      return 1. // laser is on the left side, so turn right
-    }
-  } else if dist1 >= 0 and dist1 + 100 < dist0 and dist0 + 100 < dist2 {
-    // Dist1 is way less than dist0 and 2 were - so it's a one wheel hit on laser 1:
-    if vdot(obstacle_lasers[1]:part:position,ship:facing:starvector) > 0 {
-      return -1. // laser is on the right side, so turn left
-    } else {
-      return 1. // laser is on the left side, so turn right
-    }
-  } else if dist2 >= 0 and dist2 + 100 < dist1 and dist2 + 100 < dist0 {
-    // Dist2 is way less than dist0 and 1 were - so it's a one wheel hit on laser 2:
-    if vdot(obstacle_lasers[2]:part:position,ship:facing:starvector) > 0 {
-      return -1. // laser is on the right side, so turn left
-    } else {
-      return 1. // laser is on the left side, so turn right
-    }
-  }
+  local dist_L0 is get_laser_dist(left_lasers[0]).
+  local dist_L1 is get_laser_dist(left_lasers[1]).
+  local dist_R0 is get_laser_dist(right_lasers[0]).
+  local dist_R1 is get_laser_dist(right_lasers[1]).
+  set g_dist to min(min(min(dist_L0,dist_L1),dist_R0),dist_R1).
 
-  // If a hit detected on something within a distance ahead (bigger distance if going faster):
-  if dist >= 0 and dist < 5 + 8*vdot(ship:velocity:surface,obstacle_lasers[0]:part:facing:vector) {
-    // Then see if the hit is for something with a quite vertical slope.  If so, call it an obstacle:
-    wait 0.
-    local norm is get_laser_normal(obstacle_lasers).
+  local return_val is 0.
+  set g_left_slope to 0.
+  set g_right_slope to 0.
 
-    // If Norm aims away from me, force it to aim at me instead (I want the front side of
-    // the obstacle, not its backside, otherwise I can't figure out if I should go left or
-    // right properly):
-    if vang(norm,ship:facing:forevector) < 90
-      set norm to -norm.
+  if g_dist < 500 {
+    // get the 4 hits as XYZ positions:
+    local left_hitpos0 is left_lasers[0]:part:position + left_lasers[0]:part:facing:vector * dist_L0.
+    local left_hitpos1 is left_lasers[1]:part:position + left_lasers[1]:part:facing:vector * dist_L1.
+    local right_hitpos0 is right_lasers[0]:part:position + right_lasers[0]:part:facing:vector * dist_R0.
+    local right_hitpos1 is right_lasers[1]:part:position + right_lasers[1]:part:facing:vector * dist_R1.
 
-    if debug {
-      set debug_drawnorm:start to obstacle_lasers[0]:part:position + dist*obstacle_lasers[0]:part:facing:vector.
-      set debug_drawnorm:vec to 10*norm.
+    // These are two unit vectors to map 3D space into a 2D reference frame
+    // which is vertically oriented to match the plane the lasers are in.
+    // this assumes all 4 lasers are parallel:
+    local x_axis is left_lasers[0]:part:facing:vector. //use laser as X direction.
+    local y_axis is vxcl(x_axis, ship:up:vector). // up-ish, perpendicular to laser direction.
+
+    //Ensure laser 0 is the top and 1 is the bottom. swap if they're not:
+    if vdot(left_hitpos1,x_axis) < vdot(left_hitpos0,x_axis) {
+      local temp is left_hitpos0.
+      set left_hitpos0 to left_hitpos1.
+      set left_hitpos1 to temp.
+      set temp to dist_L0.
+      set dist_L0 to dist_L1.
+      set dist_L1 to temp.
     }
-    local angle is vang(norm, ship:up:vector).
-    // if normal is sideways rather than vertical
-    if angle > 55 and angle < (180 - 55) {
-      local aim_right is (vang(norm, ship:facing:starvector) < 90).
-      if dist > 2 {
-        if aim_right 
-          return dist / max(ship:groundspeed,4).// pretend speed is significant when it's not.
-        else 
-          return - dist / max(ship:groundspeed,4). 
-      } else {
-        // fake it and pretend collision is imminent when close, even if it's not:
-        if aim_right 
-          return 0.1.
-        else
-          return -0.1.
+    if vdot(right_hitpos1,x_axis) < vdot(right_hitpos0,x_axis) {
+      local temp is right_hitpos0.
+      set right_hitpos0 to right_hitpos1.
+      set right_hitpos1 to temp.
+      set temp to dist_R0.
+      set dist_R0 to dist_R1.
+      set dist_R1 to temp.
+    }
+
+    // Get the slopes in 2D terms of the two basis axis vectors:
+    local left_delta_vec is left_hitpos1 - left_hitpos0.
+    local left_delta_x is max(0.001, vdot(left_delta_vec, x_axis)). // max to prevent infinite (div by zero) slope.
+    local left_delta_y is vdot(left_delta_vec, y_axis).
+    set g_left_slope to left_delta_y / left_delta_x.
+    local right_delta_vec is right_hitpos1 - right_hitpos0.
+    local right_delta_x is max(0.001, vdot(right_delta_vec, x_axis)). // max to prevent infinite (div by zero) slope.
+    local right_delta_y is vdot(right_delta_vec, y_axis).
+    set g_right_slope to right_delta_y / right_delta_x.
+
+    
+    // We now know left/right distances and left/right slopes - make the decision based on that:
+    if g_left_slope > -0.001 and g_left_slope < 0.9 { // if less than about 40 degree slope
+      // terrain hit not obstacle hit so pretend it's really far away:
+      set dist_L0 to 500.
+      set dist_L1 to 500.
+    }
+    if g_right_slope > -0.001 and g_right_slope < 0.9 { // if less than about 40 degree slope
+      // terrain hit not obstacle hit so pretend it's really far away:
+      set dist_R0 to 500.
+      set dist_R1 to 500.
+    }
+    // Recalc g_dist after we have altered the distances based on slopes:
+    set g_dist to min(min(min(dist_L0,dist_L1),dist_R0),dist_R1).
+
+    // Check again - if both left and right sides are low slope hits then g_dist will now be far
+    // and we can safely ignore the hit:
+    if g_dist < 500 {
+      // ETA is based on the shortest distance:
+      set return_val to g_dist / max(0.1, ship:velocity:surface:mag).
+      // Now pick a sign for the ETA based on which side is closer:
+      if dist_R0 < dist_L0 {
+        set return_val to - return_val.
+      }
+      // Now fake the ETA to be smaller than it really is if the distance is short:
+      if g_dist < 2 {
+        set return_val to return_val / 100.
       }
     }
   }
-  return 0. // turn off collision complaining when no hit seen.
+  return return_val. // turn off collision complaining when no hit seen.
+}
+
+// Return a LaserDist module's distance OR if it's -1, the
+// special flag meaning no hit, then return a big number instead:
+function get_laser_dist {
+  parameter las.
+  local reading is las:GETFIELD("Distance").
+  if reading < 0 {
+    return 999999999.
+  } else {
+    return reading.
+  }
 }
 
 function geo_dist {
@@ -392,8 +463,23 @@ function rotated_topvector {
   return angleaxis(pitch_rot, ship:facing:starvector) * ship:facing:topvector.
 }
 
+local collision_cooldown_timestamp is 0.
+local prev_collision_eta is 0.
+
 function rotated_bearing {
   parameter spot, pitch_rot, cruise_spd is 30, collision_eta is 0.
+
+  // This logic is here to force it to keep turning a little while
+  // longer after the obstacle isn't detected anymore, so it won't
+  // just immediately turn back into the corner of it again:
+  if collision_eta = 0 {
+    if time:seconds < collision_cooldown_timestamp {
+      set collision_eta to prev_collision_eta.
+    }
+  } else {
+    set collision_cooldown_timestamp to time:seconds + 1.
+    set prev_collision_eta to collision_eta.
+  }
 
   local project_myFore is vxcl(ship:up:vector, rotated_forevector(pitch_rot)).
   local project_spotVec is vxcl(ship:up:vector, spot:position).
@@ -404,7 +490,7 @@ function rotated_bearing {
   if collision_eta <> 0 {
     // Desire steering more off to the side - more severe the longer we've been detecting collision,
     // and sooner we'll hit the object
-    set abs_angle to abs_angle + 90*(2/collision_eta).
+    set abs_angle to abs_angle + min(90,max(-90, 90*(2/collision_eta))).
   }
   return abs_angle.
 }
@@ -431,16 +517,15 @@ function wanted_speed {
   parameter jump_detecting.
 
   if battery_panic { return 0. }
-
   local bear is rotated_bearing(spot, offset_pitch).
   local return_val is 0.
   if bear = 0 
     set bear to 0.001. // avoid divide-by-zero in next line.
   set return_val to min( abs(90/bear), min( 0.5 + spot:distance / 20, cruise_spd)).
   // If there is an obstacle detector laser, use it.
-  if has_obstacle_lasers and jump_detecting {
-    local dist is obstacle_lasers[0]:GetField("Distance").
-    if dist < 0 or dist > 500 {
+  if has_left_lasers and jump_detecting {
+    local dist is get_laser_dist(left_lasers[0]).
+    if dist > 500 {
       set return_val to min(5,return_val). // slow down over a jump unless it was already slower than that.
     }
   }

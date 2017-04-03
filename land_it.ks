@@ -93,7 +93,7 @@ wait until verticalspeed > -2.0.
 print "Now in final touchdown vertical descent.".
 set descendPID to pidloop(1/initial_twr, 0.05/initial_twr, 0.2/initial_twr, 0, 1).
 lock throttle to descendPID:update(time:seconds, verticalspeed+descentSpeed()).
-lock steering to rotate_for_probe_core(retro_or_up(), pitch_off, yaw_off).
+lock steering to rotate_for_probe_core(retro_or_up(), off_pitch, off_yaw).
 local partCount_before is ship:parts:length.
 wait until status="LANDED" or status="SPLASHED".
 brakes on.

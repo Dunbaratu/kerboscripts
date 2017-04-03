@@ -2,6 +2,12 @@ run once "/lib/sanity".
 
 function countdown {
   parameter count.
+
+  // when we are using a countdown -let's sanity check for
+  // launch conditions:
+  sane_steering().
+  sane_upward().
+
   from { local i is count. } until i = 0 step { set i to i - 1. } do {
     hudtext( "T minus " + i + "s" , 1, 1, 25, white, true).
     wait 1.
@@ -31,6 +37,7 @@ function launch {
   }
 
   sane_steering().
+  sane_upward().
 
   // For all atmo launches with fins it helps to teach it that the fins help
   // torque, which it fails to realize:

@@ -4,8 +4,8 @@
 
 // Given a name tag for some lasers that are meant to aim
 // in parallel to each other and hit the ground in a triple,
-// return a list of the LaserDistModule's for 3 of them to
-// use for terrain detecting.
+// or a double, return a list of the LaserDistModule's for 3 (or 2)
+// of them to use for terrain detecting.
 function get_terrain_lasers {
   parameter partName.
 

@@ -21,23 +21,27 @@ if ship:apoapsis < 500 and ship:body:name = launchbody and (status = "LANDED" or
   copypath("0:/lib/menu", "/lib/").
   copypath("0:/lib/sanity", "/lib/").
   copypath("0:/lib/prediction","/lib").
-  copypath("0:/launch","").
-  copypath("0:/consts","").
-  copypath("0:/stager","").
+  copypath("0:/launch","/").
+  copypath("0:/consts","/").
+  copypath("0:/stager","/").
   copypath("0:/land_it.ks","").
-  copypath("0:/just_obey_nodes.ks","").
-  copypath("0:/precise_node","").
+  copypath("0:/just_obey_nodes.ks","/").
+  copypath("0:/precise_node","/").
   copypath("0:/songs/happy", "songs/").
   copypath("0:/songs/sad", "songs/").
 
-  copypath("0:/prediction","").
-  copypath("0:/rendezvous","").
-  copypath("0:/match_inc","").
-  copypath("0:/station_dock_server","").
-  copypath("0:/station_dock_client","").
-  copypath("0:/dock_passive_target","").
-  //copypath("0:/lib_rover.ks","").
-  //copypath("0:/use_rover.ks","").
+  copypath("0:/prediction","/").
+  copypath("0:/rendezvous","/").
+  copypath("0:/match_inc","/").
+  copypath("0:/station_dock_server","/").
+  copypath("0:/station_dock_client","/").
+  copypath("0:/dock_passive_target","/").
+  
+  // Rover software can be copied now that I'm using
+  // bigger kOS core units that it fits on:
+  copypath("0:/use_rover","/").
+  copypath("0:/lib/rover","/lib").
+  copypath("0:/lib/terrain","/lib").
 }
 
 run once "/lib/menu".

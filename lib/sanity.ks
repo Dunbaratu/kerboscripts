@@ -28,3 +28,13 @@ function sane_steering {
     print "JUST SET THEM TO SOMETHING THAT MAY WORK?".
   }
 }
+
+// Do not proceed if the craft isn't aimed upward.
+function sane_upward {
+  print "THIS IS SANE_UPWARD:  VANG is " + VANG(ship:facing:vector, ship:up:vector).
+  until VANG(ship:facing:vector, ship:up:vector) < 45 {
+    hudtext( "PROBE ORIENTATION NOT UPWARD!! PLEASE FIX IT.", 2, 1, 25, white, true).
+    getvoice(1):play(list(slidenote(400,500,0.5),slidenote(500,400,0.5))).
+    wait 4.
+  }
+}

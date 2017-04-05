@@ -16,9 +16,9 @@ function do_dock {
 
   local fore_control_pid         is PIDLoop( 0.2, 0.001, 0.2, -1, 1 ).
   local top_want_speed_pid       is PIDLoop( 0.2, 0, 0.2, -5, 5 ).
-  local top_control_pid          is PIDLoop( 0.5, 0.001, 0.2, -1, 1 ).
+  local top_control_pid          is PIDLoop( 0.5, 0, 0.2, -1, 1 ).
   local starboard_want_speed_pid is PIDLoop( 0.2, 0, 0.2, -5, 5 ).
-  local starboard_control_pid    is PIDLoop( 0.5, 0.001, 0.2, -1, 1 ).
+  local starboard_control_pid    is PIDLoop( 0.5, 0, 0.2, -1, 1 ).
 
   // Track when the part count goes up: if it goes up that must mean the two ships
   // have merged, right?

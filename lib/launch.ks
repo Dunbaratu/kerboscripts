@@ -28,7 +28,9 @@ function launch {
   local fairings is LIST().
   for f_mod in all_fairings {
     if f_mod:hasevent("deploy") {
-      fairings:add(f_mod).
+      if not f_mod:part:tag:contains("manual") {
+        fairings:add(f_mod).
+      }
     }
   }
   if fairings:length > 0 {

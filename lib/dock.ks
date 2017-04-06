@@ -15,10 +15,10 @@ function do_dock {
   RCS on.
 
   local fore_control_pid         is PIDLoop( 0.2, 0.001, 0.2, -1, 1 ).
-  local top_want_speed_pid       is PIDLoop( 0.2, 0, 0.2, -5, 5 ).
-  local top_control_pid          is PIDLoop( 0.5, 0, 0.2, -1, 1 ).
-  local starboard_want_speed_pid is PIDLoop( 0.2, 0, 0.2, -5, 5 ).
-  local starboard_control_pid    is PIDLoop( 0.5, 0, 0.2, -1, 1 ).
+  local top_want_speed_pid       is PIDLoop( 0.2, 0, 0.35, -5, 5 ).
+  local top_control_pid          is PIDLoop( 0.5, 0.01, 0.2, -1, 1 ).
+  local starboard_want_speed_pid is PIDLoop( 0.2, 0, 0.35, -5, 5 ).
+  local starboard_control_pid    is PIDLoop( 0.5, 0.01, 0.2, -1, 1 ).
 
   // Track when the part count goes up: if it goes up that must mean the two ships
   // have merged, right?
@@ -93,6 +93,6 @@ function wanted_approach_speed {
   parameter rel_pos_vector.
 
   local dist is - vdot(rel_pos_vector,ship:facing:forevector).
-  local spd is min(0.1 + dist*(0.025), 10).
+  local spd is min(0.2 + dist*(0.025), 10).
   return spd.
 }

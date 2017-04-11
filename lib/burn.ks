@@ -58,7 +58,7 @@ function do_burn_with_display {
 
 
   local want_steer is want_dV.
-  lock steering to lookdirup(want_steer,ship:up:vector).
+  lock steering to lookdirup(want_steer,ship:facing:topvector).
   until time:seconds >= uTime {
     print  "Burn Start in " + round(uTime-time:seconds,0) + " seconds  " at (col,row).
     stager().

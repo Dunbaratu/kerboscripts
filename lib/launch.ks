@@ -28,7 +28,9 @@ function launch {
   local fairings is LIST().
   for f_mod in all_fairings {
     if f_mod:hasevent("deploy") {
-      if not f_mod:part:tag:contains("manual") {
+      if f_mod:part:tag:contains("manual") {
+        print "Will *NOT* Deploy fairing part: " + f_mod:part:name.
+      } else {
         fairings:add(f_mod).
       }
     }
@@ -60,6 +62,7 @@ function launch {
   }
   // set staging_on to false to effectively remove this trigger:
   global staging_on is true.
+  local low_atmo_pending is true.
   when true then {
     if staging_on {
       preserve.
@@ -71,11 +74,16 @@ function launch {
       stage.
       steeringmanager:resetpids().
     }
-    if fairings:length > 0 {
-      if ship:Q < 0.003 and ship:altitude > atmo_end/2 {
-        print "!!Deploying all fairings!!".
+    if low_atmo_pending and ship:Q < 0.003 and ship:altitude > atmo_end/2 {
+      set low_atmo_pending to false. // Never execute this again.
+      print "LOW DYNAMIC PRESSURE:  Activating AG 1.".
+      set AG1 to true. wait 0.
+      if fairings:length > 0 {
         for fairing in fairings {
-          fairing:doevent("deploy").
+          if fairing:hasevent("deploy") {
+            print "!!Deploying a fairing part!!".
+            fairing:doevent("deploy").
+          }
         }
         set fairings to LIST().  // Make it empty so it won't re-trigger this.
       }

@@ -24,6 +24,9 @@ function launch {
 
   if second_dest_ap < 0 { set second_dest_ap to first_dest_ap. }
 
+
+  local full_thrust_over is false.
+  
   local all_fairings is ship:modulesnamed("ModuleProceduralFairing").
   local fairings is LIST().
   for f_mod in all_fairings {
@@ -50,7 +53,7 @@ function launch {
   if atmo_end = 0 {
     set alt_divisor to first_dest_ap / 3.
   }
-  lock steering to heading(dest_compass, 90 - 90*(use_alt()/alt_divisor)^(2/5)).
+  lock steering to heading(dest_compass, clamp_pitch(90 - 90*(use_alt()/alt_divisor)^(2/5), true)).
   lock throttle to 1.
    
   // Flip steering to use whatever current prograde heading is once
@@ -58,7 +61,7 @@ function launch {
   local launch_start is time:seconds.
   when time:seconds > launch_start + 30 then {
     print "Now aiming at whatever direction velocity already is.".
-    lock steering to heading(compass_of_vel(ship:velocity:surface), 90 - 90*(altitude/alt_divisor)^(2/5)).
+    lock steering to heading(compass_of_vel(ship:velocity:surface), clamp_pitch(90 - 90*(altitude/alt_divisor)^(2/5), true)).
   }
   // set staging_on to false to effectively remove this trigger:
   global staging_on is true.
@@ -70,23 +73,25 @@ function launch {
     list engines in englist.
     local flameout is false.
     for eng in englist { if eng:flameout { set flameout to true. } }
-    if flameout or maxthrust = 0 {
+    if full_thrust_over and low_atmo_pending and ship:Q < 0.003 and ship:altitude > atmo_end/2 {
+      set low_atmo_pending to false. // Never execute this again.
+      if full_thrust_over {
+        print "LOW DYNAMIC PRESSURE AND FULL THROTTLE FINISHED:  Activating AG 1.".
+        set AG1 to true. wait 0.
+        if fairings:length > 0 {
+          for fairing in fairings {
+            if fairing:hasevent("deploy") {
+              print "!!Deploying a fairing part!!".
+              fairing:doevent("deploy").
+            }
+          }
+          set fairings to LIST().  // Make it empty so it won't re-trigger this.
+        }
+      }
+    } else if stage:ready and // don't bother checking if still in cooldown of prev staging
+              (flameout or maxthrust = 0) {
       stage.
       steeringmanager:resetpids().
-    }
-    if low_atmo_pending and ship:Q < 0.003 and ship:altitude > atmo_end/2 {
-      set low_atmo_pending to false. // Never execute this again.
-      print "LOW DYNAMIC PRESSURE:  Activating AG 1.".
-      set AG1 to true. wait 0.
-      if fairings:length > 0 {
-        for fairing in fairings {
-          if fairing:hasevent("deploy") {
-            print "!!Deploying a fairing part!!".
-            fairing:doevent("deploy").
-          }
-        }
-        set fairings to LIST().  // Make it empty so it won't re-trigger this.
-      }
     }
   }
 
@@ -94,6 +99,7 @@ function launch {
 
   print "Apoapsis now " + first_dest_ap + ".".
   print "Going into low thrust to just maintain Ap.".
+  set full_thrust_over to true.
   lock throttle to (first_dest_ap - ship:apoapsis) / 5000.
 
   wait until ship:altitude > atmo_end.
@@ -136,6 +142,26 @@ function launch {
   wait 0.01. // make sure there's one run through the trigger to unpreserve it.
 }
 
+// Given an input pitch, return either the same pitch,
+// or a pitch that's been "clamped" to not be too far off
+// from prograde, based on Q.
+local clamp_pitch_cooldown is 0.
+function clamp_pitch {
+  parameter in_pitch.
+  parameter give_msg is false.
+
+  local cur_pitch is srf_pitch_for_vel(ship).
+  local max_off_allow is 10 / (ship:Q + 0.001).
+
+  local out_pitch is min(max(in_pitch, cur_pitch - max_off_allow), cur_pitch + max_off_allow).
+
+  if give_msg and in_pitch <> out_pitch and time:seconds > clamp_pitch_cooldown {
+    hudtext("Q="+ship:q+" Pitch clamping: Want="+in_pitch+" Allow="+out_pitch, 5, 2, 16, yellow, true).
+    set clamp_pitch_cooldown to time:seconds + 6.
+  }
+  return out_pitch.
+}
+
 function use_alt {
   local rad_alt is alt:radar.
   if rad_alt > 0 and rad_alt < 2000 
@@ -173,6 +199,12 @@ function compass_of_vel {
   } else {
     return result.
   }
+}
+
+function srf_pitch_for_vel {
+  parameter ves.
+
+  return 90 - vang(ves:up:vector, ves:velocity:surface).
 }
 
 function circularize {

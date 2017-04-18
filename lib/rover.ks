@@ -326,20 +326,20 @@ function collision_danger {
     local left_delta_vec is left_hitpos1 - left_hitpos0.
     local left_delta_x is max(0.001, vdot(left_delta_vec, x_axis)). // max to prevent infinite (div by zero) slope.
     local left_delta_y is vdot(left_delta_vec, y_axis).
-    set g_left_slope to left_delta_y / left_delta_x.
+    set g_left_slope to abs(left_delta_y / left_delta_x).
     local right_delta_vec is right_hitpos1 - right_hitpos0.
     local right_delta_x is max(0.001, vdot(right_delta_vec, x_axis)). // max to prevent infinite (div by zero) slope.
     local right_delta_y is vdot(right_delta_vec, y_axis).
-    set g_right_slope to right_delta_y / right_delta_x.
+    set g_right_slope to abs(right_delta_y / right_delta_x).
 
     
     // We now know left/right distances and left/right slopes - make the decision based on that:
-    if g_left_slope > -0.001 and g_left_slope < 0.9 { // if less than about 40 degree slope
+    if g_left_slope < 0.9 { // if less than about 40 degree slope
       // terrain hit not obstacle hit so pretend it's really far away:
       set dist_L0 to 500.
       set dist_L1 to 500.
     }
-    if g_right_slope > -0.001 and g_right_slope < 0.9 { // if less than about 40 degree slope
+    if g_right_slope < 0.9 { // if less than about 40 degree slope
       // terrain hit not obstacle hit so pretend it's really far away:
       set dist_R0 to 500.
       set dist_R1 to 500.

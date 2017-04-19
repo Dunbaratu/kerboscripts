@@ -151,12 +151,13 @@ function clamp_pitch {
   parameter give_msg is false.
 
   local cur_pitch is srf_pitch_for_vel(ship).
-  local max_off_allow is 10 / (ship:Q + 0.001).
+  local max_off_allow is 2.5 / (ship:Q + 0.001).
 
   local out_pitch is min(max(in_pitch, cur_pitch - max_off_allow), cur_pitch + max_off_allow).
 
   if give_msg and in_pitch <> out_pitch and time:seconds > clamp_pitch_cooldown {
-    hudtext("Q="+ship:q+" Pitch clamping: Want="+in_pitch+" Allow="+out_pitch, 5, 2, 16, yellow, true).
+    hudtext("Q="+round(ship:q,4)+" Pitch clamping: Want="+round(in_pitch,1)+" Allow="+round(out_pitch,1),
+            5, 2, 16, yellow, true).
     set clamp_pitch_cooldown to time:seconds + 6.
   }
   return out_pitch.

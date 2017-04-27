@@ -1,4 +1,5 @@
 run once "/lib/sanity".
+run once "/lib/burn". // for predicting circularization burn time.
 
 function countdown {
   parameter count.
@@ -72,7 +73,7 @@ function launch {
     }
     list engines in englist.
     local flameout is false.
-    for eng in englist { if eng:flameout { set flameout to true. } }
+    for eng in englist { if eng:name <> "sepMotor1" and eng:flameout { set flameout to true. } }
     if full_thrust_over and low_atmo_pending and ship:Q < 0.003 and ship:altitude > atmo_end/2 {
       set low_atmo_pending to false. // Never execute this again.
       if full_thrust_over {
@@ -112,7 +113,13 @@ function launch {
   lock throttle to 0.
   lock steering to heading(compass_of_vel(ship:velocity:orbit), 0).
 
-  wait until eta:apoapsis < 10.
+  //was this: wait until eta:apoapsis < 10.
+  local V_ap_have is velocityAt(ship, eta:apoapsis + time:seconds):orbit:mag.
+  local V_ap_want is sqrt(ship:body:mu / ship:body:radius + ship:apoapsis).
+  local halfCircTime is burn_seconds((V_ap_want-V_ap_have) / 2).
+  print "Circ burn will start at ETA:Apoapais = "+ round(halfCircTime,1) + "s".
+  wait until eta:apoapsis < halfCircTime.
+ 
 
   if do_circ {
     circularize().

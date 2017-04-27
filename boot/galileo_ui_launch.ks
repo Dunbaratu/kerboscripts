@@ -4,7 +4,7 @@ if core:hasevent("Open Terminal") { core:doevent("Open Terminal"). }
 // Only run boot when launching, not when reloading vessel already
 // in space:
 parameter launchbody is "Gael".
-if ship:apoapsis < 500 and ship:body:name = launchbody and (status = "LANDED" or status = "PRELAUNCH") {
+if ship:apoapsis < ship:geoposition:terrainheight + 500 and ship:body:name = launchbody and (status = "LANDED" or status = "PRELAUNCH") {
 
   hudtext( "Unpacked. Now loading launch software.", 2, 2, 45, green, true).
   switch to 1.

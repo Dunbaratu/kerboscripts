@@ -73,7 +73,11 @@ function launch {
     }
     list engines in englist.
     local flameout is false.
-    for eng in englist { if eng:name <> "sepMotor1" and eng:flameout { set flameout to true. } }
+    for eng in englist {
+      if eng:name <> "sepMotor1" and eng:tag <> "flameout no stage" and eng:flameout {
+        set flameout to true. 
+      }
+    }
     if full_thrust_over and low_atmo_pending and ship:Q < 0.003 and ship:altitude > atmo_end/2 {
       set low_atmo_pending to false. // Never execute this again.
       if full_thrust_over {

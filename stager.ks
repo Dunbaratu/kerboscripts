@@ -19,7 +19,7 @@ function stager {
   } else {
     list engines in stg_eList.
     for stg_eng in stg_eList { 
-      if stg_eng:flameout {
+      if stg_eng:name <> "sepMotor1" and stg_eng:tag <> "flameout no stage" and stg_eng:flameout {
         stage.
         set did_stage to true.
         break.

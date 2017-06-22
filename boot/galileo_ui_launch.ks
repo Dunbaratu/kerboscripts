@@ -18,7 +18,7 @@ if ship:apoapsis < ship:geoposition:terrainheight + 500 and ship:body:name = lau
   copypath("0:/lib/land.ks","/lib/").
   copypath("0:/lib/song", "/lib/").
   copypath("0:/lib/dock", "/lib/").
-  copypath("0:/lib/menu", "/lib/").
+  copypath("0:/lib/menu", "/lib/"). // TODO - see if I can get rid of this?
   copypath("0:/lib/sanity", "/lib/").
   copypath("0:/lib/prediction","/lib").
   copypath("0:/launch","/").
@@ -46,6 +46,7 @@ if ship:apoapsis < ship:geoposition:terrainheight + 500 and ship:body:name = lau
 
 run once "/lib/menu".
 clearscreen.
+print "SELECT LAUNCH SETTINGS WITH THE GUI.".
 
 local launch_params is get_launch_params().
 
@@ -81,74 +82,163 @@ function get_launch_params {
     "go", false
     ).
 
-  redraw_params(params).
+  local panel_done is false.
 
-  local param_menu is make_menu( 0, 0, 40, 10, "Launch Parameters",
-      LIST(
-        LIST( "Heading", make_menu (0, 0, 20, 15, "Heading",
-            LIST(
-              LIST("+10", inc_tuple_thing@:bind(params, "heading", 10) ),
-              LIST("+1",  inc_tuple_thing@:bind(params, "heading", 1)  ),
-              LIST("-1",  inc_tuple_thing@:bind(params, "heading", -1) ),
-              LIST("-10", inc_tuple_thing@:bind(params, "heading", -10))
-            )
-          )
-        ),
-        LIST( "Apoapsis", make_menu (0, 0, 20, 15, "Apoapsis",
-            LIST(
-              LIST("+100000", inc_tuple_thing@:bind(params, "apoapsis", 100000)  ),
-              LIST("+10000",  inc_tuple_thing@:bind(params, "apoapsis", 10000)   ),
-              LIST("+1000",   inc_tuple_thing@:bind(params, "apoapsis", 1000)    ),
-              LIST("+100",    inc_tuple_thing@:bind(params, "apoapsis", 100)     ),
-              LIST("+10",     inc_tuple_thing@:bind(params, "apoapsis", 10)      ),
-              LIST("-10",     inc_tuple_thing@:bind(params, "apoapsis", -10)     ),
-              LIST("-100",    inc_tuple_thing@:bind(params, "apoapsis", -100)    ),
-              LIST("-1000",   inc_tuple_thing@:bind(params, "apoapsis", -1000)   ),
-              LIST("-10000",  inc_tuple_thing@:bind(params, "apoapsis", -10000)  ),
-              LIST("-100000", inc_tuple_thing@:bind(params, "apoapsis", -100000) )
-            )
-          )
-        ),
-        LIST( "Atmo Alt", make_menu (0, 0, 20, 15, "Atmosphere Altitude",
-            LIST(
-              LIST("+10000",  inc_tuple_thing@:bind(params, "atmo_end", 10000)   ),
-              LIST("+1000",   inc_tuple_thing@:bind(params, "atmo_end", 1000)    ),
-              LIST("+100",    inc_tuple_thing@:bind(params, "atmo_end", 100)     ),
-              LIST("+10",     inc_tuple_thing@:bind(params, "atmo_end", 10)      ),
-              LIST("-10",     inc_tuple_thing@:bind(params, "atmo_end", -10)     ),
-              LIST("-100",    inc_tuple_thing@:bind(params, "atmo_end", -100)    ),
-              LIST("-1000",   inc_tuple_thing@:bind(params, "atmo_end", -1000)   ),
-              LIST("-10000",  inc_tuple_thing@:bind(params, "atmo_end", -10000)  )
-            )
-          )
-        ),
-        LIST( "GO!", { set params["go"] to true. redraw_params(params). } ),
-        LIST( "Abort!", { set params["go"] to false. redraw_params(params). } )
-      )
-    ).
+  // Laying out the widgets:
 
-  param_menu["start"]().
-  
+  local panel is GUI(380).
+  panel:addlabel("=== UI LAUNCH SETTINGS ====").
+  panel:addspacing(5).
+  local panel_heading_box is panel:addhbox().
+  local panel_heading_label is panel_heading_box:addlabel("Heading: ").
+  local panel_heading_typebox is panel_heading_box:addtextfield(params["heading"]:TOSTRING()).
+  local panel_heading_box2 to panel:addhbox().
+  local panel_heading_slider is panel_heading_box2:addhslider(params["heading"],0,359).
+
+  local panel_apoapsis_box is panel:addhbox().
+  local panel_apoapsis_label is panel_apoapsis_box:addlabel("Apoapsis: ").
+  local panel_apoapsis_typebox is panel_apoapsis_box:addtextfield(params["apoapsis"]:TOSTRING()).
+  local panel_apoapsis_box2 to panel:addhbox().
+  local panel_apoapsis_slider is panel_apoapsis_box2:addhslider(params["apoapsis"],0,1000000).
+
+  local panel_atmo_end_box is panel:addhbox().
+  local panel_atmo_end_label is panel_atmo_end_box:addlabel("Atmo End: ").
+  local panel_atmo_end_typebox is panel_atmo_end_box:addtextfield(params["atmo_end"]:TOSTRING()).
+  local panel_atmo_end_box2 is panel:addhbox().
+  local panel_atmo_end_slider is panel_atmo_end_box2:addhslider(params["atmo_end"],0,200000).
+
+  local panel_end_button_box is panel:addhbox().
+  local panel_abort_button to panel_end_button_box:addbutton("Abort").
+  local panel_go_button to panel_end_button_box:addbutton("Go").
+
+  // Describing the widdget behaviour:
+
+  set panel_heading_slider:onchange to {
+    parameter val.
+    set params["heading"] to val.
+    set panel_heading_typebox:text to round(val):TOSTRING().
+  }.
+  set panel_heading_typebox:onconfirm to {
+    parameter val.
+    local testVal is val:TONUMBER(-999).
+    if testVal = -999 {
+      set panel_heading_typebox:text to params["heading"]:TOSTRING().
+    } else {
+      set panel_heading_slider:value to testVal.
+      set params["heading"] to testVal.
+    }
+  }.
+
+  set panel_apoapsis_slider:onchange to {
+    parameter val.
+    set params["apoapsis"] to val.
+    set panel_apoapsis_typebox:text to round(val):TOSTRING().
+  }.
+  set panel_apoapsis_typebox:onconfirm to {
+    parameter val.
+    local testVal is val:TONUMBER(-999).
+    if testVal = -999 {
+      set panel_apoapsis_typebox:text to params["apoapsis"]:TOSTRING().
+    } else {
+      set panel_apoapsis_slider:value to testVal.
+      set params["apoapsis"] to testVal.
+    }
+  }.
+
+  set panel_atmo_end_slider:onchange to { 
+    parameter val. 
+    set params["atmo_end"] to val. 
+    set panel_atmo_end_typebox:text to round(val):TOSTRING().
+  }.
+  set panel_atmo_end_typebox:onconfirm to {
+    parameter val.
+    local testVal is val:TONUMBER(-999).
+    if testVal = -999 {
+      set panel_atmo_end_typebox:text to params["atmo_end"]:TOSTRING().
+    } else {
+      set panel_atmo_end_slider:value to testVal.
+      set params["atmo_end"] to testVal.
+    }
+  }.
+
+  set panel_abort_button:onclick to { set params["go"] to false. set panel_done to true. panel:hide().}.
+  set panel_go_button:onclick to { set params["go"] to true. set panel_done to true. panel:hide().}.
+
+  panel:show().
+
+  wait until panel_done.
+
   return params.
 }
 
-function inc_tuple_thing {
-  parameter the_lex, field, amount.
-
-  set the_lex[field] to the_lex[field] + amount.
-
-  redraw_params(the_lex).
-}
-
-function redraw_params {
-  parameter the_lex.
-
-  print " Heading: " + the_lex[ "heading"] + "   " at (terminal:width - 17, 0).
-  print "Apoapsis: " + the_lex["apoapsis"] + "   " at (terminal:width - 17, 1).
-  print "Atmo Alt: " + the_lex["atmo_end"] + "   " at (terminal:width - 17, 2).
-  if the_lex["go"] {
-    print "  Launch is GO! " at (terminal:width - 17, 3).
-  } else {
-    print " Will Not Launch" at (terminal:width - 17, 3).
-  }
-}
+//   redraw_params(params).
+// 
+//   local param_menu is make_menu( 0, 0, 40, 10, "Launch Parameters",
+//       LIST(
+//         LIST( "Heading", make_menu (0, 0, 20, 15, "Heading",
+//             LIST(
+//               LIST("+10", inc_tuple_thing@:bind(params, "heading", 10) ),
+//               LIST("+1",  inc_tuple_thing@:bind(params, "heading", 1)  ),
+//               LIST("-1",  inc_tuple_thing@:bind(params, "heading", -1) ),
+//               LIST("-10", inc_tuple_thing@:bind(params, "heading", -10))
+//             )
+//           )
+//         ),
+//         LIST( "Apoapsis", make_menu (0, 0, 20, 15, "Apoapsis",
+//             LIST(
+//               LIST("+100000", inc_tuple_thing@:bind(params, "apoapsis", 100000)  ),
+//               LIST("+10000",  inc_tuple_thing@:bind(params, "apoapsis", 10000)   ),
+//               LIST("+1000",   inc_tuple_thing@:bind(params, "apoapsis", 1000)    ),
+//               LIST("+100",    inc_tuple_thing@:bind(params, "apoapsis", 100)     ),
+//               LIST("+10",     inc_tuple_thing@:bind(params, "apoapsis", 10)      ),
+//               LIST("-10",     inc_tuple_thing@:bind(params, "apoapsis", -10)     ),
+//               LIST("-100",    inc_tuple_thing@:bind(params, "apoapsis", -100)    ),
+//               LIST("-1000",   inc_tuple_thing@:bind(params, "apoapsis", -1000)   ),
+//               LIST("-10000",  inc_tuple_thing@:bind(params, "apoapsis", -10000)  ),
+//               LIST("-100000", inc_tuple_thing@:bind(params, "apoapsis", -100000) )
+//             )
+//           )
+//         ),
+//         LIST( "Atmo Alt", make_menu (0, 0, 20, 15, "Atmosphere Altitude",
+//             LIST(
+//               LIST("+10000",  inc_tuple_thing@:bind(params, "atmo_end", 10000)   ),
+//               LIST("+1000",   inc_tuple_thing@:bind(params, "atmo_end", 1000)    ),
+//               LIST("+100",    inc_tuple_thing@:bind(params, "atmo_end", 100)     ),
+//               LIST("+10",     inc_tuple_thing@:bind(params, "atmo_end", 10)      ),
+//               LIST("-10",     inc_tuple_thing@:bind(params, "atmo_end", -10)     ),
+//               LIST("-100",    inc_tuple_thing@:bind(params, "atmo_end", -100)    ),
+//               LIST("-1000",   inc_tuple_thing@:bind(params, "atmo_end", -1000)   ),
+//               LIST("-10000",  inc_tuple_thing@:bind(params, "atmo_end", -10000)  )
+//             )
+//           )
+//         ),
+//         LIST( "GO!", { set params["go"] to true. redraw_params(params). } ),
+//         LIST( "Abort!", { set params["go"] to false. redraw_params(params). } )
+//       )
+//     ).
+// 
+//   param_menu["start"]().
+//   
+//   return params.
+// }
+// 
+// function inc_tuple_thing {
+//   parameter the_lex, field, amount.
+// 
+//   set the_lex[field] to the_lex[field] + amount.
+// 
+//   redraw_params(the_lex).
+// }
+// 
+// function redraw_params {
+//   parameter the_lex.
+// 
+//   print " Heading: " + the_lex[ "heading"] + "   " at (terminal:width - 17, 0).
+//   print "Apoapsis: " + the_lex["apoapsis"] + "   " at (terminal:width - 17, 1).
+//   print "Atmo Alt: " + the_lex["atmo_end"] + "   " at (terminal:width - 17, 2).
+//   if the_lex["go"] {
+//     print "  Launch is GO! " at (terminal:width - 17, 3).
+//   } else {
+//     print " Will Not Launch" at (terminal:width - 17, 3).
+//   }
+// }

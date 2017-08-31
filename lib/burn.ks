@@ -52,12 +52,15 @@ function burn_seconds {
 function do_burn_with_display {
   parameter
     uTime, // desired universal time to start burn.
-    want_dV,  // desired deltaV (as a vector).
+    want_dV,  // desired deltaV (as a vector or manuever node).
     col, // desired location to print message.
-    row. // desired location to print message.
+    row, // desired location to print message.
+    ullage_time is 0.
 
 
   local want_steer is want_dV.
+  if want_dv:istype("node")
+    local want_steer is want_dv:deltaV.
   lock steering to lookdirup(want_steer,ship:facing:topvector).
   until time:seconds >= uTime {
     print  "Burn Start in " + round(uTime-time:seconds,0) + " seconds  " at (col,row).
@@ -73,32 +76,62 @@ function do_burn_with_display {
   // back when it seems like there's about 1.2 seconds left to thust:
   local avail_accel is ship:availablethrust / ship:mass.
   lock mythrot to min(1, 0.01 + dv_to_go/(1.2*avail_accel)).
+
+  local dv_burnt is 0.
+
+  // ullage RCS push, accounting for dv burnt during it:
+  print  "Ullage RCS push            "  at (col,row).
+  local remember_RCS is rcs.
+  rcs on.
+  set ship:control:fore to true.
+  wait ullage_time.
+  // If deltaV is a manuever node, recalc its dV because the
+  // rcs burn will have thrown it off a bit:
+  if want_dv:istype("node")
+    local want_dv is want_dv:deltaV.
+
+  // Start Real burn:
   lock throttle to mythrot.
+  set ship:control:fore to 0.
+  set rcs to remember_RCS.
 
   print  "Burn dV remaining:         m/s" at (col,row).
   local prev_dv_to_go is dv_to_go + 1.
-  local dv_burnt is 0.
   local prev_sec is time:seconds.
   local sec is 0.
+  local engs is 0.
+  local prev_vel is ship:velocity:orbit.
+  local dv is 0.
+  local dv_grav to 0.
+  list engines in engs.
   until dv_to_go <= 0 or (dv_to_go >= prev_dv_to_go) {
-    set prev_dv_to_go to dv_to_go.
-    set sec to time:seconds.
-    set dv_burnt to dv_burnt + (sec-prev_sec)*(ship:availablethrust*mythrot / ship:mass).
-    set prev_sec to sec.
-    wait 0.01.
-    set dv_to_go to want_dv:mag - dv_burnt.
     print round(dV_to_go,1) + "m/s     " at (col+19,row).
     print "dv_burnt: " + round(dv_burnt,2) + "m/s    " at (col+19,row+1).
     print "mythrot: " + round(mythrot,2) + "    " at (col+19,row+2).
-    stager().
+    stager(engs).
     until ship:availablethrust > 0 {
       set prev_dv_to_go to 99999999.
-      stager().
+      stager(engs).
     }
+    set prev_dv_to_go to dv_to_go.
+    set sec to time:seconds.
+    // assume all velocity change that wasn't due to gravity is due to burn:
+    set dv to ship:velocity:orbit - prev_vel.
+    set dv_grav to (sec-prev_sec)*g_here().
+    set dv_burnt to dv_burnt + (dv-dv_grav):mag.
+    set prev_sec to sec.
+    set prev_vel to ship:velocity:orbit.
+    wait 0.0.
+    set dv_to_go to want_dv:mag - dv_burnt.
   }
   lock mythrot to 0.
   lock throttle to 0.
   unlock steering.
+}
+
+// gravity XYZ accel vector at ship location.
+function g_here {
+  return (ship:body:mu / ((ship:body:radius + ship:altitude)^2))*ship:body:position:normalized.
 }
 
 // Go into a mode where it will obey all future maneuver nodes you may put in
@@ -106,7 +139,9 @@ function do_burn_with_display {
 function obey_node_mode {
   parameter
     quit_condition,  // pass in a delegate that will return boolean true when you want it to end.
-    node_edit is "n/a".       // pass in a delegate that will edit precise nodes if called.
+    node_edit is "n/a",       // pass in a delegate that will edit precise nodes if called.
+    ullage_time is 0,
+    spool_time is 0.
 
   until quit_condition:call() {
     clearscreen.
@@ -125,6 +160,7 @@ function obey_node_mode {
     // drop from time warp based on the new changes the user is doing:
     local half_burn_length is 0.
     local full_burn_length is 0.
+    local lead_time is 0.
     local dv_mag is 0.
     until (not hasnode) // escape early if the user deleted the node
           or
@@ -132,9 +168,14 @@ function obey_node_mode {
       set dv_mag to nextnode:deltaV:mag.
       set half_burn_length to burn_seconds(dv_mag/ 2).
       set full_burn_length to burn_seconds(dv_mag).
-      print "Dv: " + round(dv_mag,2) + " m/s  " at (0,7).
-      print "Est Full Dv Burn: " + round(full_burn_length,1) + " s  " at (0,8).
-      print "Est Half Dv Burn: " + round(half_burn_length,1) + " s  " at (0,9).
+      set lead_time to half_burn_length + ullage_time + spool_time.
+      print "Dv: " + round(dv_mag,2) + " m/s  " at (0,6).
+      print "Est Full Dv Burn: " + round(full_burn_length,1) + " s  " at (0,7).
+      print "  Est Half Dv Burn: " + round(half_burn_length,1) + " s  " at (0,9).
+      print "+  Est Ullage time: " + round(ullage_time,1) + " s  " at (0,10).
+      print "+   Est Spool time: " + round(spool_time,1) + " s  " at (0,11).
+      print "---------------------------------------" at (0,12).
+      print "   Total lead time: " + round(lead_time,1) + " s " at (0,13).
       just_obey_p_check(node_edit).
       wait 0.2. // Don't re-calculate burn_seconds() more often than needed.
     }
@@ -143,8 +184,8 @@ function obey_node_mode {
       hudtext("Execution of node now set in stone.", 5, 2, 30, red, true).
       wait 0.
       local n is nextnode.
-      local utime is time:seconds + n:eta - half_burn_length.
-      do_burn_with_display(utime, n:deltav, 5, 10).
+      local utime is time:seconds + n:eta - lead_time.
+      do_burn_with_display(utime, n, 5, 15, ullage_time).
       hudtext("Node done, removing node.", 10, 5, 20, red, true).
       remove(n).
     }

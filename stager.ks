@@ -8,8 +8,8 @@
 // Call repeatedly in a program's main loop as you are burning.
 @LAZYGLOBAL OFF.
 function stager {
+  parameter stg_eList is 0.
   local did_stage is false.
-  local stg_eList is LIST().
 
   // simple dumb - check if nothing active,
   // then stage:
@@ -17,7 +17,8 @@ function stager {
     stage.
     set did_stage to true.
   } else {
-    list engines in stg_eList.
+    if stg_eList:istype("scalar")
+       list engines in stg_eList.
     for stg_eng in stg_eList { 
       if stg_eng:name <> "sepMotor1" and stg_eng:tag <> "flameout no stage" and stg_eng:flameout {
         stage.

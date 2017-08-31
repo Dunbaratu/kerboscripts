@@ -8,9 +8,11 @@ function isp_calc {     //-----calculates the average isp of all of the active e
   LOCAL totalThrust IS 0.
   FOR engine IN engineList {
     IF engine:IGNITION AND NOT engine:FLAMEOUT {
+      local seaPres is ship:body:atm:altitudePressure(0).
+      local avail is engine:availablethrustat(seaPres).
       // the 9.802 term is wrong?: SET totalFlow TO totalFlow + (engine:AVAILABLETHRUST / (engine:ISP * 9.802)).
-      SET totalFlow TO totalFlow + (engine:AVAILABLETHRUST / engine:ISP).
-      SET totalThrust TO totalThrust + engine:AVAILABLETHRUST.
+      SET totalFlow TO totalFlow + (avail / engine:ISPAT(seaPres)).
+      SET totalThrust TO totalThrust + avail.
     }
   }
   IF MAXTHRUST = 0 {

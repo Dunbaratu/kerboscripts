@@ -23,9 +23,11 @@ function sim_land_spot {
     t_max,   // thrust you'd get at max throttle (i.e. ship:availablethrust).
     isp,     // ISP of engine(s) that will be performing the burn.
     m_init,  // initial mass of the ship at start of burn.
+    m_dry,   // mass when the tank is going to be empty.
     v_init,  // initial velocity vector at start position of burn.
     t_delta, // seconds per timestep in the simulation loop.
-    do_draws is false.
+    do_draws is false,
+    spool is 0. // seconds to assume engines take to start working.
 
   if t_max <= 0 {
     // THIS FUNCTION WOULD LOOP FOREVER AND NEVER END
@@ -36,8 +38,8 @@ function sim_land_spot {
   local t is 0. // elapsed time since burn start.
   local vel is v_init. // current new velocity.  Goal is for this to zero out.
   local prev_vel is v_init*2. // force `reverse` flag not to trigger the first time.
-  local prev_a_vec is v(0,0,0).
   local m is m_init. // current mass (m_init minus spent fuel).
+  local fuel_mult is t_delta/(9.8065*isp). // used to calc how much fuel is spent at given thrust.
 
   // (if the sim loop starts with the velocity *already* ascending, then it doesn't
   // start checking for ascending until after it has started descending at least
@@ -54,18 +56,25 @@ function sim_land_spot {
 
     local r_square is up_vec:SQRMAGNITUDE.
     local g is GM/r_square.                           // grav accel, as scalar.
-    local eng_a_vec is t_max*(- vel:normalized) / m.  // engine accel, as vector.
-    local a_vec is eng_a_vec - up_unit*g.             // total accel, as vector.
+    local use_t_max is t_max.
+    if t < spool {
+      set use_t_max to 0.
+    }
+    local eng_a_vec is use_t_max*(- vel:normalized) / m.  // engine accel, as vector.
+    local a_vec to eng_a_vec - up_unit*g.             // total accel, as vector.
 
     set prev_vel to vel.
-    set prev_a_vec to a_vec.
-    local avg_a_vec is 0.5*(a_vec+prev_a_vec). 
-    set vel to vel + avg_a_vec*t_delta.             // new velocity = old vel + accel*deltaT
+    set vel to vel + a_vec*t_delta.             // new velocity = old vel + accel*deltaT
     local avg_vel is 0.5*(vel+prev_vel).
     local prev_pos is pos.
     set pos to pos + avg_vel*t_delta.               // new pos = old pos + velocity*deltaT.
-    set m to m - (t_max / (9.802*isp)*t_delta). // new mass = old mass minus fuel we just spent.
-    if m <= 0 { break. } // Ship is not allowed to be composed of anti-matter.
+    set m to m - (use_t_max * fuel_mult). // subtract mass loss from fuel burnt.
+    if m <= m_dry {
+      hudtext("kOS: INSUFFICIENT FUEL. CAN'T CALCULATE SUICIDE PROPERLY.", 1, 2, 18, red, true).
+      getvoice(9):play(slidenote(600,650,0.15)).
+      wait 1.
+      break.
+    }
     set t to t + t_delta.
 
     if do_draws {

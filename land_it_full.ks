@@ -4,7 +4,8 @@ run once "/songs/happy".
 run once "/songs/sad".
 run once "/lib/sanity".
 
-parameter safety_margin is 5.
+parameter margin is 5.
+parameter spool is 1. // presumed spool-up time of engines in second in secondss.
 parameter skycrane is false.
 // The following two are for fixing it if the
 // probe core isn't oriented right
@@ -41,62 +42,61 @@ if ship:availablethrust <= 0 {
 
 local first_aim is true.
 
-set burn_now to false.
 SAS off.
-lock steering to rotate_for_probe_core(srfretrograde, off_pitch, off_yaw).
+lock steering to rot_core(srfretrograde, off_pitch, off_yaw).
 gear on.
 
-local lasParts is ship:partstagged("landing laser").
 local hasLas is false.
-local lasMod is 0.
-if lasParts:length > 0 {
-  set lasMod to lasParts[0]:getmodule("LaserDistModule").
-  set hasLas to true.
-  lasMod:setfield("Enabled", true).
-  lasMod:setfield("Visible", true).
-}
 
 local prev_time is time:seconds.
 local deltaT is 0.1.
+local landed is false.
+until landed {
+  local burn_now is false.
+  local calced_isp is isp_calc(). // WARNING: by pre-calcing, this is wrong for atmo situations where it changes.
+  local mu is ship:body:mu.
+  local athrust is ship:availablethrust.
+  until burn_now {
+    set landed to (status = "LANDED" or status = "SPLASHED").
+    if landed
+      break.
 
-until burn_now {
+    set result to sim_land_spot(
+      mu,
+      ship:body:position,
+      athrust,
+      calced_isp,
+      ship:mass,
+      ship:drymass,
+      ship:velocity:surface,
+      0.1, // was 0.5
+      false,
+      spool).
 
-  set result to sim_land_spot(
-    ship:body:mu,
-    ship:body:position,
-    ship:availablethrust,
-    isp_calc(),
-    ship:mass,
-    ship:drymass,
-    ship:velocity:surface,
-    0.5,
-    false).
+    set pos to result["pos"].
+    if has_safe_distance(pos, deltaT) {
+      set theColor to green.
+    } else {
+      set theColor to red.
+      set burn_now to true.
+    }
 
-  set pos to result["pos"].
-  if has_safe_distance(pos, deltaT) {
-    set theColor to green.
-  } else {
-    set theColor to red.
-    set burn_now to true.
+    if not burn_now
+      wait 0.
+    
+    set deltaT to time:seconds - prev_time.
+    set prev_time to time:seconds.
   }
 
-  if not burn_now
-    wait 0.
-  
-  set deltaT to time:seconds - prev_time.
-  set prev_time to time:seconds.
-}
+  print "Now in suicide burn.".
+  local initial_twr is athrust / (ship:mass * mu / (ship:body:radius+ship:altitude)^2).
+  lock throttle to 1.
+  set cnt_before to ship:parts:length.
+  wait until verticalspeed > -3.0.
+  lock throttle to 0.
 
-print "Now in angled suicide burn.".
-local initial_twr is ship:availablethrust / (ship:mass * ship:body:mu / (ship:body:radius+ship:altitude)^2).
-lock throttle to 1.
-wait until verticalspeed > -2.0.
-print "Now in final touchdown vertical descent.".
-set descendPID to pidloop(1/initial_twr, 0.05/initial_twr, 0.2/initial_twr, 0, 1).
-lock throttle to descendPID:update(time:seconds, verticalspeed+descentSpeed()).
-lock steering to rotate_for_probe_core(retro_or_up(), off_pitch, off_yaw).
-local partCount_before is ship:parts:length.
-wait until status="LANDED" or status="SPLASHED".
+  set margin to margin/4. // try again from here, with a smaller margin.
+}
 brakes on.
 unlock steering.
 if skycrane {
@@ -111,30 +111,26 @@ set vd1 to 0.
 clearscreen.
 sane_steering().
 wait 0.
-local partCount_after is ship:parts:length.
-local already_played_song is false.
-if partCount_before <> partCount_after {
+local cnt_after is ship:parts:length.
+local played is false.
+if cnt_before <> cnt_after {
   print "====== Oh Noes!! Something Broke!! ======" at (2, terminal:height/2).
   playsong(song_sad).
-  set already_played_song to true.
+  set played to true.
 }
 wait until ship:velocity:surface:mag < 0.1. 
 lights on.
 
-if hasLas {
-  lasMod:setfield("Enabled", false).
-  lasMod:setfield("Visible", false).
-}
 
 // Give things time to blow up if they're going to:
 wait 0.5.
 // Count parts to see if any blew up:
-local partCount_after is ship:parts:length.
+local cnt_after is ship:parts:length.
 
-if partCount_before = partCount_after {
+if cnt_before = cnt_after {
   print "====== Landed!!  Celebration Music! ======" at (2, terminal:height/2).
   playsong(song_happy).
-} else if not already_played_song {
+} else if not played {
   print "====== Oh Noes!! Something Broke!! ======" at (2, terminal:height/2).
   playsong(song_sad).
 }
@@ -144,9 +140,9 @@ SAS off.
 
 function descentSpeed {
 
-  local shipWeight is (ship:mass * ship:body:mu / (ship:body:radius+ship:altitude)^2).
+  local sweight is (ship:mass * ship:body:mu / (ship:body:radius+ship:altitude)^2).
   // Bonus Thrust beyond what is needed to fight gravity:
-  local bonusThrust is ship:availablethrust - shipWeight.
+  local bonusThrust is ship:availablethrust - sweight.
   // max amount we can deccelerate by:
   local accel is bonusThrust / ship:mass.
 
@@ -154,11 +150,11 @@ function descentSpeed {
   //    "What speed could I have in which I would be able to stop
   //    in the available distance?" (with a fudge factor of pretending
   //    the engine is only 70% as strong as it really is:).
-  local return_val is sqrt( (max(0, 0.7*(alt_radar_or_sea() - 2*safety_margin) ))*(2*accel) ).
-  local return_val is max(1.5, return_val).
-  print "Desired Spd: " + round(return_val,1) + " m/s   " at (5,terminal:height/2-3).
+  local rVal is sqrt( (max(0, 0.7*(alt_radar_or_sea() - 2*margin) ))*(2*accel) ).
+  local rVal is max(1.5, rVal).
+  print "Desired Spd: " + round(rVal,1) + " m/s   " at (5,terminal:height/2-3).
   print "Current Spd: " + round(abs(verticalspeed),1) + " m/s   " at (5,terminal:height/2-2).
-  return return_val. // force it to be sane.
+  return rVal. // force it to be sane.
 }
 
 // Return retrograde or up vectors depending on
@@ -176,7 +172,7 @@ function retro_or_up {
 
 // Rotates a given steering direction to
 // compensate for a poorly mounted probe core.
-function rotate_for_probe_core {
+function rot_core {
   parameter dirIn, pitchRot, yawRot.
 
   // Adjust for pitch, then yaw:
@@ -203,42 +199,22 @@ function has_safe_distance {
 
   local safe is false.
   local use_fallback is true.
-  local compare_dist is 0.
+  local dist is 0.
   local test_dist is 0.
   local label_prefix is "".
 
-  if   hasLas  // don't use the laser if we don't have one.
-       and
-       abs(steeringmanager:angleerror) < 1  // don't trust the laser until we are aimed close enough that
-                                            // it can be pointed in roughly the right direction.
-       and
-       warp = 0 // don't believe the laser reading until warp is over.
-  {
-    aim_laser_at(lasMod, pos).
-    if first_aim {
-      wait 0. wait 0. // let the laser aim actually happen by waiting 2 ticks.
-      set first_aim to false.
-    }
-    local dist is lasMod:getfield("distance").
-    if dist >= 0 {
-      set use_fallback to false.
-      set compare_dist to dist - (safety_margin+ship:velocity:surface:mag*deltaT*1.5).
-      set test_dist to pos:mag.
-      set label_prefix to "Margin (laser measured): ".
-    }
-  }
   if use_fallback {
     local groundPos is ship:body:geopositionof(pos):position.
     local seaPos is ship:body:geopositionof(pos):altitudeposition(0).
-    set test_dist to (safety_margin+abs(verticalspeed)*deltaT*1.5).
-    set compare_dist_ground to vdot(pos-groundPos,ship:up:vector).
-    set compare_dist_sea to vdot(pos-seaPos,ship:up:vector).
-    set compare_dist to min(compare_dist_ground, compare_dist_sea).
+    set test_dist to (margin+abs(verticalspeed)*deltaT*1.5).
+    set dist_ground to vdot(pos-groundPos,ship:up:vector).
+    set dist_sea to vdot(pos-seaPos,ship:up:vector).
+    set dist to min(dist_ground, dist_sea).
     set label_prefix to "Margin (terrain database guess): ".
   }
-  if test_dist < compare_dist { // try to start the burn just a few ticks early
+  if test_dist < dist { // try to start the burn just a few ticks early
     set safe to true.
-    set vd1 to vecdraw(v(0,0,0),pos, green, label_prefix + round(compare_dist-test_dist,1)+"m", 1, true).
+    set vd1 to vecdraw(v(0,0,0),pos, green, label_prefix + round(dist-test_dist,1)+"m", 1, true).
   } else {
     set vd1 to 0.
   }

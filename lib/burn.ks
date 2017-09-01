@@ -83,7 +83,7 @@ function do_burn_with_display {
   print  "Ullage RCS push            "  at (col,row).
   local remember_RCS is rcs.
   rcs on.
-  set ship:control:fore to true.
+  set ship:control:fore to 1.
   wait ullage_time.
   // If deltaV is a manuever node, recalc its dV because the
   // rcs burn will have thrown it off a bit:

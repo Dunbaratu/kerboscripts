@@ -1,7 +1,7 @@
 clearscreen.
 // TODO: Make these user-tweakable:
-global ullage_time is 10.
-global spool_time is 3.
+global ullage_time is 10. // push RCS forward for this many seconds before engine firing.
+global spool_time is 3. // anticipate the engine taking this long to reach full power.
 
 print "This is a program that just obeys whatever manuever nodes you put in front of it.".
 

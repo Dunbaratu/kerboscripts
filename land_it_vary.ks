@@ -5,8 +5,8 @@ run once "/songs/sad".
 run once "/lib/sanity".
 
 parameter margin is 5.
-parameter spool is 1. // presumed spool-up time of engines in seconds.
 parameter ullage is 2. // presumed time to wait for RCS ullage before engine start.
+parameter spool is 1. // presumed spool-up time of engines in seconds.
 parameter minThrot is 0. // min throttle in RO for the landing engine.
 parameter skycrane is false.
 // The following two are for fixing it if the
@@ -47,8 +47,8 @@ local first_aim is true.
 SAS off.
 lock steering to retro_or_up().
 set steeringmanager:maxstoppingtime to 5.
-set steeringmanager:pitchpid:Kd to 3.
-set steeringmanager:yawpid:Kd to 3.
+set steeringmanager:pitchpid:Kd to 1.
+set steeringmanager:yawpid:Kd to 1.
 gear on.
 
 set theColor to rgb(0,0.6,0).
@@ -66,10 +66,18 @@ local throt_pid is PIDloop(1,0,0,minThrot,1).
 local ullage_end_ts is -1.
 local wait_for_fall is true.
 set cnt_before to ship:parts:length.
-until false { // uses explicit break.
-  set landed to (status = "LANDED" or status = "SPLASHED").
-  if landed
-    break.
+
+// Need to notice a touchdown immediately whenever
+// it happens because if it bounces it might be 
+// landed for only 1 brief tick and thus it might
+// not get to the top of the loop to do the check in time:
+global touched is false.
+when status = "LANDED" or status = "SPLASHED" then {
+  set touched to true.
+}
+
+// Main program:
+until touched {
 
   set result to sim_land_spot(
     mu,
@@ -145,6 +153,9 @@ if skycrane {
   stage.
   wait 0.1.
 }
+lock throttle to 0.
+set ship:control:pilotmainthrottle to 0.
+wait 0.
 unlock throttle.
 SAS on.
 set vd1 to 0.
@@ -158,7 +169,6 @@ if cnt_before <> cnt_after {
   playsong(song_sad).
   set played to true.
 }
-wait until ship:velocity:surface:mag < 0.1. 
 lights on.
 
 

@@ -1,5 +1,6 @@
 
 wait until ship:unpacked.
+wait 2. // need to let Remote tech find itself.
 // Only run boot when launching, not when reloading vessel already
 // in space:
 if ship:periapsis < 100 and ship:body:name = "Gael" and (status = "LANDED" or status = "PRELAUNCH") {

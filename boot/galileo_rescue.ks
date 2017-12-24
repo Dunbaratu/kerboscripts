@@ -1,6 +1,7 @@
 print "Program to try to Rescue a Kerbal in Kerbin orbit.".
 
 wait until ship:unpacked.
+wait 2. // need to let Remote tech find itself.
 
 switch to 1.
 if not exists("1:/lib")

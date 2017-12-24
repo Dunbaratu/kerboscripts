@@ -1,3 +1,4 @@
+wait 2. // need to let Remote tech find itself.
 print "Copying land_it files and nothing else.".
 switch to 1.
 createdir("/lib/").

@@ -61,7 +61,9 @@ function do_burn_with_display {
   local want_steer is want_dV.
   if want_dv:istype("node")
     local want_steer is want_dv:deltaV.
+  local remember_sas is sas.
   lock steering to lookdirup(want_steer,ship:facing:topvector).
+  sas off.
   until time:seconds >= uTime {
     print  "Burn Start in " + round(uTime-time:seconds,0) + " seconds  " at (col,row).
     stager().
@@ -127,6 +129,7 @@ function do_burn_with_display {
   lock mythrot to 0.
   lock throttle to 0.
   unlock steering.
+  set sas to remember_sas.
 }
 
 // gravity XYZ accel vector at ship location.
@@ -145,6 +148,9 @@ function obey_node_mode {
 
   until quit_condition:call() {
     clearscreen.
+    print "Aiming at sun for panels.".
+    lock steering to sun:position.
+    lock throttle to 0.
     print "Type 'P' for precise node editor.".
     if not hasnode {
       hudtext("Waiting for a node to exist...", 10, 2, 30, red, true).

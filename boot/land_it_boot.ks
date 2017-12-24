@@ -1,3 +1,4 @@
+wait 2. // need to let Remote tech find itself.
 print "copying files".
 if not exists("1:/lib/") createdir("1:/lib").
 if not exists("1:/songs/") createdir("1:/songs").

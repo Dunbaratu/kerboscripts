@@ -1,4 +1,5 @@
 wait until ship:unpacked.
+wait 2. // need to let Remote tech find itself.
 if core:hasevent("Open Terminal") { core:doevent("Open Terminal"). }
 
 // Only run boot when launching, not when reloading vessel already

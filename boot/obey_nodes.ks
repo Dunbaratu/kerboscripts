@@ -1,4 +1,5 @@
 wait until ship:unpacked.
+wait 2. // need to let Remote tech find itself.
 print "waiting for Remote Tech to find itself.".
 wait 2.
 print "Just loading the necessary code for just_obey_nodes.".

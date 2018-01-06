@@ -1,3 +1,6 @@
+// land_it script to use when you have infinitely restartable,
+// yet still throttle locked at 100%, engines.
+//
 run once "/lib/land".
 run once "/lib/song".
 run once "/songs/happy".

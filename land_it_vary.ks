@@ -66,6 +66,7 @@ local throt_pid is PIDloop(1,0,0,minThrot,1).
 local ullage_end_ts is -1.
 local wait_for_fall is true.
 set cnt_before to ship:parts:length.
+set epsilon_time to 0.3.
 
 // Need to notice a touchdown immediately whenever
 // it happens because if it bounces it might be 
@@ -87,7 +88,7 @@ until touched {
     ship:mass,
     ship:drymass,
     ship:velocity:surface,
-    0.1, // was 0.5
+    epsilon_time,
     false,
     spool+ullage).
 
@@ -135,6 +136,7 @@ until touched {
   set deltaT to time:seconds - prev_time.
   if (alt:radar < margin or verticalspeed > -0.2) and not wait_for_fall {
     set margin to margin / 2.
+    set epsilon_time to epsilon_time / 2. // get more precise each time.
     set wait_for_fall to true.
   }
   if verticalspeed < -0.2 {

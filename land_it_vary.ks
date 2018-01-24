@@ -13,10 +13,6 @@ parameter ullage is 2. // presumed time to wait for RCS ullage before engine sta
 parameter spool is 1. // presumed spool-up time of engines in seconds.
 parameter minThrot is 0. // min throttle in RO for the landing engine.
 parameter skycrane is false.
-// The following two are for fixing it if the
-// probe core isn't oriented right
-
-
 
 if ship:availablethrust <= 0 {
   // BIG WARNING:

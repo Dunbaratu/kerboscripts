@@ -1,6 +1,6 @@
 // land_it to use when you have an engine that might not be
 // infinitely restartable but does have the ability to
-// throttle it down below 1.0 TWR.
+// throttle it down.  Can work with engines with min TWR > 1.0.
 
 run once "/lib/land".
 run once "/lib/song".

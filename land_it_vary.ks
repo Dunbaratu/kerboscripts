@@ -51,8 +51,9 @@ set steeringmanager:yawpid:Kd to 1.
 gear on.
 
 set theColor to rgb(0,0.6,0).
-
+local vd_show_msg_cooldown is time:seconds.
 local hasLas is false.
+local vd1 is 0.
 
 local prev_time is time:seconds.
 local deltaT is 0.1. // how long an iteration is *actually* taking, measured.
@@ -116,6 +117,14 @@ until stop_burn {
 
   set pos to result["pos"].
   set dist to terrain_distance(pos).
+  if time:seconds > vd_show_msg_cooldown {
+    set vd_show_msg_cooldown to vd_show_msg_cooldown + 15.
+    HUDTEXT("Action Group 10 hides/shows prediction vector.", 5, 3, 18, rgb(0,0.4,0), true).
+  }
+  if vd1:istype("Vecdraw") {
+    set vd1:show to ag10.
+  }
+
   if dist > margin {
     set theColor to rgb(0,0.6,0).
   } else {
@@ -293,7 +302,15 @@ function terrain_distance {
     set dist to min(dist_ground, dist_sea).
     set label_prefix to "Margin (terrain database guess): ".
   }
-  set vd1 to vecdraw(v(0,0,0),pos, theColor, label_prefix + round(dist,1)+"m", 1.5, true).
+  if vd1:istype("Vecdraw") {
+    // change existing vecdraw
+    set vd1:vector to pos.
+    set vd1:color to theColor.
+    set vd1:label to label_prefix + round(dist,1).
+  } else {
+    // make new vecdraw
+    set vd1 to vecdraw(v(0,0,0),pos, theColor, label_prefix + round(dist,1)+"m", 1.5, true).
+  }
   return dist.
 
 

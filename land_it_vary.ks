@@ -44,7 +44,7 @@ if ship:availablethrust <= 0 {
 }
 
 SAS off.
-lock steering to retro_or_up().
+lock steering to aim_direction().
 set steeringmanager:maxstoppingtime to 5.
 set steeringmanager:pitchpid:Kd to 1.
 set steeringmanager:yawpid:Kd to 1.
@@ -54,7 +54,7 @@ set theColor to rgb(0,0.6,0).
 local vd_show_msg_cooldown is time:seconds.
 local hasLas is false.
 local vd1 is 0.
-
+local cos_aim is 1. // cosine of angle between aim and srfretro, when we're aiming off to try to stop horizontal component.
 local prev_time is time:seconds.
 local deltaT is 0.1. // how long an iteration is *actually* taking, measured.
 local calced_isp is isp_calc(). // WARNING: by pre-calcing, this is wrong for atmo situations where it changes.
@@ -62,6 +62,9 @@ local mu is ship:body:mu.
 local bodRad is ship:body:radius.
 local athrust is ship:availablethrust.
 local landed is false.
+local pos is v(0,0,0).
+local end_angular is 0.
+local eta_end is 9999.
 
 local throt_pid is PIDloop(1,0,0,minThrot,1).
 pid_tune(altitude).
@@ -106,7 +109,7 @@ until stop_burn {
   set result to sim_land_spot(
     mu,
     ship:body:position,
-    partial_throttle_thrust,
+    cos_aim * partial_throttle_thrust,
     calced_isp,
     ship:mass,
     ship:drymass,
@@ -116,6 +119,8 @@ until stop_burn {
     spool+ullage).
 
   set pos to result["pos"].
+  set end_angular to result["angular"].
+  set eta_end to result["seconds"].
   set dist to terrain_distance(pos).
   if time:seconds > vd_show_msg_cooldown {
     set vd_show_msg_cooldown to vd_show_msg_cooldown + 15.
@@ -142,6 +147,7 @@ until stop_burn {
  // eraseme: set real_throt to throt_pid:update(time:seconds, land_dist_err_ratio). 
 
   local real_throt to throt_pid:update(time:seconds, dist-margin). 
+  print "Kp="+round(throt_pid:Kp,8)+" Ki="+round(throt_pid:Ki,8)+" Kd="+round(throt_pid:Kd,8). // eraseme
 
   if real_throt > minThrot {
     set burn_started to true.
@@ -162,7 +168,6 @@ until stop_burn {
       // From now on the engine stays on - so take these times out of the prediction:
       set spool to 0.  set ullage to 0.
       print "real_throt = " + round(real_throt,3) + ", throttle = " + round(throttle,3). // eraseme
-      print "Kp="+round(throt_pid:Kp,8)+" Ki="+round(throt_pid:Ki,8)+" Kd="+round(throt_pid:Kd,8).
     }
   } else if burn_started {
       lock throttle to 0.001.
@@ -240,9 +245,9 @@ function pid_tune {
 
   // Adjust PID tuning as we go depending on TWR:
   local twr is athrust / (ship:mass * mu / (bodRad+ship:altitude)^2).
-  set throt_pid:Kp to 20/(0.1*burn_dist*twr).
-  set throt_pid:Ki to 2/(0.1*burn_dist*twr). // During the slow burn to the ground, Ki is almost the only reason it burns.
-  set throt_pid:Kd to 10/(0.1*(burn_dist^1.3)*twr). // Kd needs to be relevant only when near ground, thus the exponential.
+  set throt_pid:Kp to 10/(10+sqrt(burn_dist)*twr).
+  set throt_pid:Ki to 1/(sqrt(burn_dist)*twr).
+  set throt_pid:Kd to 2/(sqrt(burn_dist)*twr). 
 }
 
 function descentSpeed {
@@ -266,15 +271,31 @@ function descentSpeed {
 
 // Return retrograde or up vectors depending on
 // whether we're going so slowly that retrograde
-// might flip upside down soon:
-function retro_or_up {
-  if burn_started and ship:verticalspeed > -1.5
+// might flip upside down soon.  Also predict
+// near the end of the flight if we'll be not vertical
+// enough and if so then curve it to the ground more.
+function aim_direction {
+  set cos_aim to 1. // cosine for how far off the aim is from retro.
+
+  print "eta_end = " + round(eta_end,2) + ", end_angular = " + round(end_angular,2). // eraseme
+  if burn_started and ship:verticalspeed > -1.5 {
     return lookdirup(ship:up:vector, ship:facing:topVector).
-  else if burn_started and ship:verticalspeed > -5
+  }
+  else if burn_started and ship:verticalspeed > -5 {
     // Aim at a vector exactly halfway between true surface retro and straight up:
     return lookdirup(ship:up:vector:normalized + srfretrograde:vector:normalized, ship:facing:topVector).
-  else
+  } // Else if within 20 seconds of ending, and it looks like the landing would require an impossibly quick rotation at the end
+  else if burn_started and eta_end < 40 and end_angular > 2 {
+    // Slightly downward from retrograde, so as to halt sideways motion and get the landing more vertically oriented
+    local aim is lookdirup(
+        srfretrograde:vector +
+           min(0.3, 0.1*end_angular)*vxcl(up:vector, srfretrograde:vector), // deflect further down the more it needs it.
+        ship:facing:topvector). 
+    set cos_aim to vdot(aim:vector, srfretrograde:vector).
+    return aim.
+  } else {
     return lookdirup(srfretrograde:vector, ship:facing:topvector).
+  }
 }
 
 // If alt:radar is > altitude then you're seeing the

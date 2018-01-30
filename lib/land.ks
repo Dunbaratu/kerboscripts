@@ -38,6 +38,7 @@ function sim_land_spot {
   local t is 0. // elapsed time since burn start.
   local vel is v_init. // current new velocity.  Goal is for this to zero out.
   local prev_vel is v_init*2. // force `reverse` flag not to trigger the first time.
+  local prev_prev_vel is prev_vel. // two steps behind, used for rotational prediction at the end.
   local m is m_init. // current mass (m_init minus spent fuel).
   local fuel_mult is t_delta/(9.8065*isp). // used to calc how much fuel is spent at given thrust.
 
@@ -63,6 +64,7 @@ function sim_land_spot {
     local eng_a_vec is use_t_max*(- vel:normalized) / m.  // engine accel, as vector.
     local a_vec to eng_a_vec - up_unit*g.             // total accel, as vector.
 
+    set prev_prev_vel to prev_vel.
     set prev_vel to vel.
     set vel to vel + a_vec*t_delta.             // new velocity = old vel + accel*deltaT
     local avg_vel is 0.5*(vel+prev_vel).
@@ -83,13 +85,19 @@ function sim_land_spot {
     }
   }
 
+  // What was the angular velocity at the moment before the end?
+  // If it was large, then that means the ship is being required
+  // to suddently snap quickly vertical at the end and the caller needs to
+  // know that:
+  local angular is vang(vel, prev_prev_vel) / (2*t_delta).
 
   return Lex(
-    "pos", pos,    // position where it stops relative to a start position of v(0,0,0)
-    "vel", vel,    // velocity at the moment it ends
-    "seconds", t,  // how many seconds will it take to stop.
-    "mass", m,     // what will be the new mass after the burn due to spent fuel.  if <=0, then it aborts early.
-    "draws", draws // vecdraws to display.
+    "pos", pos,       // position where it stops relative to a start position of v(0,0,0)
+    "vel", prev_vel,  // velocity just before the moment it ends
+    "seconds", t,     // how many seconds will it take to stop.
+    "mass", m,        // what will be the new mass after the burn due to spent fuel.  if <=0, then it aborts early.
+    "draws", draws,   // vecdraws to display.
+    "angular", angular // angular velocity (deg/sec) needed to snap vertical just before the burn ends.
     ).
 }
 

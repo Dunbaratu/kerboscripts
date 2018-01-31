@@ -285,15 +285,7 @@ function aim_direction {
     // Aim at a vector exactly halfway between true surface retro and straight up:
     return lookdirup(ship:up:vector:normalized + srfretrograde:vector:normalized, ship:facing:topVector).
   } // Else if within 20 seconds of ending, and it looks like the landing would require an impossibly quick rotation at the end
-  else if burn_started and eta_end < 40 and end_angular > 2 {
-    // Slightly downward from retrograde, so as to halt sideways motion and get the landing more vertically oriented
-    local aim is lookdirup(
-        srfretrograde:vector +
-           min(0.3, 0.1*end_angular)*vxcl(up:vector, srfretrograde:vector), // deflect further down the more it needs it.
-        ship:facing:topvector). 
-    set cos_aim to vdot(aim:vector, srfretrograde:vector).
-    return aim.
-  } else {
+  else {
     return lookdirup(srfretrograde:vector, ship:facing:topvector).
   }
 }

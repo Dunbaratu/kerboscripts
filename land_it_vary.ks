@@ -63,7 +63,6 @@ local bodRad is ship:body:radius.
 local athrust is ship:availablethrust.
 local landed is false.
 local pos is v(0,0,0).
-local end_angular is 0.
 local eta_end is 9999.
 
 local throt_pid is PIDloop(1,0,0,minThrot,1).
@@ -118,7 +117,6 @@ until stop_burn {
     spool+ullage).
 
   set pos to result["pos"].
-  set end_angular to result["angular"].
   set eta_end to result["seconds"].
   set dist to terrain_distance(pos).
   if time:seconds > vd_show_msg_cooldown {
@@ -184,7 +182,6 @@ until stop_burn {
 lock throttle to 0.
 
 brakes on.
-unlock steering.
 if skycrane {
   // stage the skycrane away before cutting throttle.
   print "SkyCrane Staging Event!".
@@ -202,6 +199,8 @@ sane_steering().
 print "program cut off at alt:radar = " + round(alt:radar,1) + " (desired margin = " + round(margin,1)+").".
 print "Waiting for landed state.".
 wait until status = "LANDED" or status = "SPLASHED".
+
+unlock steering.
 
 local cnt_after is ship:parts:length.
 local played is false.
@@ -239,25 +238,6 @@ function pid_tune {
   set throt_pid:Kd to 2/(sqrt(burn_dist)*twr). 
 }
 
-function descentSpeed {
-
-  local sweight is (ship:mass * ship:body:mu / (ship:body:radius+ship:altitude)^2).
-  // Bonus Thrust beyond what is needed to fight gravity:
-  local bonusThrust is ship:availablethrust - sweight.
-  // max amount we can deccelerate by:
-  local accel is bonusThrust / ship:mass.
-
-  // This formula is supposed to be:
-  //    "What speed could I have in which I would be able to stop
-  //    in the available distance?" (with a fudge factor of pretending
-  //    the engine is only 70% as strong as it really is:).
-  local rVal is sqrt( (max(0, 0.7*(alt_radar_or_sea() - 2*margin) ))*(2*accel) ).
-  local rVal is max(1.5, rVal).
-  print "Desired Spd: " + round(rVal,1) + " m/s   " at (5,terminal:height/2-3).
-  print "Current Spd: " + round(abs(verticalspeed),1) + " m/s   " at (5,terminal:height/2-2).
-  return rVal. // force it to be sane.
-}
-
 // Return retrograde or up vectors depending on
 // whether we're going so slowly that retrograde
 // might flip upside down soon.  Also predict
@@ -266,7 +246,6 @@ function descentSpeed {
 function aim_direction {
   set cos_aim to 1. // cosine for how far off the aim is from retro.
 
-  print "eta_end = " + round(eta_end,2) + ", end_angular = " + round(end_angular,2). // eraseme
   if burn_started and ship:verticalspeed > -1.5 {
     return lookdirup(ship:up:vector, ship:facing:topVector).
   }

@@ -70,7 +70,6 @@ local throt_pid is PIDloop(1,0,0,minThrot,1).
 pid_tune(altitude).
 
 local ullage_end_ts is -1.
-local wait_for_fall is true.
 set cnt_before to ship:parts:length.
 set timeslice_size to 0.3.
 
@@ -174,16 +173,6 @@ until stop_burn {
   }
 
   wait 0.
-
-  if (alt:radar < margin or verticalspeed > -0.2) and not wait_for_fall {
-    // TODO : does this condition even happen anymore, now that vertical speed going up
-    // makes the loop end entirely?
-    set margin to margin / 2.
-    set wait_for_fall to true.
-  }
-  if verticalspeed < -0.2 {
-    set wait_for_fall to false.
-  }
 
   // If each iteration is taking a long time, use a more coarse timeslice
   // for the prediction.  If each iteration is going fast, use a tighter timeslice:

@@ -70,7 +70,7 @@ pid_tune(altitude).
 
 local ullage_end_ts is -1.
 set cnt_before to ship:parts:length.
-set timeslice_size to 0.3.
+set timeslice_size to 2.0.
 
 local prev_vspeed is verticalspeed.
 
@@ -146,13 +146,13 @@ until stop_burn {
   local real_throt to throt_pid:update(time:seconds, dist-margin). 
   print "Kp="+round(throt_pid:Kp,8)+" Ki="+round(throt_pid:Ki,8)+" Kd="+round(throt_pid:Kd,8). // eraseme
 
+  local doing_ullage is (ullage_end_ts > 0 and time:seconds < ullage_end_ts).
+
   if real_throt > minThrot {
     set burn_started to true.
     // Account for RO's screwy throttle scaling, and don't
     // let throttle reach 0 entirely:
-    if ullage_end_ts > 0 and time:seconds < ullage_end_ts {
-    }
-    else {
+    if not doing_ullage {
       if ship:control:fore > 0 {
         set ship:control:fore to 0.
         print "Ullage RCS thrust ending.".
@@ -167,7 +167,9 @@ until stop_burn {
       print "real_throt = " + round(real_throt,3) + ", throttle = " + round(throttle,3). // eraseme
     }
   } else if burn_started {
-      lock throttle to 0.001.
+      if not doing_ullage {
+        lock throttle to 0.001.
+      }
   }
 
   wait 0.

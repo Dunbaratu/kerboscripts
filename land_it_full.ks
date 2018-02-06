@@ -6,6 +6,7 @@ run once "/lib/song".
 run once "/songs/happy".
 run once "/songs/sad".
 run once "/lib/sanity".
+run once "/lib/ro".
 
 parameter margin is 5.
 parameter spool is 1. // presumed spool-up time of engines in second in secondss.

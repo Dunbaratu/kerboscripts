@@ -7,6 +7,7 @@ run once "/lib/song".
 run once "/songs/happy".
 run once "/songs/sad".
 run once "/lib/sanity".
+run once "/lib/ro".
 
 parameter margin is 5.
 parameter ullage is 2. // presumed time to wait for RCS ullage before engine start.
@@ -64,11 +65,11 @@ local athrust is ship:availablethrust.
 local landed is false.
 local pos is v(0,0,0).
 local eta_end is 9999.
+local active_engs is all_active_engines().
 
 local throt_pid is PIDloop(1,0,0,minThrot,1).
 pid_tune(altitude).
 
-local ullage_end_ts is -1.
 set cnt_before to ship:parts:length.
 set timeslice_size to 2.0.
 
@@ -103,6 +104,7 @@ until stop_burn {
   set prev_vspeed to verticalspeed.
 
   local partial_throttle_thrust is (minThrot + (throt_predict_mult * (1 - minThrot))) * athrust.
+  local ullage_safe is ullage_status(active_engs).
 
   set result to sim_land_spot(
     mu,
@@ -131,8 +133,7 @@ until stop_burn {
     set theColor to rgb(0,0.6,0).
   } else {
     set theColor to rgb(1,0.4,0).
-    if ullage_end_ts < 0 {
-      set ullage_end_ts to time:seconds + ullage.
+    if not burn_started {
       rcs on. set ship:control:fore to 1.
       print "Ullage RCS thrusting".
     }
@@ -146,13 +147,11 @@ until stop_burn {
   local real_throt to throt_pid:update(time:seconds, dist-margin). 
   print "Kp="+round(throt_pid:Kp,8)+" Ki="+round(throt_pid:Ki,8)+" Kd="+round(throt_pid:Kd,8). // eraseme
 
-  local doing_ullage is (ullage_end_ts > 0 and time:seconds < ullage_end_ts).
-
   if real_throt > minThrot {
     set burn_started to true.
     // Account for RO's screwy throttle scaling, and don't
     // let throttle reach 0 entirely:
-    if not doing_ullage {
+    if ullage_safe {
       if ship:control:fore > 0 {
         set ship:control:fore to 0.
         print "Ullage RCS thrust ending.".
@@ -167,7 +166,7 @@ until stop_burn {
       print "real_throt = " + round(real_throt,3) + ", throttle = " + round(throttle,3). // eraseme
     }
   } else if burn_started {
-      if not doing_ullage {
+      if ullage_safe {
         lock throttle to 0.001.
       }
   }

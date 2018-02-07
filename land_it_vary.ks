@@ -14,6 +14,7 @@ parameter ullage is 2. // presumed time to wait for RCS ullage before engine sta
 parameter spool is 1. // presumed spool-up time of engines in seconds.
 parameter minThrot is 0. // min throttle in RO for the landing engine.
 parameter throt_predict_mult is 0.8. // predict landing as if throttle is only this much, for adjustable margin.
+parameter land_spot is 0. // set to a geoposition to make it try to aim to land there.
 parameter skycrane is false.
 
 if ship:availablethrust <= 0 {
@@ -54,7 +55,6 @@ set theColor to rgb(0,0.6,0).
 local vd_show_msg_cooldown is time:seconds.
 local hasLas is false.
 local vd1 is 0.
-local cos_aim is 1. // cosine of angle between aim and srfretro, when we're aiming off to try to stop horizontal component.
 local prev_time is time:seconds.
 local deltaT is 0.1. // how long an iteration is *actually* taking, measured.
 local calced_isp is isp_calc(). // WARNING: by pre-calcing, this is wrong for atmo situations where it changes.
@@ -66,7 +66,15 @@ local pos is v(0,0,0).
 local eta_end is 9999.
 local active_engs is all_active_engines().
 
-local throt_pid is PIDloop(1,0,0,minThrot,1).
+// Output of throt_pid is a value between min throt and max throt, for throttle.
+local throt_pid is PIDloop(1, 0, 0, minThrot, 1).
+// output of pitch_pid is a deflection above srfretrograde in degrees.
+local pitch_pid is PIDloop(1, 0, 0, -5, 5).
+local pitch_off is 0. // The output of pitch_pid
+// output of yaw_pid is a deflection right of srfretrograde in degrees.
+local yaw_pid is PIDloop(1, 0, 0, -5, 5).
+local yaw_off is 0. // The output of yaw_pid
+
 pid_tune(altitude).
 
 set cnt_before to ship:parts:length.
@@ -110,7 +118,7 @@ until stop_burn {
   set result to sim_land_spot(
     mu,
     ship:body:position,
-    cos_aim * partial_throttle_thrust,
+    partial_throttle_thrust,
     calced_isp,
     ship:mass,
     ship:drymass,
@@ -134,19 +142,14 @@ until stop_burn {
     set theColor to rgb(0,0.6,0).
   } else {
     set theColor to rgb(1,0.4,0).
-    if not burn_started {
-      rcs on. set ship:control:fore to 1.
-      print "Ullage RCS thrusting".
-    }
   }
 
-  // How far off is the predicted landing height, as a ratio of total distance to landing:
-  // (so it gets tighter the closer to landing we are).
- // eraseme: local land_dist_err_ratio is (dist-margin)*5/max(5,pos:mag). // max() is there so if pos is near zero it doesn't get stupid.
- // eraseme: set real_throt to throt_pid:update(time:seconds, land_dist_err_ratio). 
+  if land_spot:istype("GeoCoordinates") {
+    update_steer_offsets().
+  }
 
-  local real_throt to throt_pid:update(time:seconds, dist-margin). 
-  print "Kp="+round(throt_pid:Kp,8)+" Ki="+round(throt_pid:Ki,8)+" Kd="+round(throt_pid:Kd,8). // eraseme
+  local real_throt is throt_pid:update(time:seconds, dist-margin). 
+  print "r="+round(real_throt,3) + " Gains: " + round(throt_pid:Kp,8)+", "+round(throt_pid:Ki,8)+", "+round(throt_pid:Kd,8). // eraseme
 
   if real_throt > minThrot {
     set burn_started to true.
@@ -165,6 +168,9 @@ until stop_burn {
       // From now on the engine stays on - so take these times out of the prediction:
       set spool to 0.  set ullage to 0.
       print "real_throt = " + round(real_throt,3) + ", throttle = " + round(throttle,3). // eraseme
+    } else {
+      rcs on. set ship:control:fore to 1.
+      print "Ullage RCS thrusting".
     }
   } else if burn_started {
       if ullage_safe {
@@ -233,11 +239,19 @@ SAS off.
 function pid_tune {
   parameter burn_dist.
 
-  // Adjust PID tuning as we go depending on TWR:
+  // Adjust PID tuning as we go depending on TWR and dist to target:
   local twr is athrust / (ship:mass * mu / (bodRad+ship:altitude)^2).
   set throt_pid:Kp to 10/(10+sqrt(burn_dist)*twr).
   set throt_pid:Ki to 1/(sqrt(burn_dist)*twr).
-  set throt_pid:Kd to 2/(sqrt(burn_dist)*twr). 
+  set throt_pid:Kd to 5/(sqrt(burn_dist)*twr). 
+
+  set pitch_pid:Kp to 50/(10+sqrt(burn_dist)*twr).
+  set pitch_pid:Ki to 5/(sqrt(burn_dist)*twr).
+  set pitch_pid:Kd to 10/(sqrt(burn_dist)*twr). 
+
+  set yaw_pid:Kp to 50/(10+sqrt(burn_dist)*twr).
+  set yaw_pid:Ki to 5/(sqrt(burn_dist)*twr).
+  set yaw_pid:Kd to 10/(sqrt(burn_dist)*twr). 
 }
 
 // Return retrograde or up vectors depending on
@@ -246,18 +260,46 @@ function pid_tune {
 // near the end of the flight if we'll be not vertical
 // enough and if so then curve it to the ground more.
 function aim_direction {
-  set cos_aim to 1. // cosine for how far off the aim is from retro.
+  local aim_vec is srfretrograde:vector.
 
-  if burn_started and ship:verticalspeed > -1.5 {
-    return lookdirup(ship:up:vector, ship:facing:topVector).
+  // Offset the aim a bit if near the ground:
+  if burn_started and verticalspeed > -1.5 {
+    set aim_vec to up:vector.
   }
-  else if burn_started and ship:verticalspeed > -5 {
+  else if burn_started and verticalspeed > -5 {
     // Aim at a vector exactly halfway between true surface retro and straight up:
-    return lookdirup(ship:up:vector:normalized + srfretrograde:vector:normalized, ship:facing:topVector).
-  } // Else if within 20 seconds of ending, and it looks like the landing would require an impossibly quick rotation at the end
-  else {
-    return lookdirup(srfretrograde:vector, ship:facing:topvector).
+    set aim_vec to up:vector:normalized + srfretrograde:vector:normalized.
   }
+
+  // Offset based on targetted landing site:
+  if pitch_off <> 0 {
+    set aim_vec to angleaxis(pitch_off,srfprograde:starvector)*aim_vec.
+  }
+  if yaw_off <> 0 {
+    set aim_vec to angleaxis(yaw_off,srfprograde:topvector)*aim_vec.
+  }
+
+  return lookdirup(aim_vec, facing:topVector).
+}
+
+function update_steer_offsets {
+
+  local xyz_off is pos - (land_spot:altitudeposition(land_spot:terrainheight + margin)).
+
+  local xyz_up_spot is (land_spot:position - body:position):normalized.
+
+  // To my "right" as I look down the prograde vector is this:
+  local srf_antinorm is vcrs(up:vector, srfprograde:vector).
+  // Vectors aligned with ground at landing spot for how far long,
+  // or to the right of the landing the current prediction is:
+  local horiz_right is vxcl(xyz_up_spot, srf_antinorm).
+  local horiz_long is vxcl(xyz_up_spot, srfprograde:vector).
+
+  // Feed those offsets into the PIDs for steering offset:
+  set pitch_off to pitch_pid:update(time:seconds, horiz_long:mag).
+  set yaw_off to pitch_pid:update(time:seconds, horiz_right:mag).
+
+  print "h_r="+round(horiz_right:mag,2) + " h_l="+round(horiz_long:mag,2) + " p_o=" + round(pitch_off,3) + " y_o=" = round(yaw_off,3).  //eraseme
 }
 
 // If alt:radar is > altitude then you're seeing the

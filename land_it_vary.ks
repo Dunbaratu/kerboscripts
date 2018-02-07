@@ -45,7 +45,6 @@ if ship:availablethrust <= 0 {
 }
 
 SAS off.
-lock steering to aim_direction().
 set steeringmanager:maxstoppingtime to 5.
 set steeringmanager:pitchpid:Kd to 1.
 set steeringmanager:yawpid:Kd to 1.
@@ -81,6 +80,8 @@ local prev_vspeed is verticalspeed.
 // not get to the top of the loop to do the check in time:
 local stop_burn is false.
 local burn_started is false.
+
+lock steering to aim_direction().
 
 when status = "LANDED" or status = "SPLASHED" then {
   set stop_burn to true.

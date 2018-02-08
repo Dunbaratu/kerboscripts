@@ -17,6 +17,34 @@ parameter throt_predict_mult is 0.8. // predict landing as if throttle is only t
 parameter land_spot is 0. // set to a geoposition to make it try to aim to land there.
 parameter skycrane is false.
 
+if config:ipu < 800 {
+  // BIG WARNING:
+  local vv is getvoice(0).
+  set vv:volume to 1.
+  set vv:wave to "sawtooth".
+  set vv:attack to 0.
+  set vv:decay to 0.
+  set vv:sustain to 1.
+  set vv:release to 0.
+  set vv:loop to true.
+  vv:play(LIST(NOTE(0,0.3), SLIDENOTE(600,700,0.3,0.2),SLIDENOTE(600,700,0.3,0.2),SLIDENOTE(600,700,0.3,0.2))).
+
+
+  clearscreen.
+  print "=== NO NO NO NO NO NO, YOU IDIOT ===".
+  print "THIS SCRIPT NEEDS FASTER CALCULATION".
+  print "------------------------------------".
+  print "You Will DIE if you use this program".
+  print "with such a low CONFIG:IPU.".
+  print " ".
+  print "INCREASE IT TO ABOVE 800 AND I'LL CONTINUE".
+
+  wait until config:ipu > 800.
+  set vv:loop to false.
+  vv:play(NOTE(0,0.1)). // silence the song.
+  wait 0.1. // KSP doesn't calc isp right if you don't do this.
+}
+
 if ship:availablethrust <= 0 {
   // BIG WARNING:
   local vv is getvoice(0).
@@ -55,6 +83,7 @@ set theColor to rgb(0,0.6,0).
 local vd_show_msg_cooldown is time:seconds.
 local hasLas is false.
 local vd1 is 0.
+local vd_off is 0.
 local prev_time is time:seconds.
 local deltaT is 0.1. // how long an iteration is *actually* taking, measured.
 local calced_isp is isp_calc(). // WARNING: by pre-calcing, this is wrong for atmo situations where it changes.
@@ -69,10 +98,10 @@ local active_engs is all_active_engines().
 // Output of throt_pid is a value between min throt and max throt, for throttle.
 local throt_pid is PIDloop(1, 0, 0, minThrot, 1).
 // output of pitch_pid is a deflection above srfretrograde in degrees.
-local pitch_pid is PIDloop(1, 0, 0, -5, 5).
+local pitch_pid is PIDloop(1, 0, 0, -8, 8).
 local pitch_off is 0. // The output of pitch_pid
 // output of yaw_pid is a deflection right of srfretrograde in degrees.
-local yaw_pid is PIDloop(1, 0, 0, -5, 5).
+local yaw_pid is PIDloop(1, 0, 0, -8, 8).
 local yaw_off is 0. // The output of yaw_pid
 
 pid_tune(altitude).
@@ -202,7 +231,7 @@ wait 0.
 unlock throttle.
 SAS on.
 set vd1 to 0.
-clearscreen.
+//clearscreen.
 sane_steering().
 print "program cut off at alt:radar = " + round(alt:radar,1) + " (desired margin = " + round(margin,1)+").".
 print "Waiting for landed state.".
@@ -241,9 +270,9 @@ function pid_tune {
 
   // Adjust PID tuning as we go depending on TWR and dist to target:
   local twr is athrust / (ship:mass * mu / (bodRad+ship:altitude)^2).
-  set throt_pid:Kp to 10/(10+sqrt(burn_dist)*twr).
-  set throt_pid:Ki to 1/(sqrt(burn_dist)*twr).
-  set throt_pid:Kd to 5/(sqrt(burn_dist)*twr). 
+  set throt_pid:Kp to 15/(10+sqrt(burn_dist)*twr).
+  set throt_pid:Ki to 3/(sqrt(burn_dist)*twr).
+  set throt_pid:Kd to 4/(sqrt(burn_dist)*twr). 
 
   set pitch_pid:Kp to 50/(10+sqrt(burn_dist)*twr).
   set pitch_pid:Ki to 5/(sqrt(burn_dist)*twr).
@@ -273,10 +302,10 @@ function aim_direction {
 
   // Offset based on targetted landing site:
   if pitch_off <> 0 {
-    set aim_vec to angleaxis(pitch_off,srfprograde:starvector)*aim_vec.
+    set aim_vec to aim_vec*angleaxis(pitch_off,srfprograde:starvector).
   }
   if yaw_off <> 0 {
-    set aim_vec to angleaxis(yaw_off,srfprograde:topvector)*aim_vec.
+    set aim_vec to aim_vec*angleaxis(yaw_off,-srfprograde:topvector).
   }
 
   return lookdirup(aim_vec, facing:topVector).
@@ -284,22 +313,38 @@ function aim_direction {
 
 function update_steer_offsets {
 
-  local xyz_off is pos - (land_spot:altitudeposition(land_spot:terrainheight + margin)).
+  local target_spot is land_spot:altitudeposition(land_spot:terrainheight + margin).
+  local xyz_off is pos - target_spot.
+
+  // Debug that I may remove later:
+  if vd_off:istype("Vecdraw") {
+    // change existing vecdraw
+    set vd_off:start to target_spot.
+    set vd_off:vector to xyz_off.
+    set vd_off:label to "Landing Site Error " + round(xyz_off:mag,1)+"m".
+  } else {
+    // make new vecdraw - will update position on next pass through:
+    set vd_off to vecdraw(v(0,0,0), v(0,0,0), blue, "Landing Site Error " + round(xyz_off:mag,1)+"m", 1, true, 0.3).
+  }
 
   local xyz_up_spot is (land_spot:position - body:position):normalized.
 
   // To my "right" as I look down the prograde vector is this:
-  local srf_antinorm is vcrs(up:vector, srfprograde:vector).
+  local srf_antinorm is vcrs(up:vector, srfprograde:vector):normalized.
   // Vectors aligned with ground at landing spot for how far long,
   // or to the right of the landing the current prediction is:
-  local horiz_right is vxcl(xyz_up_spot, srf_antinorm).
-  local horiz_long is vxcl(xyz_up_spot, srfprograde:vector).
+  local horiz_right is vxcl(xyz_up_spot, srf_antinorm):normalized.
+  local horiz_overshoot is vxcl(xyz_up_spot, srfprograde:vector):normalized.
+
+  // Get the horiz_right and horiz_long components of xyz_off:
+  local overshoot_dist is vdot(xyz_off, horiz_overshoot).
+  local right_dist is vdot(xyz_off, horiz_right).
 
   // Feed those offsets into the PIDs for steering offset:
-  set pitch_off to pitch_pid:update(time:seconds, horiz_long:mag).
-  set yaw_off to pitch_pid:update(time:seconds, horiz_right:mag).
+  set pitch_off to pitch_pid:update(time:seconds, overshoot_dist).
+  set yaw_off to yaw_pid:update(time:seconds, right_dist).
 
-  print "h_r="+round(horiz_right:mag,2) + " h_l="+round(horiz_long:mag,2) + " p_o=" + round(pitch_off,3) + " y_o=" = round(yaw_off,3).  //eraseme
+  print "right="+round(right_dist,2) + " over="+round(overshoot_dist,2) + " p_o=" + round(pitch_off,3) + " y_o=" + round(yaw_off,3).  //eraseme
 }
 
 // If alt:radar is > altitude then you're seeing the
@@ -334,7 +379,7 @@ function terrain_distance {
     set vd1:label to label_prefix + round(dist,1).
   } else {
     // make new vecdraw
-    set vd1 to vecdraw(v(0,0,0),pos, theColor, label_prefix + round(dist,1)+"m", 1.5, true).
+    set vd1 to vecdraw(v(0,0,0),pos, theColor, label_prefix + round(dist,1)+"m", 1, true, 0.3).
   }
   return dist.
 

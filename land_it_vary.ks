@@ -94,6 +94,7 @@ local landed is false.
 local pos is v(0,0,0).
 local eta_end is 9999.
 local active_engs is all_active_engines().
+local dist is 0.
 
 // Output of throt_pid is a value between min throt and max throt, for throttle.
 local throt_pid is PIDloop(1, 0, 0, minThrot, 1).
@@ -211,7 +212,9 @@ until stop_burn {
 
   // If each iteration is taking a long time, use a more coarse timeslice
   // for the prediction.  If each iteration is going fast, use a tighter timeslice:
-  set timeslice_size to (0.02 + deltaT)*2.
+  if deltaT > 0 { // skip the first time when we haven't measured a proper deltaT yet.
+    set timeslice_size to (0.02 + deltaT)*2.
+  }
 
   print "alt:radar = " + round(alt:radar,3) + ", margin = " + round(margin,3) + ", timeslice = " + round(timeslice_size,3). //eraseme
 
@@ -277,6 +280,12 @@ function pid_tune {
   set pitch_pid:Kp to 50/(10+sqrt(burn_dist)*twr).
   set pitch_pid:Ki to 5/(sqrt(burn_dist)*twr).
   set pitch_pid:Kd to 10/(sqrt(burn_dist)*twr). 
+
+  // If predicted to crash, limit how much it's allowed to pitch down.
+  // Crashing is Bad Mmmkay?  Worse than missing the target:
+  if dist < 0 {
+    set pitch_pid:minoutput to max(-8, burn_dist/(6*dist)).
+  }
 
   set yaw_pid:Kp to 50/(10+sqrt(burn_dist)*twr).
   set yaw_pid:Ki to 5/(sqrt(burn_dist)*twr).

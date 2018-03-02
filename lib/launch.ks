@@ -1,12 +1,13 @@
 run once "/lib/sanity".
 run once "/lib/burn". // for predicting circularization burn time.
+run once "stager".
+run once "/lib/ro".
 
 function countdown {
   parameter count.
 
   // when we are using a countdown -let's sanity check for
   // launch conditions:
-  sane_steering().
   sane_upward().
 
   from { local i is count. } until i = 0 step { set i to i - 1. } do {
@@ -15,10 +16,17 @@ function countdown {
   }
 }
 
+local target_eta_spd is 0.
+local target_eta_apo is 0.
+
 function launch {
   parameter dest_compass. // not exactly right when not 90.
   parameter first_dest_ap. // first destination apoapsis.
   parameter do_circ is true.
+  parameter eta_apo is 120.
+  parameter eta_spd is 1500.
+  parameter TWR_for_launch is 1.2.
+  parameter solid_thrust is 0.
   parameter second_dest_ap is -1. // second destination apoapsis.
   parameter second_dest_long is -1. // second destination longitude.
   parameter atmo_end is ship:body:atm:height.
@@ -27,7 +35,10 @@ function launch {
 
 
   local full_thrust_over is false.
-  
+  local kick_speed is 100.
+  set target_eta_apo to eta_apo.
+  set target_eta_spd to eta_spd.
+
   local all_fairings is ship:modulesnamed("ModuleProceduralFairing").
   local fairings is LIST().
   for f_mod in all_fairings {
@@ -44,113 +55,194 @@ function launch {
     print "Will engage fairings at high altitude.".
   }
 
-  sane_steering().
   sane_upward().
 
-  // For all atmo launches with fins it helps to teach it that the fins help
-  // torque, which it fails to realize:
-
-  local alt_divisor is atmo_end*(6.0/7.0).
-  if atmo_end = 0 {
-    set alt_divisor to first_dest_ap / 3.
-  }
-  lock steering to heading(dest_compass, clamp_pitch(90 - 90*(use_alt()/alt_divisor)^(2/5), true)).
-  lock throttle to 1.
-   
-  // Flip steering to use whatever current prograde heading is once
-  // the ship has been going a while:
-  local launch_start is time:seconds.
-  when time:seconds > launch_start + 30 then {
-    print "Now aiming at whatever direction velocity already is.".
-    lock steering to heading(compass_of_vel(ship:velocity:surface), clamp_pitch(90 - 90*(altitude/alt_divisor)^(2/5), true)).
-  }
-  // set staging_on to false to effectively remove this trigger:
-  global staging_on is true.
-  local low_atmo_pending is true.
-  when true then {
-    if staging_on {
-      preserve.
-    }
-    list engines in englist.
-    local flameout is false.
-    for eng in englist {
-      if eng:name <> "sepMotor1" and eng:tag <> "flameout no stage" and eng:flameout {
-        set flameout to true. 
-      }
-    }
-    if full_thrust_over and low_atmo_pending and ship:Q < 0.003 and ship:altitude > atmo_end/2 {
-      set low_atmo_pending to false. // Never execute this again.
-      if full_thrust_over {
-        print "LOW DYNAMIC PRESSURE AND FULL THROTTLE FINISHED:  Activating AG 1.".
-        set AG1 to true. wait 0.
-        if fairings:length > 0 {
-          for fairing in fairings {
-            if fairing:hasevent("deploy") {
-              print "!!Deploying a fairing part!!".
-              fairing:doevent("deploy").
-            }
-          }
-          set fairings to LIST().  // Make it empty so it won't re-trigger this.
-        }
-      }
-    } else if stage:ready and // don't bother checking if still in cooldown of prev staging
-              (flameout or maxthrust = 0) {
-      stage.
-      steeringmanager:resetpids().
-    }
-  }
-
-  wait until ship:apoapsis > first_dest_ap.
-
-  print "Apoapsis now " + first_dest_ap + ".".
-  print "Going into low thrust to just maintain Ap.".
-  set full_thrust_over to true.
-  lock throttle to (first_dest_ap - ship:apoapsis) / 5000.
-
-  wait until ship:altitude > atmo_end.
-
-  // put controls back now that we're out of atmo:
-  set steeringmanager:pitchtorquefactor to 1.
-  set steeringmanager:yawtorquefactor to 1.
-
-  print "Coasting to Ap.".
+  print "Staging until there is an active engine".
+  local actives is LIST().
   lock throttle to 0.
-  lock steering to heading(compass_of_vel(ship:velocity:orbit), 0).
-
-  //was this: wait until eta:apoapsis < 10.
-  local V_ap_have is velocityAt(ship, eta:apoapsis + time:seconds):orbit:mag.
-  local V_ap_want is sqrt(ship:body:mu / ship:body:radius + ship:apoapsis).
-  local halfCircTime is burn_seconds((V_ap_want-V_ap_have) / 2).
-  print "Circ burn will start at ETA:Apoapais = "+ round(halfCircTime,1) + "s".
-  wait until eta:apoapsis < halfCircTime.
- 
-
-  if do_circ {
-    circularize().
-  } else {
-    print "Circularization not requested.".
+  until actives:length > 0 {
+    stage.
+    wait 1.
+    set actives to all_active_engines().
   }
+  print "Now there is an active engine".
 
-  lights on.
+  print "Waiting for engine TWR > " + TWR_for_launch.
+  lock throttle to 1.
+  local g is body:mu / (body:radius+altitude)^2.
+  local twr_measured is 0.
+  until twr_measured > TWR_for_launch {
+    set twr_measured to (solid_thrust + current_thrust(actives)) / (ship:mass * g).
+    print "TWR " + round(twr_measured,2). // maybe eraseme and make into a readout?
+    wait 0.
+  }
+  print "Now TWR is > " + TWR_for_launch.
 
-  if second_dest_long >= 0 {
-    lock steering to prograde.
-    print "Waiting for second destination burn start longitude.".
-    until abs(ship:longitude - second_dest_long) < 1 {
-      print "current long = " + round(ship:longitude,3) + ", desired long = " + round(second_dest_long,3) + "    " at (0,0).
-      wait 0.001.
+  print "Staging until accel > " + round((TWR_for_launch - 1) / 0.8,0.2) + " m/s^2:".
+  local tPrev is time:seconds.
+  local vPrev is ship:velocity:surface.
+  local acc_measured is 0.
+  local acc_threshold is (TWR_for_launch - 1) * 0.8.
+  until acc_measured > acc_threshold {
+    wait 0.5.
+    local tNow is time:seconds.
+    local vNow is ship:velocity:surface.
+    set acc_measured to (vNow - vPrev):mag / (tNow - tPrev).
+    set tPrev to tNow.
+    set vPrev to vNow.
+    if acc_measured < acc_threshold { 
+      stage. 
     }
-    print "Now starting second destination burn.".
-    lock throttle to 0.01 + (second_dest_ap - ship:apoapsis) / 5000.
-    print "Now waiting for apoapsis to reach " + second_dest_ap.
-    wait until ship:apoapsis >= second_dest_ap.
-    print "Now re-circularizing at the new apoapsis...".
-    circularize().
+    print "Accel now " + round(acc_measured,3) + " m/s^2".
+  }
+
+  print "We are now moving.".
+  lock steering to lookdirup(heading(dest_compass, 89.9):forevector, -ship:up:vector).
+  print "Waiting for speed over " + kick_speed + " m/s to start kick.".
+  until ship:velocity:surface:mag > kick_speed {
+    info_block().
+    wait 0.
   }
 
 
-  set staging_on to false.
-  wait 0.01. // make sure there's one run through the trigger to unpreserve it.
+  print "Starting kickover toward " + dest_compass + " degree heading".
+
+  // To aim roof at ground, I'm aiming at opposite compass, with pitch > 90 to pitch the roof on its back:
+  lock steering to lookdirup(heading(dest_compass, 80):forevector, -ship:up:vector).
+  wait 0.5.
+ 
+  print "Waiting for prograde to match steering within 2 degreees.".
+  until vang(steering:forevector, ship:velocity:surface) < 2 {
+    info_block().
+    wait 0.
+  }
+
+  // Kick has started, initial direction has started, so now just follow prograde as-is and
+  // adjust pitch and throttle by ETA:apoapsis.
+
+  print "Letting heading go where it wants.  Adjusting only pitch and throttle by ETA Apoapsis.".
+  local want_pitch_off is 0.
+  lock steering to lookdirup(which_vel():normalized + clamp_abs((wanted_eta_apo()-signed_eta_apo())/wanted_eta_apo(),0.2)*ship:up:vector, -ship:up:vector).
+  lock throttle to throttle_func().
+
+  // This was the old steering logic: need something new:
+  // local alt_divisor is atmo_end*(6.0/7.0).
+  // if atmo_end = 0 {
+  //   set alt_divisor to first_dest_ap / 3.
+  // }
+  // lock steering to heading(dest_compass, clamp_pitch(90 - 90*(use_alt()/alt_divisor)^(2/5), true)).
+  // lock throttle to 1.
+  //  
+  // // Flip steering to use whatever current prograde heading is once
+  // // the ship has been going a while:
+  // local launch_start is time:seconds.
+  // when time:seconds > launch_start + 30 then {
+  //   print "Now aiming at whatever direction velocity already is.".
+  //   lock steering to heading(compass_of_vel(ship:velocity:surface), clamp_pitch(90 - 90*(altitude/alt_divisor)^(2/5), true)).
+  // }
+
+  local done is false.
+  local engs is 0.
+  list engines in engs.
+  until done {
+
+    // Stager logic - if no thrust, stage until there is:
+    
+    if stager(engs, true) {
+      until ship:availablethrustat(0) > 0 {
+        local orig_RCS is RCS.
+        set ship:control:fore to 1. RCS on. // RCS push if needed.  If not needed then no biggie.
+        local actives is all_active_engines().
+        wait until ullage_status(actives).
+        stager(engs, true).
+        set ship:control:fore to 0. lock throttle to throttle_func().
+        set RCS to orig_RCS.
+      }
+      lock throttle to throttle_func().
+    }
+
+  // TODO: Incorporate this into it somehow:
+  //     if full_thrust_over and low_atmo_pending and ship:Q < 0.003 and ship:altitude > atmo_end/2 {
+  //       set low_atmo_pending to false. // Never execute this again.
+  //       if full_thrust_over {
+  //         print "LOW DYNAMIC PRESSURE AND FULL THROTTLE FINISHED:  Activating AG 1.".
+  //         set AG1 to true. wait 0.
+  //         if fairings:length > 0 {
+  //           for fairing in fairings {
+  //             if fairing:hasevent("deploy") {
+  //               print "!!Deploying a fairing part!!".
+  //               fairing:doevent("deploy").
+  //             }
+  //           }
+  //           set fairings to LIST().  // Make it empty so it won't re-trigger this.
+  //         }
+  //       }
+  // 
+
+    if apoapsis > first_dest_ap and periapsis > first_dest_ap {
+      set done to true.
+    }
+
+    info_block().
+  }
+
+  lock throttle to 0.  set ship:control:pilotmainthrottle to 0.
+  unlock steering.
+  wait 0.
+  print "DONE".
+
+}
+
+// Return either orbital or surface vel depending on altitude:
+function which_vel {
+  if altitude > 100_000 
+    return ship:velocity:orbit.
+  return ship:velocity:surface.
+}
+
+// Return the given value as-is, or rounded to zero if the given value's
+// magnitude is smaller than the epislon chosen:
+function nullzone {
+  parameter val, epsilon.
+  if abs(val) < epsilon
+    return 0.
+  return val.
+}
+
+// Clamp a value to no higher than a given magnitude, either in + or - direction.
+function clamp_abs {
+  parameter val, clamp_val.
+
+  if val > clamp_val
+    return clamp_val.
+  if val < -clamp_val
+    return -clamp_val.
+
+  return val.
+}
+
+function wanted_eta_apo {
+  return min(target_eta_apo, target_eta_apo * (ship:velocity:surface:mag / target_eta_spd)).
+}
+
+function throttle_func {
+  // TODO: make this a PID?  Right now it's P-only:
+  return max(0.5+(wanted_eta_apo()-signed_eta_apo())*5/wanted_eta_apo(), 0.01).
+}
+
+// Returns a signed ETA:apoapsis - in other words if
+// Apo has just been passed it will return a negative number
+// of seconds since Apo, rather than a large positive number
+// far in the future like it normally does:
+function signed_eta_apo {
+  local per is ship:obt:period.
+  local future_eta is eta:apoapsis.
+  local past_eta is future_eta - per.
+
+  if future_eta > per/2
+    return past_eta.
+  else 
+    return future_eta.
 }
 
 // Given an input pitch, return either the same pitch,
@@ -217,6 +309,26 @@ function srf_pitch_for_vel {
   parameter ves.
 
   return 90 - vang(ves:up:vector, ves:velocity:surface).
+}
+
+// Print some useful info in a block:
+function info_block {
+  print "================================" at (0,0).
+  print "| APO:         m  ETA:      s  |" at (0,1).
+  print "|      WANTED ETA APO:      s  |" at (0,2).
+  print "| PER:         m               |" at (0,3).
+  print "| SPD:         m/s             |" at (0,4).
+  print "================================" at (0,5).
+  print "      " at (7,1).
+  print round(apoapsis) at (7,1).
+  print "      " at (23,1).
+  print round(signed_eta_apo,1) at (23,1).
+  print "      " at (23,2).
+  print round(wanted_eta_apo(),1) at (23,2).
+  print "        " at (7,3).
+  print round(periapsis) at (7,3).
+  print "       " at (7,4).
+  print round(which_vel():mag) at (7,4).
 }
 
 function circularize {

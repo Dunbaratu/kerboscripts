@@ -1,3 +1,5 @@
+run once "/lib/ro".
+
 clearscreen.
 // TODO: Make these user-tweakable:
 global ullage_time is 10. // anticipate pushng RCS forward for this many seconds before engine firing.
@@ -20,7 +22,11 @@ local prev_ag10 is ag10.
 
 print "Toggle action group 10 to quit.".
 
+push_steering_mgr_config(2, 1, 0.02, 0.25).
+
 obey_node_mode(should_quit@, do_precise_node@, ullage_time, spool_time).
+
+pop_steering_mgr_config().
 
 print "just_obey_nodes done.".
 

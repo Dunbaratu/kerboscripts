@@ -122,7 +122,7 @@ function launch {
 
   print "Letting heading go where it wants.  Adjusting only pitch and throttle by ETA Apoapsis.".
   local want_pitch_off is 0.
-  lock steering to lookdirup(which_vel():normalized + clamp_abs((wanted_eta_apo()-signed_eta_apo())/wanted_eta_apo(),0.2)*ship:up:vector, -ship:up:vector).
+  lock steering to lookdirup(which_vel():normalized + clamp_abs((wanted_eta_apo()-signed_eta_apo())*0.5/wanted_eta_apo(),0.15)*ship:up:vector, -ship:up:vector).
   lock throttle to throttle_func().
 
   // This was the old steering logic: need something new:

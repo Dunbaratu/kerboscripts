@@ -80,14 +80,14 @@ function launch {
 
   print "Staging until accel > " + round((TWR_for_launch - 1) / 0.8,0.2) + " m/s^2:".
   local tPrev is time:seconds.
-  local vPrev is ship:velocity:surface.
+  local vPrev is verticalspeed.
   local acc_measured is 0.
   local acc_threshold is (TWR_for_launch - 1) * 0.8.
   until acc_measured > acc_threshold {
     wait 0.5.
     local tNow is time:seconds.
     local vNow is verticalspeed. // use vertical-only speed so sideways shaking doesn't give false positives.
-    set acc_measured to (vNow - vPrev):mag / (tNow - tPrev).
+    set acc_measured to (vNow - vPrev) / (tNow - tPrev).
     set tPrev to tNow.
     set vPrev to vNow.
     if acc_measured < acc_threshold { 

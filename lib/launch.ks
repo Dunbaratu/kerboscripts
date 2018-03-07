@@ -21,7 +21,7 @@ local target_eta_apo is 0.
 
 function launch {
   parameter dest_compass. // not exactly right when not 90.
-  parameter first_dest_ap. // first destination apoapsis.
+  parameter dest_pe. // first destination apoapsis.
   parameter do_circ is true.
   parameter eta_apo is 120.
   parameter eta_spd is 1500.
@@ -31,7 +31,7 @@ function launch {
   parameter second_dest_long is -1. // second destination longitude.
   parameter atmo_end is ship:body:atm:height.
 
-  if second_dest_ap < 0 { set second_dest_ap to first_dest_ap. }
+  if second_dest_ap < 0 { set second_dest_ap to dest_pe. }
 
 
   local full_thrust_over is false.
@@ -86,7 +86,7 @@ function launch {
   until acc_measured > acc_threshold {
     wait 0.5.
     local tNow is time:seconds.
-    local vNow is ship:velocity:surface.
+    local vNow is verticalspeed. // use vertical-only speed so sideways shaking doesn't give false positives.
     set acc_measured to (vNow - vPrev):mag / (tNow - tPrev).
     set tPrev to tNow.
     set vPrev to vNow.
@@ -122,13 +122,13 @@ function launch {
 
   print "Letting heading go where it wants.  Adjusting only pitch and throttle by ETA Apoapsis.".
   local want_pitch_off is 0.
-  lock steering to lookdirup(which_vel():normalized + clamp_abs((wanted_eta_apo()-signed_eta_apo())*0.5/wanted_eta_apo(),0.15)*ship:up:vector, -ship:up:vector).
+  lock steering to lookdirup(which_vel():normalized + clamp_abs((wanted_eta_apo()-signed_eta_ap())*0.5/wanted_eta_apo(),0.15)*ship:up:vector, -ship:up:vector).
   lock throttle to throttle_func().
 
   // This was the old steering logic: need something new:
   // local alt_divisor is atmo_end*(6.0/7.0).
   // if atmo_end = 0 {
-  //   set alt_divisor to first_dest_ap / 3.
+  //   set alt_divisor to dest_pe / 3.
   // }
   // lock steering to heading(dest_compass, clamp_pitch(90 - 90*(use_alt()/alt_divisor)^(2/5), true)).
   // lock throttle to 1.
@@ -179,9 +179,15 @@ function launch {
   //       }
   // 
 
-    if apoapsis > first_dest_ap and periapsis > first_dest_ap {
+    if apoapsis > dest_pe and periapsis > dest_pe {
+      hudtext("Launch Script Over because periapsis > " + dest_pe + ".", 8, 2, 20, green, true).
+      set done to true.
+    } else if apoapsis > dest_pe * 1.2 and signed_eta_pe() > -20 and signed_eta_pe() < 20 {
+      hudtext("Launch Script Over we are at Pe and cannot raise it.", 8, 2, 20, yellow, true).
+      hudtext("You probably need to correct this orbit.", 10, 2, 20, rgb(1,0.5,0), true).
       set done to true.
     }
+    
 
     info_block().
   }
@@ -227,16 +233,31 @@ function wanted_eta_apo {
 
 function throttle_func {
   // TODO: make this a PID?  Right now it's P-only:
-  return max(0.5+(wanted_eta_apo()-signed_eta_apo())*5/wanted_eta_apo(), 0.01).
+  return max(0.5+(wanted_eta_apo()-signed_eta_ap())*5/wanted_eta_apo(), 0.01).
 }
 
 // Returns a signed ETA:apoapsis - in other words if
 // Apo has just been passed it will return a negative number
 // of seconds since Apo, rather than a large positive number
 // far in the future like it normally does:
-function signed_eta_apo {
+function signed_eta_ap {
   local per is ship:obt:period.
   local future_eta is eta:apoapsis.
+  local past_eta is future_eta - per.
+
+  if future_eta > per/2
+    return past_eta.
+  else 
+    return future_eta.
+}
+
+// Returns a signed ETA:periapsis - in other words if
+// Peri has just been passed it will return a negative number
+// of seconds since Apo, rather than a large positive number
+// far in the future like it normally does:
+function signed_eta_pe {
+  local per is ship:obt:period.
+  local future_eta is eta:periapsis.
   local past_eta is future_eta - per.
 
   if future_eta > per/2
@@ -322,7 +343,7 @@ function info_block {
   print "      " at (7,1).
   print round(apoapsis) at (7,1).
   print "      " at (23,1).
-  print round(signed_eta_apo,1) at (23,1).
+  print round(signed_eta_ap,1) at (23,1).
   print "      " at (23,2).
   print round(wanted_eta_apo(),1) at (23,2).
   print "        " at (7,3).

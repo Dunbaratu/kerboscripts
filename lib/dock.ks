@@ -14,11 +14,11 @@ function do_dock {
   local old_rcs_value is RCS.
   RCS on.
 
-  local fore_control_pid         is PIDLoop( 0.2, 0.001, 0.2, -1, 1 ).
-  local top_want_speed_pid       is PIDLoop( 0.2, 0, 0.2, -5, 5 ).
-  local top_control_pid          is PIDLoop( 0.5, 0, 0.2, -1, 1 ).
-  local starboard_want_speed_pid is PIDLoop( 0.2, 0, 0.2, -5, 5 ).
-  local starboard_control_pid    is PIDLoop( 0.5, 0, 0.2, -1, 1 ).
+  local fore_control_pid         is PIDLoop( 7, 0.05, 1, -1, 1 ).
+  local top_want_speed_pid       is PIDLoop( 0.05, 0, 0.02, -5, 5 ).
+  local top_control_pid          is PIDLoop( 7, 0.05, 1, -1, 1 ).
+  local starboard_want_speed_pid is PIDLoop( 0.05, 0, 0.02, -5, 5 ).
+  local starboard_control_pid    is PIDLoop( 7, 0.05, 1, -1, 1 ).
 
   // Track when the part count goes up: if it goes up that must mean the two ships
   // have merged, right?
@@ -46,6 +46,7 @@ function do_dock {
     local rel_pos_top is vdot(topUnit, rel_port_pos).
     local rel_pos_starboard is vdot(starUnit, rel_port_pos).
 
+
     // Note, this drives the forward part of the RCS thrust vector by
     // our relative SPEED, but drives the top and starboard parts of
     // the RCS thrust vector by our relative POSITIONS:
@@ -55,10 +56,24 @@ function do_dock {
     set starboard_want_speed to starboard_want_speed_pid:UPDATE( now, rel_pos_starboard ).
     set ship:control:starboard to starboard_control_pid:UPDATE( now, rel_spd_star - starboard_want_speed).
 
+    // Only have an integral term when we are close to lined up, so as to
+    // prevent integral windup during the long slow approach, but still have
+    // some when we get to the final alignment:
+    if top_want_speed < 0.2 {
+      set top_want_speed_pid:Ki to 0.0005.
+    } else {
+      set top_want_speed_pid:Ki to 0.
+    }
+    if starboard_want_speed < 0.2 {
+      set starboard_want_speed_pid:Ki to 0.0005.
+    } else {
+      set starboard_want_speed_pid:Ki to 0.
+    }
+
     print "Rel Pos:" at (10,6).
-    print "FORE: " + round(rel_pos_fore,2) + " m/s " at (20,6).
-    print " TOP: " + round(rel_pos_top,2) + " m/s " at (20,7).
-    print "STAR: " + round(rel_pos_starboard,2) + " m/s " at (20,8).
+    print "FORE: " + round(rel_pos_fore,2) + " m " at (20,6).
+    print " TOP: " + round(rel_pos_top,2) + " m " at (20,7).
+    print "STAR: " + round(rel_pos_starboard,2) + " m " at (20,8).
     print "Rel Spd:" at (10,10).
     print "FORE: " + round(rel_spd_fore,2) + " m/s " at (20,10).
     print " TOP: " + round(rel_spd_top,2) + " m/s " at (20,11).
@@ -92,7 +107,11 @@ function do_dock {
 function wanted_approach_speed {
   parameter rel_pos_vector.
 
-  local dist is - vdot(rel_pos_vector,ship:facing:forevector).
-  local spd is min(0.1 + dist*(0.025), 10).
+  local dist is - vdot(rel_pos_vector, ship:facing:forevector).
+  if dist > 0 {
+    local side_dist is vxcl(ship:facing:forevector, rel_pos_vector). // the more side dist there is, the less forward speed we want.
+    set dist to dist / max(1,side_dist:mag). // pretend there's less dist, effectively slowing down.
+  }
+  local spd is min(0.1 + dist*(0.05), 5).
   return spd.
 }

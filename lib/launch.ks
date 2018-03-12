@@ -18,6 +18,7 @@ function countdown {
 
 local target_eta_spd is 0.
 local target_eta_apo is 0.
+local kick_speed is 100.
 
 function launch {
   parameter dest_compass. // not exactly right when not 90.
@@ -35,7 +36,6 @@ function launch {
 
 
   local full_thrust_over is false.
-  local kick_speed is 100.
   set target_eta_apo to eta_apo.
   set target_eta_spd to eta_spd.
 
@@ -188,6 +188,11 @@ function launch {
       set done to true.
     }
     
+    if verticalspeed < -5 and altitude < ship:body:atm:height {
+      abort on.
+      hudtext("INVOKING ABORT ACTION!!! BECAUSE FALLING.", 15, 2, 30, red, true).
+      set done to true.
+    }
 
     info_block().
   }
@@ -201,8 +206,10 @@ function launch {
 
 // Return either orbital or surface vel depending on altitude:
 function which_vel {
-  if altitude > 100_000 
+  // switch modes at about 4/7 of atmo height:
+  if altitude > body:atm:height * 4 / 7 {
     return ship:velocity:orbit.
+  }
   return ship:velocity:surface.
 }
 
@@ -228,7 +235,10 @@ function clamp_abs {
 }
 
 function wanted_eta_apo {
-  return min(target_eta_apo, target_eta_apo * (ship:velocity:surface:mag / target_eta_spd)).
+  local formula_eta is target_eta_apo * ship:velocity:surface:mag / target_eta_spd. 
+  local min_wanted is target_eta_apo/5.
+  local max_wanted is target_eta_apo.
+  return max(min(max_wanted, formula_eta), min_wanted).
 }
 
 function throttle_func {

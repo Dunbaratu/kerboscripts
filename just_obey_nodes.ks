@@ -2,6 +2,8 @@ run once "/lib/ro".
 
 clearscreen.
 // TODO: Make these user-tweakable:
+// TODO: Maybe check for presense of ModuleEnginesRF to see if the right mod
+//       is installed to make these even matter at all:
 global ullage_time is 10. // anticipate pushng RCS forward for this many seconds before engine firing.
 global spool_time is 3. // anticipate the engine taking this long to reach full power.
 
@@ -35,5 +37,9 @@ function should_quit {
 }
 
 function do_precise_node {
-  runpath( "/precise_node" ).
+  if exists("/precise_node") {
+    runpath( "/precise_node" ).
+  } else {
+    hudtext("precise_node script not present.", 5, 2, 20, yellow, true).
+  }
 }

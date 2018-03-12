@@ -5,7 +5,6 @@ run once consts.
 run once stager.
 run once "/lib/isp".
 run once "/lib/ro".
-run once "/lib/menu".
 
 // How many seconds will it take to perform the
 // given burn (given as a delta V scalar magnitude)

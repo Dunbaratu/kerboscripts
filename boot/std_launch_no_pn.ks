@@ -17,8 +17,9 @@ if ship:periapsis < 100 and (status = "LANDED" or status = "PRELAUNCH") {
   copypath("0:/lib/ro","lib/").
   copypath("0:/lib/sanity","lib/").
 
- copypath("0:/precise_node","/").
- copypath("0:/lib/menu","lib/").
+// Put these back if the precise node editor is wanted:
+// copypath("0:/precise_node","/").
+// copypath("0:/lib/menu","lib/").
 
   //copypath("0:/rendezvous","").
   //copypath("0:/match_inc","").

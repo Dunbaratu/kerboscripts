@@ -1,4 +1,5 @@
 run once "/lib/ro".
+run once "lib/menu".
 
 clearscreen.
 // TODO: Make these user-tweakable:

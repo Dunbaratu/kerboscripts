@@ -152,12 +152,17 @@ function g_here {
 
 // Go into a mode where it will obey all future maneuver nodes you may put in
 // it's way:
+local ullage_time is 0. // store copies of these in the file scope.
+local spool_time is 0. // store copies of these in the file scope.
 function obey_node_mode {
   parameter
     quit_condition,  // pass in a delegate that will return boolean true when you want it to end.
     node_edit is "n/a",       // pass in a delegate that will edit precise nodes if called.
-    ullage_time is 0,
-    spool_time is 0.
+    p_ullage_time is 0, // parameter ullage time.
+    p_spool_time is 0.  // parameter spool time.
+
+  set ullage_time to p_ullage_time.
+  set spool_time to p_spool_time.
 
   until quit_condition:call() {
     clearscreen.
@@ -165,11 +170,12 @@ function obey_node_mode {
     lock steering to sun:position.
     lock throttle to 0.
     print "Type 'P' for precise node editor.".
+    print "Type 'E' for Engine stats change.".
     if not hasnode {
       hudtext("Waiting for a node to exist...", 10, 2, 30, red, false).
       until hasnode or quit_condition:call() {
         wait 0.
-        just_obey_p_check(node_edit).
+        just_obey_p_check(node_edit, do_engine_edit@).
       }
     }
     hudtext("I See a Node.  Waiting until just before it's supposed to burn.", 5, 2, 30, red, false).
@@ -188,14 +194,8 @@ function obey_node_mode {
       set half_burn_length to burn_seconds(dv_mag/ 2).
       set full_burn_length to burn_seconds(dv_mag).
       set lead_time to half_burn_length + ullage_time + spool_time.
-      print "Dv: " + round(dv_mag,2) + " m/s  " at (0,6).
-      print "Est Full Dv Burn: " + round(full_burn_length,1) + " s  " at (0,7).
-      print "  Est Half Dv Burn: " + round(half_burn_length,1) + " s  " at (0,9).
-      print "+  Est Ullage time: " + round(ullage_time,1) + " s  " at (0,10).
-      print "+   Est Spool time: " + round(spool_time,1) + " s  " at (0,11).
-      print "---------------------------------------" at (0,12).
-      print "   Total lead time: " + round(lead_time,1) + " s " at (0,13).
-      just_obey_p_check(node_edit).
+      draw_block(dv_mag, full_burn_length, half_burn_length, ullage_time, spool_time, lead_time).
+      just_obey_p_check(node_edit, do_engine_edit@).
       wait 0.2. // Don't re-calculate burn_seconds() more often than needed.
     }
     if hasnode { // just in case the user deleted the node - don't want to crash.
@@ -208,17 +208,59 @@ function obey_node_mode {
       hudtext("Node done, removing node.", 10, 5, 20, red, false).
       remove(n).
     }
-    just_obey_p_check(node_edit).
+    just_obey_p_check(node_edit, do_engine_edit@).
   }
 }
+
+function draw_block {
+  parameter dv_mag, full_burn_length, half_burn_length, ullage_time, spool_time, lead_time.
+
+  print "Dv: " + round(dv_mag,2) + " m/s  " at (0,6).
+  print "Est Full Dv Burn: " + round(full_burn_length,1) + " s  " at (0,7).
+  print "  Est Half Dv Burn: " + round(half_burn_length,1) + " s  " at (0,9).
+  print "+  Est Ullage time: " + round(ullage_time,1) + " s  " at (0,10).
+  print "+   Est Spool time: " + round(spool_time,1) + " s  " at (0,11).
+  print "---------------------------------------" at (0,12).
+  print "   Total lead time: " + round(lead_time,1) + " s " at (0,13).
+}
+
 function just_obey_p_check {
-  parameter node_edit. // a delegate to call when P is hit.
+  parameter
+    node_edit, // a delegate to call when P is hit.
+    eng_edit. // a delegate to call when E is hit.
 
   if node_edit:istype("Delegate") {
     if terminal:input:haschar {
-      if terminal:input:getchar() = "p" {
+      local ch is terminal:input:getchar().
+      if ch = "p" {
         node_edit:call().
+      }
+      if ch = "e" {
+        eng_edit:call().
       }
     }
   }
+}
+
+function do_engine_edit {
+
+  function draw_engine_stats {
+    print "Ullage " + ullage_time + "s  " at (35,2).
+    print "Spool  " + spool_time + "s  " at (35,3).
+  }
+
+  draw_engine_stats().
+  local eng_menu is make_menu(
+    35, 5, 15, 10, "Ullage, Spool", 
+    LIST(
+      LIST( "Ullage 0s", { set ullage_time to 0. draw_engine_stats().}),
+      LIST( "Ullage 5s", { set ullage_time to 5. draw_engine_stats().}),
+      LIST( "Ullage 10s", { set ullage_time to 10. draw_engine_stats().}),
+      LIST( "Spool 0s", { set spool_time to 0. draw_engine_stats().}),
+      LIST( "Spool 3s", { set spool_time to 3. draw_engine_stats().}),
+      LIST( "Spool 6s", { set spool_time to 6. draw_engine_stats().})
+    )
+  ).
+
+  eng_menu["start"]().
 }

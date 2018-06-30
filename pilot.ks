@@ -52,6 +52,16 @@ until i >= 4 {
   set i to i+1.
   set expon to 2.3^i.
 }
+log "====================================" to "0:/logpilot.txt".
+log "runway_vect is " + runway_vect to "0:/logpilot.txt".
+log "near pos is " + near_ves:geoposition to "0:/logpilot.txt".
+log "far  pos is " + far_ves:geoposition to "0:/logpilot.txt".
+for i in range(0,aim_geo_list:length) {
+  log "- - - - - -" to "0:/logpilot.txt".
+  log "aim_geo_list["+i+"] = " + aim_geo_list[i] to "0:/logpilot.txt".
+  log "aim_alt_list["+i+"] = " + aim_alt_list[i] to "0:/logpilot.txt".
+  log "aim_spd_list["+i+"] = " + aim_spd_list[i] to "0:/logpilot.txt".
+}
 
 function displayPitch {
   parameter col,row.

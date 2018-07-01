@@ -19,7 +19,14 @@ if reverse {
     set near_ves to vessel("VASI east").
 }
     
-set runway_alt to body:altitudeof(far_ves:position).
+// This is trying to fix the case where the runway marker
+// vessels are beneath the runway altitude because the runway
+// is built up on a high burm (as happens in the KSC low tech
+// runway.  This will get the altitude of the runway itself
+// halfway between the markers, rather than the altitude of
+// the markers themselves:
+set halfway_point to (far_ves:position + near_ves:position) / 2.
+set runway_alt to body:geopositionof(halfway_point):terrainheight.
 
 lock runway_vect to (near_ves:position - far_ves:position):normalized.
 
@@ -33,7 +40,7 @@ set aim_spd_list to list().
 // Seed a final waypoint which is on the runway, at ground altitude, with 80% of runway left:
 local aim_pos is near_ves:geoposition:altitudeposition(0).
 aim_geo_list:add(ship:body:geopositionof(aim_pos)).
-aim_alt_list:add(0).
+aim_alt_list:add(runway_alt).
 aim_spd_list:add(70).
 
 until i >= 4 {
@@ -249,7 +256,7 @@ function remove_go_around_points {
 // Made into a separate function calls so that it's possible to re-init them later
 // with the same PID gains - used below in the part called "PANIC MODE".
 function init_pitch_pid {
-  return PIDLOOP(0.01, 0.005, 0.003, -1, 1).
+  return PIDLOOP(0.03, 0.01, 0.003, -1, 1).
 }
 function init_roll_pid {
   return PIDLOOP(0.005, 0.00005, 0.001, -1, 1).
@@ -326,8 +333,8 @@ brakes off.
 // a phantom "prev" waypoint to help give info how to align the first turn.
 set cur_aim_i to aim_geo_list:length-2.
 
-set vd_aimline to vecdraw(v(0,0,0),v(1,0,0),RGBA(1,0,0,2),"waypoint line",1,draw_arg).
-set vd_aimpos to vecdraw(v(0,0,0),v(1,0,0),RGBA(1,1,0,2),"aimpoint",1,draw_arg).
+set vd_aimline to vecdraw(v(0,0,0),v(1,0,0),RGBA(1,0,0,2),"waypoint line",1,draw_arg,1).
+set vd_aimpos to vecdraw(v(0,0,0),v(1,0,0),RGBA(1,1,0,2),"aimpoint",1,draw_arg,1).
 
 set user_quit to false.
 set need_pid_reinit to false.

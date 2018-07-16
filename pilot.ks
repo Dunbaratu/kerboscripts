@@ -481,9 +481,13 @@ if user_quit {
   print "QUITTING.. USER ABORT".
 } else {
   brakes on.
-  print "QUITTING.. BRAKES ON.".
+  print "BRAKES ON.".
   lock throttle to 0.
-  wait until status="LANDED".
+  // use SAS instead of steering to keep it from doing a ground spin:
+  unlock steering.
+  SAS on.
+  wait until status="LANDED" and groundspeed < 10.
+  SAS off.
 }
 set vd_aimpos to 0.
 set vd_aimline to 0.

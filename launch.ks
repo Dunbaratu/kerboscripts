@@ -10,7 +10,8 @@ parameter
   solid_thrust is 0,
   second_height is -1,
   second_height_long is -1,
-  atmo_end is 70000.
+  atmo_end is 70000,
+  ignitions is 2.
 
 if launch_gui() {
 
@@ -40,7 +41,8 @@ if launch_gui() {
     solid_thrust,
     second_height,
     second_height_long,
-    atmo_end).
+    atmo_end,
+    ignitions).
 
   set steeringmanager:pitchts to old_pitch_ts.
   set steeringmanager:yawts to old_yaw_ts.
@@ -54,8 +56,16 @@ function launch_gui {
   local exit_val is -1.
 
   local setting_ui is GUI(400).
-  setting_ui:addlabel("== LAUNCH OPTIONS ==").
+  set setting_ui:addlabel("  <b>== SCRIPT LAUNCH OPTIONS ==</b>"):style:fontsize to 18.
   setting_ui:addspacing(5).
+
+  local ignitions_box is setting_ui:addvlayout().
+  ignitions_box:addlabel("Circularization ignitions allowed:").
+  ignitions_box:addlabel(" 1 = continuous burn, don't care if circular.").
+  ignitions_box:addlabel(" 2 = coast to AP and burn again (try to be circular).").
+  local ignitions_radio_box is ignitions_box:addhlayout().
+  local one_ignition_button is ignitions_radio_box:addradiobutton("One", false).
+  local two_ignition_button is ignitions_radio_box:addradiobutton("Two", true).
 
   local end_alt_box is setting_ui:addhlayout().
   end_alt_box:addlabel("End When Periapais Alt is:").
@@ -139,6 +149,8 @@ function launch_gui {
 
   setting_ui:show().
   wait until exit_val:istype("Boolean"). // will not return until a cancel or launch is clicked.
+  if one_ignition_button:pressed { set ignitions to 1. }
+  if two_ignition_button:pressed { set ignitions to 2. }
   set end_alt to end_alt_field:text:tonumber().
   set compass to compass_field:text:tonumber().
   set eta_apo to eta_apo_field:text:tonumber().

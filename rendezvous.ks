@@ -81,6 +81,7 @@ if skips <= 1 {
       }
       lock steering to prograde.
     }
+    wait 0.
   }
 
   print "Embiggenig orbit until matching a rendezvous time.".
@@ -103,12 +104,12 @@ if skips <= 1 {
     local i is 0.
     until found or i = 4 {
       set my_rendezvous_utime to burn_start_time + ship:obt:period * i.
-      print "[" + i + "], mine =" + round(my_rendezvous_utime,1) + " s    " at (2,10+i).
+      print "[" + i + "], mine =" + round(my_rendezvous_utime,1) + " s  " at (2,10+i).
       local j is 0.
       until found or j = 4 {
         local other_rendezvous_utime is rendezvous_utimes[j].
         local time_diff is my_rendezvous_utime - other_rendezvous_utime.
-        print "other =" + round(other_rendezvous_utime,1)+" s      " at (25,10+j).
+        print "other =" + round(other_rendezvous_utime,1)+" s  " at (30,10+j).
         if abs(time_diff) < rendezvous_tolerance_1 {
           lock throttle to 0.1.
         }
@@ -147,6 +148,7 @@ if skips <= 2 {
       }
       lock steering to other:velocity:orbit - ship:velocity:orbit.
     }
+    wait 0.
   }.
 
   print "Burning until rel vel killed.".

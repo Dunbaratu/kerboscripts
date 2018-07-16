@@ -31,6 +31,7 @@ function launch {
   parameter second_dest_ap is -1. // second destination apoapsis.
   parameter second_dest_long is -1. // second destination longitude.
   parameter atmo_end is ship:body:atm:height.
+  parameter ignitions is 2.
 
   if second_dest_ap < 0 { set second_dest_ap to dest_pe. }
 
@@ -122,8 +123,9 @@ function launch {
 
   print "Letting heading go where it wants.  Adjusting only pitch and throttle by ETA Apoapsis.".
   local want_pitch_off is 0.
-  lock steering to lookdirup(which_vel():normalized + clamp_abs((wanted_eta_apo()-signed_eta_ap())*0.5/wanted_eta_apo(),0.15)*ship:up:vector, -ship:up:vector).
-  lock throttle to throttle_func().
+  local coast_circular is false.
+  lock steering to lookdirup(which_vel():normalized + clamp_abs((wanted_eta_apo(coast_circular)-signed_eta_ap())*0.5/wanted_eta_apo(coast_circular),0.15)*ship:up:vector, -ship:up:vector).
+  lock throttle to throttle_func(coast_circular).
 
   // This was the old steering logic: need something new:
   // local alt_divisor is atmo_end*(6.0/7.0).
@@ -144,6 +146,10 @@ function launch {
   local done is false.
   local engs is 0.
   list engines in engs.
+  local allow_zero is ignitions > 1. // allow zeroing throttle only if we area allowing multiple ignitions to orbit.
+  local still_in_atmo is true.
+  local min_throt is 0.01.
+  local throttle_was_zero is false.
   until done {
 
     // Stager logic - if no thrust, stage until there is:
@@ -155,10 +161,35 @@ function launch {
         local actives is all_active_engines().
         wait until ullage_status(actives).
         stager(engs, true).
-        set ship:control:fore to 0. lock throttle to throttle_func().
+        set ship:control:fore to 0. lock throttle to throttle_func(coast_circular, min_throt).
         set RCS to orig_RCS.
       }
-      lock throttle to throttle_func().
+      lock throttle to throttle_func(coast_circular, min_throt).
+    }
+
+    if throttle = 0 {
+      set throttle_was_zero to true.
+    }
+
+    if still_in_atmo {
+      if altitude > atmo_end {
+        set still_in_atmo to false.
+        if allow_zero {
+          set coast_circular to true.
+          if not(throttle_was_zero) {
+            set min_throt to 0.
+            hudtext("Entering coast-to-AP mode.", 8, 2, 20, green, true).
+          }
+        } 
+      }
+    }
+
+    // Once the throttle was coasting and turns back on again,
+    // from then on we want to keep it on to circularize, not
+    // try to circularize in little spurts that consume lots of
+    // ignitions:
+    if throttle_was_zero and throttle > 0 {
+      set min_throt to 0.01.
     }
 
   // TODO: Incorporate this into it somehow:
@@ -179,7 +210,13 @@ function launch {
   //       }
   // 
 
-    if apoapsis > dest_pe and periapsis > dest_pe {
+    if coast_circular {
+      if periapsis > atmo_end and (ship:obt:trueanomaly < 90 or ship:obt:trueanomaly > 270) {
+        hudtext("Now closer to Pe than Ap, so stopping.", 8, 2, 20, green, true).
+        set done to true.
+      }
+    }
+    else if periapsis > dest_pe {
       hudtext("Launch Script Over because periapsis > " + dest_pe + ".", 8, 2, 20, green, true).
       set done to true.
     } else if apoapsis > dest_pe * 1.2 and signed_eta_pe() > -20 and signed_eta_pe() < 20 {
@@ -188,13 +225,13 @@ function launch {
       set done to true.
     }
     
-    if verticalspeed < -5 and altitude < ship:body:atm:height {
+    if verticalspeed < -5 and still_in_atmo {
       abort on.
       hudtext("INVOKING ABORT ACTION!!! BECAUSE FALLING.", 15, 2, 30, red, true).
       set done to true.
     }
 
-    info_block().
+    info_block(coast_circular).
   }
 
   lock throttle to 0.  set ship:control:pilotmainthrottle to 0.
@@ -235,15 +272,26 @@ function clamp_abs {
 }
 
 function wanted_eta_apo {
-  local formula_eta is target_eta_apo * ship:velocity:surface:mag / target_eta_spd. 
-  local min_wanted is target_eta_apo/5.
-  local max_wanted is target_eta_apo.
-  return max(min(max_wanted, formula_eta), min_wanted).
+  parameter coast_circular is false. // true if we are in the part where we're coasting to circularize
+
+  if coast_circular {
+    return 10.
+  } else {
+    local formula_eta is target_eta_apo * ship:velocity:surface:mag / target_eta_spd. 
+    local min_wanted is target_eta_apo/5.
+    local max_wanted is target_eta_apo.
+    return max(min(max_wanted, formula_eta), min_wanted).
+  }
 }
 
 function throttle_func {
+  parameter coast_circular is false. // true if we are in the part where we're coasting or circularizing
+  parameter min_throt is 0.01.
+
   // TODO: make this a PID?  Right now it's P-only:
-  return max(0.5+(wanted_eta_apo()-signed_eta_ap())*5/wanted_eta_apo(), 0.01).
+  local wanted is wanted_eta_apo(coast_circular).
+  local throt is 0.5+(wanted-signed_eta_ap())*5/wanted.
+  return max(throt, min_throt).
 }
 
 // Returns a signed ETA:apoapsis - in other words if
@@ -344,6 +392,7 @@ function srf_pitch_for_vel {
 
 // Print some useful info in a block:
 function info_block {
+  parameter coast_circular is false.
   print "================================" at (0,0).
   print "| APO:         m  ETA:      s  |" at (0,1).
   print "|      WANTED ETA APO:      s  |" at (0,2).
@@ -355,7 +404,7 @@ function info_block {
   print "      " at (23,1).
   print round(signed_eta_ap,1) at (23,1).
   print "      " at (23,2).
-  print round(wanted_eta_apo(),1) at (23,2).
+  print round(wanted_eta_apo(coast_circular),1) at (23,2).
   print "        " at (7,3).
   print round(periapsis) at (7,3).
   print "       " at (7,4).

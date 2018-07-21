@@ -18,7 +18,6 @@ function countdown {
 
 local target_eta_spd is 0.
 local target_eta_apo is 0.
-local kick_speed is 100.
 
 function launch {
   parameter dest_compass. // not exactly right when not 90.
@@ -33,12 +32,18 @@ function launch {
   parameter atmo_end is ship:body:atm:height.
   parameter ignitions is 2.
 
+ 
   if second_dest_ap < 0 { set second_dest_ap to dest_pe. }
 
 
   local full_thrust_over is false.
   set target_eta_apo to eta_apo.
   set target_eta_spd to eta_spd.
+  local circ_speed is sqrt(ship:body:mu / (dest_pe+ship:body:radius)).
+  local kick_speed is circ_speed / 25.
+  if not(ship:body:atm:exists) {
+    set kick_speed to kick_speed / 3. // not much need for kick when launching without air.
+  }
 
   local all_fairings is ship:modulesnamed("ModuleProceduralFairing").
   local fairings is LIST().

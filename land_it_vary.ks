@@ -104,6 +104,7 @@ local pitch_off is 0. // The output of pitch_pid
 // output of yaw_pid is a deflection right of srfretrograde in degrees.
 local yaw_pid is PIDloop(1, 0, 0, -8, 8).
 local yaw_off is 0. // The output of yaw_pid
+local bias is -2. // The bias factor in the PID making negative errors more severe than positive ones.
 
 pid_tune(altitude).
 
@@ -134,6 +135,8 @@ when verticalspeed > 0 and
   set stop_burn to true.
 }
 
+info_block_header().
+
 // Main program:
 until stop_burn {
 
@@ -162,7 +165,7 @@ until stop_burn {
   set dist to terrain_distance(pos).
   if time:seconds > vd_show_msg_cooldown {
     set vd_show_msg_cooldown to vd_show_msg_cooldown + 15.
-    HUDTEXT("Action Group 10 hides/shows prediction vector.", 5, 3, 18, rgb(0,0.4,0), true).
+    HUDTEXT("Action Group 10 hides/shows prediction vector.", 5, 3, 18, rgb(0,0.4,0), false).
   }
   if vd1:istype("Vecdraw") {
     set vd1:show to ag10.
@@ -178,8 +181,7 @@ until stop_burn {
     update_steer_offsets().
   }
 
-  local real_throt is throt_pid:update(time:seconds, dist-margin). 
-  print "r="+round(real_throt,3) + " Gains: " + round(throt_pid:Kp,8)+", "+round(throt_pid:Ki,8)+", "+round(throt_pid:Kd,8). // eraseme
+  local real_throt is throt_pid:update(time:seconds, signbias(dist-margin,bias)). 
 
   if real_throt > minThrot {
     set burn_started to true.
@@ -197,7 +199,6 @@ until stop_burn {
       lock throttle to (real_throt-minThrot)/(1-minThrot) + 0.001.
       // From now on the engine stays on - so take these times out of the prediction:
       set spool to 0.  set ullage to 0.
-      print "real_throt = " + round(real_throt,3) + ", throttle = " + round(throttle,3). // eraseme
     } else {
       rcs on. set ship:control:fore to 1.
       print "Ullage RCS thrusting".
@@ -216,8 +217,7 @@ until stop_burn {
     set timeslice_size to (0.02 + deltaT)*2.
   }
 
-  print "alt:radar = " + round(alt:radar,3) + ", margin = " + round(margin,3) + ", timeslice = " + round(timeslice_size,3). //eraseme
-
+  info_block_update(burn_started, real_throt, throt_pid, bias, dist, margin, throt_predict_mult, timeslice_size).
 }
 lock throttle to 0.
 
@@ -226,20 +226,22 @@ if skycrane {
   // stage the skycrane away before cutting throttle.
   print "SkyCrane Staging Event!".
   stage.
-  wait 0.1.
+  lock throttle to 1.
+  lock steering to up:vector + north:vector*0.2.
+  wait 1.5.
 }
 lock throttle to 0.
+sane_steering().
+lock steering to lookdirup(up:vector,ship:facing:topvector).
 set ship:control:pilotmainthrottle to 0.
 wait 0.
 unlock throttle.
-SAS on.
 set vd1 to 0.
 //clearscreen.
-sane_steering().
 print "program cut off at alt:radar = " + round(alt:radar,1) + " (desired margin = " + round(margin,1)+").".
 print "Waiting for landed state.".
 wait until status = "LANDED" or status = "SPLASHED".
-
+SAS on.
 unlock steering.
 
 local cnt_after is ship:parts:length.
@@ -265,21 +267,72 @@ if cnt_before = cnt_after {
   playsong(song_sad).
 }
 wait 10.
+for i in range(0,10) { getvoice(i):stop(). }
 SAS off.
+
 // =================== END OF MAIN - START OF FUNCTIONS =============================
+
+function info_block_header {
+  clearscreen.
+  print "===Throttle Info======  ===Suicide Simulation===".
+  print "| throt_lever:      %|  | radar alt:          m|".
+  print "| real_throt:       %|  | suicide:            m|".
+  print "| KP:                |  | suicide throt:      %|".
+  print "| KI:                |  | sim timeslice:      s|".
+  print "| KD:                |  ========================".
+  print "| Bias:              |".
+  print "======================".
+}
+
+function info_block_update {
+  parameter started, rthrot, throt_pid, bias, dist, margin, sthrot, timeslice.
+
+  print "     " at (15 ,1).
+  print round(100*throttle,0) at (15, 1).
+
+  print "     %" at (15, 2).
+  if started {
+    print round(100*rthrot,0) at (15, 2).
+  } else {
+    print "ZZZ" at (15, 2).
+  }
+
+  print "            " at (6, 3).
+  print round(throt_pid:Kp,8) at (6, 3).
+  print "            " at (6, 4).
+  print round(throt_pid:Ki,8) at (6, 4).
+  print "            " at (6, 5).
+  print round(throt_pid:Kd,8) at (6, 5).
+
+  print "        " at (8,6).
+  print round(bias,5) at (8,6).
+
+  print "         " at (37,1).
+  print round(alt:radar,0) at (37,1).
+
+  print "         " at (37,2).
+  print round(dist-margin,0) at (37,2).
+
+  print "   " at (41,3).
+  print round(100*sthrot,0) at (41,3).
+
+  print "    " at (42,4).
+  print round(timeslice,2) at (42,4).
+}
 
 function pid_tune {
   parameter burn_dist.
 
   // Adjust PID tuning as we go depending on TWR and dist to target:
   local twr is athrust / (ship:mass * mu / (bodRad+ship:altitude)^2).
-  set throt_pid:Kp to 15/(10+sqrt(burn_dist)*twr).
-  set throt_pid:Ki to 3/(sqrt(burn_dist)*twr).
-  set throt_pid:Kd to 4/(sqrt(burn_dist)*twr). 
+  local dampener is sqrt(burn_dist)*twr.
+  set throt_pid:Kp to 15/dampener.
+  set throt_pid:Ki to 2/dampener.
+  set throt_pid:Kd to 3/dampener. 
 
-  set pitch_pid:Kp to 50/(10+sqrt(burn_dist)*twr).
-  set pitch_pid:Ki to 5/(sqrt(burn_dist)*twr).
-  set pitch_pid:Kd to 10/(sqrt(burn_dist)*twr). 
+  set pitch_pid:Kp to 50/dampener.
+  set pitch_pid:Ki to 5/dampener.
+  set pitch_pid:Kd to 10/dampener. 
 
   // If predicted to crash, limit how much it's allowed to pitch down.
   // Crashing is Bad Mmmkay?  Worse than missing the target:
@@ -354,6 +407,22 @@ function update_steer_offsets {
   set yaw_off to yaw_pid:update(time:seconds, right_dist).
 
   print "right="+round(right_dist,2) + " over="+round(overshoot_dist,2) + " p_o=" + round(pitch_off,3) + " y_o=" + round(yaw_off,3).  //eraseme
+}
+
+// Bias the input value on one side of zero more than the other.
+// (i.e. treat negative values as twice as big as positive ones).
+// example:
+//   signbias(10,-2) returns 10, while signbias(-10,-2) returns -20.
+//   (the -2 means "make negative values twice as big, leave positive values alone.)
+function signbias {
+  parameter
+    inVal, // value to bias
+    bias.  // - or + depending on what side you want biased, magnitude is degree of bias.
+
+  if (inVal<0) = (bias<0) {
+    return inVal*abs(bias).
+  }
+  return inVal.
 }
 
 // If alt:radar is > altitude then you're seeing the

@@ -182,10 +182,12 @@ if skips <= 3 {
   until other:position:mag < 350 {
     // Push toward until drifting fast enough at other:
     print "... Pushing toward target faster".
-    set mysteer to other:position+(40*ship:north:vector).
-    wait until vang(other:position, ship:facing:forevector) < 2.
+    lock mysteerpoint to other:position+(40*ship:north:vector).
+    lock steering to mysteerpoint.
+    wait until vang(mysteerpoint, ship:facing:forevector) < 2.
     lock throttle to 1/(0.01*maxAccel).
-    wait until vdot(rel_vel,other:position:normalized) > 4+(other:position:mag/100).
+    wait until vdot(rel_vel,mysteerpoint:normalized) > 4+(mysteerpoint:mag/100).
+    lock steering to mysteer. // put it back to what it was.
 
     // While drifting, get ready by aiming retro:
     print "... Drifting toward target, aiming retro now".

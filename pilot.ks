@@ -1,7 +1,8 @@
 // pilot control.
 
 parameter
-  reverse,       // true = land east-to-west instead of west-to-east
+  point1,        // runway near waypoint (vessel name)
+  point2,        // runway far waypoint (vessel name)
   touch_and_go,  // true = never stop - just abort go-around every time.
   draw_arg.      // true = draw vectors, false = don't.
 
@@ -11,14 +12,9 @@ set shipRoll to 0.
 set shipCompass to 0.
 
 
-if reverse {
-    set far_ves to vessel("VASI east").
-    set near_ves to vessel("VASI west").
-} else {
-    set far_ves to vessel("VASI west").
-    set near_ves to vessel("VASI east").
-}
-    
+set far_ves to vessel(point1).
+set near_ves to vessel(point2).
+  
 // This is trying to fix the case where the runway marker
 // vessels are beneath the runway altitude because the runway
 // is built up on a high burm (as happens in the KSC low tech
@@ -58,16 +54,6 @@ until i >= 4 {
   }
   set i to i+1.
   set expon to 2.3^i.
-}
-log "====================================" to "0:/logpilot.txt".
-log "runway_vect is " + runway_vect to "0:/logpilot.txt".
-log "near pos is " + near_ves:geoposition to "0:/logpilot.txt".
-log "far  pos is " + far_ves:geoposition to "0:/logpilot.txt".
-for i in range(0,aim_geo_list:length) {
-  log "- - - - - -" to "0:/logpilot.txt".
-  log "aim_geo_list["+i+"] = " + aim_geo_list[i] to "0:/logpilot.txt".
-  log "aim_alt_list["+i+"] = " + aim_alt_list[i] to "0:/logpilot.txt".
-  log "aim_spd_list["+i+"] = " + aim_spd_list[i] to "0:/logpilot.txt".
 }
 
 function displayPitch {

@@ -29,6 +29,7 @@ local leveler_deadzone is 3. // don't let leveler steering get integral windup f
 global g_left_slope is 0.
 global g_right_slope is 0.
 global g_dist is 0.
+global yaw_enabled is true.
 
 on abort {
   brakes on.
@@ -51,6 +52,7 @@ function drive_to {
   local steering_backup_timestamp is 0.
   local collision_eta is 0.
   local collision_steer_sign is 1.
+  local steering_is_locked is false.
 
   local v1 is getvoice(1).
   set v1:wave to "pulse".
@@ -62,6 +64,9 @@ function drive_to {
   if debug {
     set debug_drawnorm to vecdraw(v(0,0,0), ship:up:vector, white, "collision_norm", 1, true).
   }
+
+  local oldSas is SAS.
+  SAS off.
 
   list resources in reses.
   for res in reses {
@@ -111,6 +116,20 @@ function drive_to {
       set use_wheelthrottle to 0.
     }
 
+    if ship:status = "LANDED" or ship:status = "SPLASHED" {
+      if yaw_enabled {
+        HUDTEXT("Grounded, disabling yawing",3,2,20,yellow,false).
+        getvoice(1):play(slidenote(800,600,0.3)).
+        disable_yaw().
+      }
+    } else {
+      if not(yaw_enabled) {
+        HUDTEXT("Airborne, enabling yawing",3,2,20,yellow,false).
+        getvoice(1):play(slidenote(600,800,0.3)).
+        enable_yaw().
+      }
+    }
+
     if battery_panic and battery_ratio > 0.5 {
       set battery_panic to false. 
       all_lasers_toggle(true).
@@ -121,11 +140,17 @@ function drive_to {
       flip_me(offset_pitch).
       v1:play(list(note(250,0.1), note(200,0.1))).
       unlock steering.
+      HUDTEXT("STEERING IS UNLOCKED",3,2,15,yellow,false).
+      set steering_is_locked to false.
       steer_pid:reset().
       throttle_pid:reset().
     }
     if has_leveler_lasers and not battery_panic {
-      lock steering to level_orientation(offset_pitch, leveler_lasers).
+      if not(steering_is_locked) {
+        lock steering to level_orientation(offset_pitch, leveler_lasers).
+        set steering_is_locked to true.
+        HUDTEXT("STEERING IS LOCKED",3,2,15,yellow,false).
+      }
 
       // Prevent integral windup that comes from having a rover
       // that doesn't sit level on it's wheels and is always a
@@ -197,6 +222,7 @@ function drive_to {
   brakes on.
   enable_yaw().
   wait 0.
+  set SAS to oldSAS.
 }
 
 function lasers_toggle {
@@ -234,37 +260,43 @@ global yaw_disable_Kd_orig is 0.
 global yaw_disable_Ts_orig is 0.
 
 function disable_yaw {
-  set raw_disable_roll_angle_orig to  steeringmanager:RollControlAngleRange.
-  set steeringmanager:RollControlAngleRange to 180.
+  if not(yaw_enabled)
+    return.
+  set yaw_enabled to false.
   local yawkiller to steeringmanager:yawpid.
   set yaw_disable_Kp_orig to yawkiller:Kp.
   set yaw_disable_Ki_orig to yawkiller:Ki.
   set yaw_disable_Kd_orig to yawkiller:Kd.
+  set yaw_disable_Ts_orig to steeringManager:yawts.
+  set yaw_disable_roll_angle_orig to  steeringmanager:RollControlAngleRange.
+  set steeringmanager:RollControlAngleRange to 180.
   set yawkiller:Kp to 0.
   set yawkiller:Ki to 0.
   set yawkiller:Kd to 0.
   // Trick it into thinking it has way more torque than it does, so it
   // will only issue very nerf'ed inputs that are wimpy:
-  set yaw_disable_Ts_orig to steeringManager:yawts.
   set steeringManager:yawts to 999999999.
 }
 
 function enable_yaw {
+  if yaw_enabled
+    return.
   set steeringmanager:RollControlAngleRange to yaw_disable_roll_angle_orig.
   local yawkiller to steeringmanager:yawpid.
   set yawkiller:Kp to yaw_disable_Kp_orig.
-  set yawkiller:Kd to yaw_disable_Ki_orig.
-  set yawkiller:Ki to yaw_disable_Kd_orig.
+  set yawkiller:Ki to yaw_disable_Ki_orig.
+  set yawkiller:Kd to yaw_disable_Kd_orig.
   // Trick it into thinking it has way more torque than it does, so it
   // will only issue very nerf'ed inputs that are wimpy:
   set steeringManager:yawts to yaw_disable_Ts_orig.
+  set yaw_enabled to true.
 }
 
 function level_orientation {
   parameter offset_pitch, leveler_lasers.
   local norm is get_laser_normal(leveler_lasers).
 
-  return lookdirup(rotated_forevector(offset_pitch), norm).
+  return lookdirup(vxcl(norm,rotated_forevector(offset_pitch)), norm).
 }
 
 // Use forward facing collision lasers to detect the slope ahead of us.  If it's

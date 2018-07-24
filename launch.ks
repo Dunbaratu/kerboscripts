@@ -73,7 +73,8 @@ function launch_gui {
   set end_alt_field:onconfirm to {
     parameter str.
     // Set to a number then back to a string, to wipe any non-numeric stuff:
-    set end_alt_field:text to end_alt_field:text:tonumber():tostring().
+    set end_alt_field:text to end_alt_field:text:tonumber(end_alt):tostring().
+    set end_alt to end_alt_field:text:tonumber().
   }.
 
   local compass_box is setting_ui:addhlayout().
@@ -82,7 +83,8 @@ function launch_gui {
   set compass_field:onconfirm to {
     parameter str.
     // Set to a number then back to a string, to wipe any non-numeric stuff:
-    set compass_field:text to compass_field:text:tonumber():tostring().
+    set compass_field:text to compass_field:text:tonumber(compass):tostring().
+    set compass to compass_field:text:tonumber().
   }.
 
   local eta_apo_box is setting_ui:addhlayout().
@@ -91,8 +93,8 @@ function launch_gui {
   set eta_apo_field:onconfirm to {
     parameter str.
     // Set to a number then back to a string, to wipe any non-numeric stuff:
-    set eta_apo_field:text to eta_apo_field:text:tonumber():tostring().
-
+    set eta_apo_field:text to eta_apo_field:text:tonumber(eta_apo):tostring().
+    set eta_apo to eta_apo_field:text:tonumber().
   }.
 
   eta_apo_box:addlabel(" by speed (m/s): ").
@@ -100,7 +102,8 @@ function launch_gui {
   set eta_apo_spd_field:onconfirm to {
     parameter str.
     // Set to a number then back to a string, to wipe any non-numeric stuff:
-    set eta_apo_spd_field:text to eta_apo_spd_field:text:tonumber():tostring().
+    set eta_apo_spd_field:text to eta_apo_spd_field:text:tonumber(eta_apo_spd):tostring().
+    set eta_apo_spd to eta_apo_spd_field:text:tonumber().
   }.
 
   local twr_box is setting_ui:addhlayout().
@@ -109,7 +112,8 @@ function launch_gui {
   set twr_field:onconfirm to {
     parameter str.
     // Set to a number then back to a string, to wipe any non-numeric stuff:
-    set twr_field:text to twr_field:text:tonumber():tostring().
+    set twr_field:text to twr_field:text:tonumber(launch_twr):tostring().
+    set launch_twr to twr_field:text:tonumber().
   }.
 
   local solids_box is setting_ui:addhlayout().
@@ -121,7 +125,8 @@ function launch_gui {
   set solids_field:onconfirm to {
     parameter str.
     // Set to a number then back to a string, to wipe any non-numeric stuff:
-    set solids_field:text to solids_field:text:tonumber():tostring().
+    set solids_field:text to solids_field:text:tonumber(solid_thrust):tostring().
+    set solid_thrust to solids_field:text:tonumber().
   }.
 
   local ts_box is setting_ui:addhlayout().

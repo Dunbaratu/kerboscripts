@@ -42,7 +42,7 @@ function launch {
   local circ_speed is sqrt(ship:body:mu / (dest_pe+ship:body:radius)).
   local kick_speed is circ_speed / 25.
   if not(ship:body:atm:exists) {
-    set kick_speed to kick_speed / 3. // not much need for kick when launching without air.
+    set kick_speed to kick_speed / 3. // not much need to go straight up when launching without air.
   }
 
   local all_fairings is ship:modulesnamed("ModuleProceduralFairing").
@@ -64,8 +64,8 @@ function launch {
   sane_upward().
 
   print "Staging until there is an active engine".
-  local actives is LIST().
   lock throttle to 0.
+  local actives is all_active_engines().
   until actives:length > 0 {
     stage.
     wait 1.
@@ -103,6 +103,8 @@ function launch {
   }
 
   print "We are now moving.".
+  local TWR_avail is AVAILABLETHRUST/(MASS*g).
+  set kick_speed to kick_speed / TWR_avail.
   lock steering to lookdirup(heading(dest_compass, 89.9):forevector, -ship:up:vector).
   print "Waiting for speed over " + kick_speed + " m/s to start kick.".
   until ship:velocity:surface:mag > kick_speed {

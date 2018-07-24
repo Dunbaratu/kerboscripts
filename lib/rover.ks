@@ -554,7 +554,7 @@ function wanted_speed {
   local return_val is 0.
   if bear = 0 
     set bear to 0.001. // avoid divide-by-zero in next line.
-  set return_val to min( abs(90/bear), min( 0.5 + spot:distance / 20, cruise_spd)).
+  set return_val to min( abs(90/bear), min( 0.5 + spot:distance / 10, cruise_spd)).
   // If there is an obstacle detector laser, use it.
   if has_left_lasers and jump_detecting {
     local dist is get_laser_dist(left_lasers[0]).

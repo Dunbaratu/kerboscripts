@@ -406,7 +406,8 @@ function update_steer_offsets {
   set pitch_off to pitch_pid:update(time:seconds, overshoot_dist).
   set yaw_off to yaw_pid:update(time:seconds, right_dist).
 
-  print "right="+round(right_dist,2) + " over="+round(overshoot_dist,2) + " p_o=" + round(pitch_off,3) + " y_o=" + round(yaw_off,3).  //eraseme
+  // TODO: Put this in info block:
+  //   print "right="+round(right_dist,2) + " over="+round(overshoot_dist,2) + " p_o=" + round(pitch_off,3) + " y_o=" + round(yaw_off,3).  //eraseme
 }
 
 // Bias the input value on one side of zero more than the other.

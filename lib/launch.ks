@@ -117,9 +117,17 @@ function launch {
   lock steering to lookdirup(heading(dest_compass, 80):forevector, -ship:up:vector).
   wait 0.5.
  
-  print "Waiting for prograde to match steering within 2 degreees.".
-  until vang(steering:forevector, ship:velocity:surface) < 2 {
+  print "Waiting for prograde to match steering close enough.".
+  local off_horiz is 999.
+  local off_vert is 999.
+  local off_vec is v(1,0,0).
+  // It's more okay to be off vertically than horizontally here, thus the two different check values:
+  until off_horiz < 0.04 and off_vert < 0.08 {
+    set off_vec to steering:forevector:normalized - ship:velocity:surface:normalized.
+    set off_vert to abs(vdot(ship:up:vector, off_vec)).
+    set off_horiz to vxcl(ship:up:vector, off_vec):mag.
     info_block().
+    print "--- Off Horiz = " + round(off_horiz,3) + ", Off Vert = " + round(off_vert,3) + " ---" at (0,30).
     wait 0.
   }
 

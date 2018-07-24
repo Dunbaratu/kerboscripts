@@ -221,6 +221,7 @@ function drive_to {
   set ship:control:wheelthrottle to 0.
   brakes on.
   enable_yaw().
+  roll_reset().
   wait 0.
   set SAS to oldSAS.
 }
@@ -258,7 +259,6 @@ global yaw_disable_Kp_orig is 0.
 global yaw_disable_Ki_orig is 0.
 global yaw_disable_Kd_orig is 0.
 global yaw_disable_Ts_orig is 0.
-
 function disable_yaw {
   if not(yaw_enabled)
     return.
@@ -277,11 +277,9 @@ function disable_yaw {
   // will only issue very nerf'ed inputs that are wimpy:
   set steeringManager:yawts to 999999999.
 }
-
 function enable_yaw {
   if yaw_enabled
     return.
-  set steeringmanager:RollControlAngleRange to yaw_disable_roll_angle_orig.
   local yawkiller to steeringmanager:yawpid.
   set yawkiller:Kp to yaw_disable_Kp_orig.
   set yawkiller:Ki to yaw_disable_Ki_orig.
@@ -290,6 +288,9 @@ function enable_yaw {
   // will only issue very nerf'ed inputs that are wimpy:
   set steeringManager:yawts to yaw_disable_Ts_orig.
   set yaw_enabled to true.
+}
+function roll_reset {
+  set steeringmanager:RollControlAngleRange to yaw_disable_roll_angle_orig.
 }
 
 function level_orientation {

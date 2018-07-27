@@ -140,7 +140,6 @@ function launch {
   local want_pitch_off is 0.
   local coast_circular is false.
   lock steering to lookdirup(which_vel():normalized + clamp_abs((wanted_eta_apo(coast_circular)-signed_eta_ap())*0.5/wanted_eta_apo(coast_circular),0.15)*ship:up:vector, -ship:up:vector).
-  lock throttle to throttle_func(coast_circular).
 
   // This was the old steering logic: need something new:
   // local alt_divisor is atmo_end*(6.0/7.0).
@@ -165,6 +164,7 @@ function launch {
   local still_in_atmo is true.
   local min_throt is 0.01.
   local throttle_was_zero is false.
+  lock throttle to throttle_func(coast_circular,min_throt).
   until done {
 
     // Stager logic - if no thrust, stage until there is:

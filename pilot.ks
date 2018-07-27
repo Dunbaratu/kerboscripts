@@ -1,59 +1,48 @@
 // pilot control.
+if HOMECONNECTION:ISCONNECTED {
+  if not(exists("1:/lib")) {
+    createdir("1:/lib/").
+  }
+  copypath("0:/lib/navpoint.ks", "1:/lib/").
+}
+run once "lib/navpoint".
 
 parameter
-  point1,        // runway near waypoint (vessel name)
-  point2,        // runway far waypoint (vessel name)
-  touch_and_go,  // true = never stop - just abort go-around every time.
-  draw_arg.      // true = draw vectors, false = don't.
+  draw_arg,      // true = draw vectors, false = don't.
+  preset is "",  // string: use preset name for known flight mode.
+  reverse is False,
+  final_spd is 80.
 
 set yokePull to 0.
 set yokeRoll to 0.
 set shipRoll to 0.
 set shipCompass to 0.
 
+clearscreen.
+print "Action groups:".
+print "  AG 1,2 = raise/lower current speed:".
+print "  AG 10   = toggle hide/show aim vectors.".
+print "  Abort = quit script and give control to player.".
+sas off.
+brakes off.
 
-set far_ves to vessel(point1).
-set near_ves to vessel(point2).
-  
-// This is trying to fix the case where the runway marker
-// vessels are beneath the runway altitude because the runway
-// is built up on a high burm (as happens in the KSC low tech
-// runway.  This will get the altitude of the runway itself
-// halfway between the markers, rather than the altitude of
-// the markers themselves:
-set halfway_point to (far_ves:position + near_ves:position) / 2.
-set runway_alt to body:geopositionof(halfway_point):terrainheight.
+local nav_list is LIST().
 
-lock runway_vect to (near_ves:position - far_ves:position):normalized.
-
-// make a list of aiming waypoints:
-set i to 0.
-set expon to 0. // A counter that goes up expoentially.
-set aim_geo_list to list().
-set aim_alt_list to list().
-set aim_spd_list to list().
-
-// Seed a final waypoint which is on the runway, at ground altitude, with 80% of runway left:
-local aim_pos is near_ves:geoposition:altitudeposition(0).
-aim_geo_list:add(ship:body:geopositionof(aim_pos)).
-aim_alt_list:add(runway_alt).
-aim_spd_list:add(70).
-
-until i >= 4 {
-  local aim_alt is runway_alt+4+expon*150.
-  local aim_pos is far_ves:geoposition:altitudeposition(aim_alt) - (120 + 1500*expon)*runway_vect.
-  local aim_geo is ship:body:geopositionof(aim_pos).
-  aim_geo_list:add(aim_geo).
-  aim_alt_list:add(aim_alt).
-  if i = 0 { 
-    aim_spd_list:add(90).
-  } else if i = 1{
-    aim_spd_list:add(100).
-  } else {
-    aim_spd_list:add(120).
+if preset = "GUI" {
+  local insert_list is gui_edit_course().
+  for thing in insert_list {
+    nav_list:add(thing).
   }
-  set i to i+1.
-  set expon to 2.3^i.
+}
+else if preset <> "" {
+  local insert_list is make_landing_points(preset, reverse, final_spd).
+  for thing in insert_list {
+    nav_list:add(thing).
+  }
+  print "MAKE LANDING POINTS RAN".
+  print "nav_list now has " + nav_list:LENGTH + " things.".
+} else {
+  nav_list:add(points).
 }
 
 function displayPitch {
@@ -94,12 +83,13 @@ function displayOffset {
 }
 
 function displayProgress {
-  parameter geo, alti, col,row.
+  parameter index, geo, alti, radius, col,row.
 
-  print "Aiming at LAT=" + round(geo:lat,2) + " LNG=" + round(geo:lng,2) + ", ALT " + round(alti,0) + "m" at (col,row).
+  print "Aiming at nav_list["+index+"]" at (col,row).
+  print "Aiming at LAT=" + round(geo:lat,2) + " LNG=" + round(geo:lng,2) + ", ALT " + round(alti,0) + "m" at (col,row+1).
   local d is geo:altitudeposition(alti+geo:terrainheight):mag.
-  print "Dist To aim point " + round(d,0) + "m" at (col,row+1).
-  print "          Cur ALT " + round(ship:altitude,0) + "m" at (col,row+2).
+  print "Dist to aim point " + round(d,0) + "m (radius=" +radius+"m) " at (col,row+2).
+  print "          Cur ALT " + round(ship:altitude,0) + "m" at (col,row+3).
 }
 
 function roll_for {
@@ -204,41 +194,6 @@ function get_want_climb {
   return alt_diff / time_to_dest.
 }
 
-// Adds an additional waypoints just off to the left side, so the plane will navigate to it.
-function create_go_around_points {
-  local old_len is aim_geo_list:length.
-  // Remove lastmost "fake" waypoint that only existed to get vector direction:
-  local prev_speed is aim_spd_list[old_len-1].
-  aim_spd_list:remove(old_len-1).
-  aim_geo_list:remove(old_len-1).
-  aim_alt_list:remove(old_len-1).
-
-  // Add a new waypoint 4km to my left of the last one:
-  aim_spd_list:add( prev_speed ).
-  aim_alt_list:add( aim_alt_list[old_len-2] ).
-  local new_pos is aim_geo_list[old_len-2]:altitudeposition(aim_alt_list[old_len-2]) - 4000*ship:facing:starvector.
-  aim_geo_list:add( ship:body:geopositionof(new_pos) ).
-
-  // Add a new waypoint 2 km in front of me, 200m up, high spd, to force go-around throttle up:
-  aim_spd_list:add( prev_speed * 2 ).
-  aim_alt_list:add( ship:altitude + 300 ).
-  set new_pos to ship:position + 2000*ship:facing:forevector.
-  aim_geo_list:add( ship:body:geopositionof(new_pos) ).
-
-  // Add a new waypoint at my current position, to start from:
-  aim_spd_list:add( 0 ).
-  aim_alt_list:add( ship:altitude ).
-  aim_geo_list:add( ship:body:geopositionof(ship:position) ).
-}
-
-function remove_go_around_points {
-  until aim_geo_list:length <= 4 {
-     aim_geo_list:remove(aim_geo_list:length-1).
-     aim_alt_list:remove(aim_alt_list:length-1).
-     aim_spd_list:remove(aim_spd_list:length-1).
-  }
-}
-
 // Made into a separate function calls so that it's possible to re-init them later
 // with the same PID gains - used below in the part called "PANIC MODE".
 function init_pitch_pid {
@@ -265,62 +220,41 @@ set wantClimb to 0.
 set wantBank to 0.
 set wantSpeed to 0.
 
+function inc_cur_point_spd {
+  parameter inc.
+  local thisPoint is nav_list[nav_list:LENGTH-2].
+  local oldSpd is thisPoint["SPD"].
+  if inc > 0 and oldSpd >= 100 or inc < 0 and oldSpd > 100 {
+    set inc to inc*10.
+  } else if inc > 0 and oldSpd >= 500 or inc < 0 and oldSpd > 500 {
+    set inc to inc*20.
+  }
+  set thisPoint["SPD"] to oldSpd + inc.
+}
+
 on ag1 {
-  set aim_spd_list[0] to aim_spd_list[0] - 1.
-  set aim_spd_list[1] to aim_spd_list[0] * 1.2.
-  set aim_spd_list[2] to aim_spd_list[0] * 1.1.
+  local inc is -1.
+  inc_cur_point_spd(inc).
   preserve.
 }
 on ag2 {
-  set aim_spd_list[0] to aim_spd_list[0] + 1.
-  set aim_spd_list[1] to aim_spd_list[0] * 1.1.
-  set aim_spd_list[2] to aim_spd_list[0] * 1.2.
+  local inc is 1.
+  inc_cur_point_spd(inc).
   preserve.
 }
-on ag3 {
-  set aim_spd_list[3] to aim_spd_list[3] - 1.
-  set aim_spd_list[3] to aim_spd_list[3].
-  preserve.
-}
-on ag4 {
-  set aim_spd_list[3] to aim_spd_list[3] + 1.
-  set aim_spd_list[4] to aim_spd_list[3].
-  preserve.
-}
-on ag5 {
+on ag10 {
   set vd_aimline:show to not vd_aimline:show.
   set vd_aimpos:show to not vd_aimpos:show.
   preserve.
 }.
 
 
-// If you begin the script already landed, then insert
-// the goaround points to cause a takeoff:
-if status = "LANDED" or status = "PRELAUNCH" {
-  hudtext( ship:name + " is LANDED, So taking off", 8, 2, 32, WHITE, false).
-  create_go_around_points().
-
-  brakes off.
-  lock throttle to 1. // temporary just to get some ground speed started.
-  wait 1.
-  // Let the script do the work of taking off.
-}
-
-clearscreen.
-print "Action groups:".
-print "  AG 1,2 = raise/lower final speed:".
-print "  AG 3,4 = raise/lower approach speed:".
-print "  AG 5   = toggle hide/show aim vectors.".
-print "  Abort = quit script and give control to player.".
-sas off.
-brakes off.
-
 // Start one position back from the end of the waypoint list, so there is
 // a phantom "prev" waypoint to help give info how to align the first turn.
-set cur_aim_i to aim_geo_list:length-2.
+set cur_aim_i to nav_list:length-2.
 
-set vd_aimline to vecdraw(v(0,0,0),v(1,0,0),RGBA(1,0,0,2),"waypoint line",1,draw_arg,1).
-set vd_aimpos to vecdraw(v(0,0,0),v(1,0,0),RGBA(1,1,0,2),"aimpoint",1,draw_arg,1).
+set vd_aimline to vecdraw(v(0,0,0),v(1,0,0),RGBA(1,0,0,2),"waypoint line",1,draw_arg,0.4).
+set vd_aimpos to vecdraw(v(0,0,0),v(1,0,0),RGBA(1,1,0,2),"aimpoint",1,draw_arg,0.4).
 
 set user_quit to false.
 set need_pid_reinit to false.
@@ -344,25 +278,43 @@ when alt:radar > 200 then {
 local has_been_airborne is false.
 
 until user_quit or 
-      (status="LANDED" and has_been_airborne and not touch_and_go) or
+      (status="LANDED" and has_been_airborne) or
       cur_aim_i < 0 {
 
-  wait 0.001.
-  local cur_aim_geo is aim_geo_list[cur_aim_i].
-  local cur_aim_alt is aim_alt_list[cur_aim_i].
-  local cur_spd_want is aim_spd_list[cur_aim_i].
+  wait 0.
+  local cur_aim_geo is nav_list[cur_aim_i]["GEO"].
+  local cur_spd_want is nav_list[cur_aim_i]["SPD"].
+  local cur_aim_alt is nav_list[cur_aim_i]["ALT"].
+  local cur_aim_AGL is nav_list[cur_aim_i]["AGL"].
+  local cur_aim_radius is nav_list[cur_aim_i]["RADIUS"].
+  // transform AGL to ASL:
+  if cur_aim_AGL {
+    set cur_aim_alt to cur_aim_alt + cur_aim_geo:terrainheight.
+    set nav_list[cur_aim_i]["AGL"] to False.
+    set nav_list[cur_aim_i]["ALT"] to cur_aim_alt.
+  }
 
   // Get the previous geo point, or use current ship coord for it
   // if there is no prev geo point yet:
   local prev_aim_geo is 0.
   local prev_aim_alt is 0.
-  if cur_aim_i < aim_geo_list:length - 1 {
-    set prev_aim_geo to aim_geo_list[cur_aim_i+1].
-    set prev_aim_alt to aim_alt_list[cur_aim_i+1].
+  local prev_aim_agl is False.
+  if cur_aim_i < nav_list:length - 1 {
+    set prev_aim_geo to nav_list[cur_aim_i+1]["GEO"].
+    set prev_aim_alt to nav_list[cur_aim_i+1]["ALT"].
+    set prev_aim_AGL to nav_list[cur_aim_i+1]["AGL"].
+    set prev_aim_radius to nav_list[cur_aim_i+1]["RADIUS"].
+    if prev_aim_AGL {
+      set prev_aim_alt to prev_aim_alt + prev_aim_geo:terrainheight.
+      set nav_list[cur_aim_i+1]["AGL"] to False.
+      set nav_list[cur_aim_i+1]["ALT"] to prev_aim_alt.
+    }
   } else {
     set prev_aim_geo to ship:geoposition.
     set prev_aim_alt to ship:altitude.
+    set prev_aim_agl to False.
   }
+
   local prev_aim_pos is prev_aim_geo:altitudeposition(prev_aim_alt).
 
   local cur_aim_line_pos is cur_aim_geo:altitudeposition(cur_aim_alt).
@@ -385,27 +337,10 @@ until user_quit or
   set wantCompass to compass_between_latlngs(ship:geoposition, cur_aim_geo).
   set wantSpeed to cur_spd_want.
 
-  if cur_aim_i > 0 {
-    set wantClimb to get_want_climb(ship, cur_aim_pos).
-  } else {
-    if (near_ves:position - ship:position):mag < (far_ves:position - ship:position):mag {
-      hudtext( "**ABORT! GO_AROUND! LESS THAN HALF OF RUNWAY LEFT**", 8, 2, 32, yellow, false).
-      remove_go_around_points(). // just in case this isn't the first go-around.
-      create_go_around_points().
-      set cur_aim_i to aim_geo_list:length-2.
-    }
-    else if alt:radar > 5 {
-      set wantClimb to -1.5.
-    } else {
-      set wantClimb to -0.5. // flare out at 5m or lower.
-    }
-  }
+  set wantClimb to get_want_climb(ship, cur_aim_pos).
 
-  if (cur_aim_line_pos - ship:position):mag < 500 {
+  if (cur_aim_line_pos - ship:position):mag < cur_aim_radius {
     set cur_aim_i to cur_aim_i - 1.
-    if cur_aim_i < 0 {
-       
-    }
   }
 
 
@@ -450,9 +385,8 @@ until user_quit or
   displayPitch(5,16).
   displaySpeed(5,20).
   displayOffset(5,24,offset_angle).
-  displayProgress(aim_geo_list[cur_aim_i], cur_aim_alt, 3,27).
-  print round(aim_spd_list[0],0) + " m/s " at (39,1).
-  print round(aim_spd_list[3],0) + " m/s " at (39,2).
+  displayProgress(cur_aim_i, nav_list[cur_aim_i]["GEO"], cur_aim_alt, nav_list[cur_aim_i]["RADIUS"], 3,27).
+  print round(nav_list[cur_aim_i]["SPD"],0) + " m/s " at (39,1).
 
   if (not has_been_airborne) and
      ship:status <> "LANDED" and 

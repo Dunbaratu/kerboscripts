@@ -19,18 +19,20 @@ set shipRoll to 0.
 set shipCompass to 0.
 
 clearscreen.
-print "Action groups:".
-print "  AG 1,2 = raise/lower current speed:".
-print "  AG 10   = toggle hide/show aim vectors.".
-print "  Abort = quit script and give control to player.".
+print "Terminal Keys:".
+print "  -/+ = raise/lower current speed:".
+print "   V  = toggle hide/show aim vectors.".
+print "   G  = toggle gui editing panel.".
+print "Action Group Abort = quit, give player control".
 sas off.
 brakes off.
 
 local nav_list is LIST().
 local gui_exists is false.
+local cur_aim_i is -1.
 
 if preset = "GUI" {
-  set nav_list to gui_edit_course().
+  set nav_list to gui_edit_course( -1, { parameter new_i. set cur_aim_i to new_i. } ).
   set gui_exists to true.
 }
 else if preset <> "" {
@@ -219,7 +221,7 @@ set wantSpeed to 0.
 
 function inc_cur_point_spd {
   parameter inc.
-  local thisPoint is nav_list[nav_list:LENGTH-2].
+  local thisPoint is nav_list[cur_aim_i].
   local oldSpd is thisPoint["SPD"].
   if inc > 0 and oldSpd >= 100 or inc < 0 and oldSpd > 100 {
     set inc to inc*10.
@@ -229,22 +231,23 @@ function inc_cur_point_spd {
   set thisPoint["SPD"] to oldSpd + inc.
 }
 
-on ag1 {
-  local inc is -1.
-  inc_cur_point_spd(inc).
-  preserve.
+function handle_input_key {
+  if terminal:input:haschar {
+    local ch is terminal:input:getchar().
+    if ch = "+" and nav_list:length > 0 {
+      local inc is 1.
+      inc_cur_point_spd(inc).
+    } else if ch = "-" and nav_list:length > 0 {
+      local inc is -1.
+      inc_cur_point_spd(inc).
+    } else if ch = "v" {
+      set vd_aimline:show to not vd_aimline:show.
+      set vd_aimpos:show to not vd_aimpos:show.
+    } else if ch = "g" {
+      set nav_list to gui_edit_course( cur_aim_i, { parameter new_i. set cur_aim_i to new_i. } ).
+    }
+  }
 }
-on ag2 {
-  local inc is 1.
-  inc_cur_point_spd(inc).
-  preserve.
-}
-on ag10 {
-  set vd_aimline:show to not vd_aimline:show.
-  set vd_aimpos:show to not vd_aimpos:show.
-  preserve.
-}.
-
 
 // Start one position back from the end of the waypoint list, so there is
 // a phantom "prev" waypoint to help give info how to align the first turn.
@@ -279,14 +282,17 @@ until user_quit or
 
   wait 0.
 
+  handle_input_key().
+
   if cur_aim_i < 0 {
-    print "WAITING for NAVPOINT." at (10,4).
+    print "WAITING for NAVPOINT." at (10,5).
     // Let the user change the course index from gui if they did:
     if gui_exists {
       set cur_aim_i to gui_get_course_index().
     }
   } else {
-    print "                     " at (10,4).
+
+    print "                     " at (10,5).
 
     local cur_aim_geo is nav_list[cur_aim_i]["GEO"].
     local cur_spd_want is nav_list[cur_aim_i]["SPD"].

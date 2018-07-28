@@ -27,18 +27,14 @@ sas off.
 brakes off.
 
 local nav_list is LIST().
+local gui_exists is false.
 
 if preset = "GUI" {
-  local insert_list is gui_edit_course().
-  for thing in insert_list {
-    nav_list:add(thing).
-  }
+  set nav_list to gui_edit_course().
+  set gui_exists to true.
 }
 else if preset <> "" {
-  local insert_list is make_landing_points(preset, reverse, final_spd).
-  for thing in insert_list {
-    nav_list:add(thing).
-  }
+  set nav_list to make_landing_points(preset, reverse, final_spd).
   print "MAKE LANDING POINTS RAN".
   print "nav_list now has " + nav_list:LENGTH + " things.".
 } else {
@@ -175,10 +171,11 @@ function circle_distance {
 
 function get_want_climb {
   parameter ves, // vessel that's doing the climb
-            ap. // aim pos.
+            aim_geo, // aim geoposition
+            aim_alt. // aim alt (ASL)
 
-  local alt_diff is ves:body:altitudeof(ap) - ves:altitude.
-  local dist is circle_distance( ves:geoposition, ves:body:geopositionof(ap), ves:body:radius+ves:altitude).
+  local alt_diff is aim_alt - ves:altitude.
+  local dist is circle_distance( ves:geoposition, aim_geo, ves:body:radius+ves:altitude).
 
   // Get ground speed, but protect against a weird bug in KSP where if 
   // not moving, the tiny surf velocity can be *smaller* than the vertical
@@ -278,121 +275,139 @@ when alt:radar > 200 then {
 local has_been_airborne is false.
 
 until user_quit or 
-      (status="LANDED" and has_been_airborne) or
-      cur_aim_i < 0 {
+      (status="LANDED" and has_been_airborne) {
 
   wait 0.
-  local cur_aim_geo is nav_list[cur_aim_i]["GEO"].
-  local cur_spd_want is nav_list[cur_aim_i]["SPD"].
-  local cur_aim_alt is nav_list[cur_aim_i]["ALT"].
-  local cur_aim_AGL is nav_list[cur_aim_i]["AGL"].
-  local cur_aim_radius is nav_list[cur_aim_i]["RADIUS"].
-  // transform AGL to ASL:
-  if cur_aim_AGL {
-    set cur_aim_alt to cur_aim_alt + cur_aim_geo:terrainheight.
-    set nav_list[cur_aim_i]["AGL"] to False.
-    set nav_list[cur_aim_i]["ALT"] to cur_aim_alt.
-  }
 
-  // Get the previous geo point, or use current ship coord for it
-  // if there is no prev geo point yet:
-  local prev_aim_geo is 0.
-  local prev_aim_alt is 0.
-  local prev_aim_agl is False.
-  if cur_aim_i < nav_list:length - 1 {
-    set prev_aim_geo to nav_list[cur_aim_i+1]["GEO"].
-    set prev_aim_alt to nav_list[cur_aim_i+1]["ALT"].
-    set prev_aim_AGL to nav_list[cur_aim_i+1]["AGL"].
-    set prev_aim_radius to nav_list[cur_aim_i+1]["RADIUS"].
-    if prev_aim_AGL {
-      set prev_aim_alt to prev_aim_alt + prev_aim_geo:terrainheight.
-      set nav_list[cur_aim_i+1]["AGL"] to False.
-      set nav_list[cur_aim_i+1]["ALT"] to prev_aim_alt.
+  if cur_aim_i < 0 {
+    print "WAITING for NAVPOINT." at (10,4).
+    // Let the user change the course index from gui if they did:
+    if gui_exists {
+      set cur_aim_i to gui_get_course_index().
     }
   } else {
-    set prev_aim_geo to ship:geoposition.
-    set prev_aim_alt to ship:altitude.
-    set prev_aim_agl to False.
-  }
+    print "                     " at (10,4).
 
-  local prev_aim_pos is prev_aim_geo:altitudeposition(prev_aim_alt).
-
-  local cur_aim_line_pos is cur_aim_geo:altitudeposition(cur_aim_alt).
-
-  // Change the cur_aim_geo to a point partway between point i+1 and i,
-  // a fraction of the distance from ship to point i, along the line backward from
-  // point i to point i+1.  This aims at the line between i+1 and i.
-  local dist_to_aim is (cur_aim_line_pos - ship:position):mag.
-  local unit_vec_backward is (prev_aim_pos - cur_aim_line_pos):normalized.
-  local offset_angle is vang(cur_aim_line_pos-ship:position, -1*unit_vec_backward). // the more off it is, the less to move it.
-  local fraction is 0.2+offset_angle/35. // the more off it is, the less to move it.
-  set cur_aim_pos to cur_aim_line_pos + fraction*dist_to_aim*unit_vec_backward.
-  set cur_aim_geo to ship:body:geopositionof(cur_aim_pos).
-
-  set vd_aimline:start to prev_aim_pos.
-  set vd_aimline:vec to cur_aim_line_pos - prev_aim_pos.
-  set vd_aimpos:start to ship:position.
-  set vd_aimpos:vec to cur_aim_pos - ship:position.
-
-  set wantCompass to compass_between_latlngs(ship:geoposition, cur_aim_geo).
-  set wantSpeed to cur_spd_want.
-
-  set wantClimb to get_want_climb(ship, cur_aim_pos).
-
-  if (cur_aim_line_pos - ship:position):mag < cur_aim_radius {
-    set cur_aim_i to cur_aim_i - 1.
-  }
-
-
-  set shipSpd to ship:airspeed.
-  set scriptThrottle to throtPid:Update(time:seconds, shipSpd - wantSpeed).
-  lock throttle to scriptThrottle.
-
-  set shipRoll to roll_for(ship).
-  set shipCompass to compass_for(ship,2). // srf vel mode
-
-  set yokePull to pitchPID:Update( time:seconds, ship:verticalspeed - wantClimb ).
-  set ship:control:pitch to yokePull.
-
-  // normal desired bank when things are going well:
-  set wantBank to bankPid:Update( time:seconds, angle_off(wantCompass, shipCompass) ).
-  // override that with a sanity-seeking flat bank when things aren't going well:
-  if abs(wantClimb-ship:verticalspeed) > 50 {
-    set wantBank to 0.
-    if not need_pid_reinit { // first time this happened.
-      hudtext( "PANIC MODE - IGNORING COMPASS - JUST LEVELLING", 8, 2, 32, yellow, false).
+    local cur_aim_geo is nav_list[cur_aim_i]["GEO"].
+    local cur_spd_want is nav_list[cur_aim_i]["SPD"].
+    local cur_aim_alt is nav_list[cur_aim_i]["ALT"].
+    local cur_aim_AGL is nav_list[cur_aim_i]["AGL"].
+    local cur_aim_radius is nav_list[cur_aim_i]["RADIUS"].
+    // transform AGL to ASL:
+    if cur_aim_AGL {
+      set cur_aim_alt to cur_aim_alt + cur_aim_geo:terrainheight.
+      set nav_list[cur_aim_i]["AGL"] to False.
+      set nav_list[cur_aim_i]["ALT"] to cur_aim_alt.
     }
-    set need_pid_reinit to true.
-  } else {
-    // When we have been overriding the bank this way, need to reinit the PID
-    // controller for it so it doesn't "learn" incorrectly from what was happening
-    // in the past while its suggested inputs weren't actually being used:
-    if need_pid_reinit {
-      hudtext( "PANIC MODE OVER - RESUMING NORMAL FLIGHT", 8, 2, 32, white, false).
-      set bankPid to init_bank_pid().
-      set throtPid to init_throt_pid().
-      set rollPid to init_roll_pid().
-      set pitchPid to init_pitch_pid().
-      set need_pid_reinit to false.
+
+    // Get the previous geo point, or use current ship coord for it
+    // if there is no prev geo point yet:
+    local prev_aim_geo is 0.
+    local prev_aim_alt is 0.
+    local prev_aim_agl is False.
+    if cur_aim_i < nav_list:length - 1 {
+      set prev_aim_geo to nav_list[cur_aim_i+1]["GEO"].
+      set prev_aim_alt to nav_list[cur_aim_i+1]["ALT"].
+      set prev_aim_AGL to nav_list[cur_aim_i+1]["AGL"].
+      set prev_aim_radius to nav_list[cur_aim_i+1]["RADIUS"].
+      if prev_aim_AGL {
+        set prev_aim_alt to prev_aim_alt + prev_aim_geo:terrainheight.
+        set nav_list[cur_aim_i+1]["AGL"] to False.
+        set nav_list[cur_aim_i+1]["ALT"] to prev_aim_alt.
+      }
+    } else {
+      set prev_aim_geo to ship:geoposition.
+      set prev_aim_alt to ship:altitude.
+      set prev_aim_agl to False.
     }
-  }
-  
-  set yokeRoll to rollPID:Update(time:seconds, shipRoll - wantBank ).
-  set ship:control:roll to yokeRoll.
 
-  displayCompass(5,8).
-  displayRoll(5,12).
-  displayPitch(5,16).
-  displaySpeed(5,20).
-  displayOffset(5,24,offset_angle).
-  displayProgress(cur_aim_i, nav_list[cur_aim_i]["GEO"], cur_aim_alt, nav_list[cur_aim_i]["RADIUS"], 3,27).
-  print round(nav_list[cur_aim_i]["SPD"],0) + " m/s " at (39,1).
+    local prev_aim_pos is prev_aim_geo:altitudeposition(prev_aim_alt).
 
-  if (not has_been_airborne) and
-     ship:status <> "LANDED" and 
-     ship:status <> "PRELAUNCH" {
+    local cur_aim_line_pos is cur_aim_geo:altitudeposition(cur_aim_alt).
 
-     set has_been_airborne to true.
+    // Change the cur_aim_geo to a point partway between point i+1 and i,
+    // a fraction of the distance from ship to point i, along the line backward from
+    // point i to point i+1.  This aims at the line between i+1 and i.
+    local dist_to_aim is (cur_aim_line_pos - ship:position):mag.
+    local unit_vec_backward is (prev_aim_pos - cur_aim_line_pos):normalized.
+    local offset_angle is vang(cur_aim_line_pos-ship:position, -1*unit_vec_backward). // the more off it is, the less to move it.
+    local fraction is 0.2+offset_angle/35. // the more off it is, the less to move it.
+    set cur_aim_pos to cur_aim_line_pos + fraction*dist_to_aim*unit_vec_backward.
+    set cur_aim_geo to ship:body:geopositionof(cur_aim_pos).
+
+    set vd_aimline:start to prev_aim_pos.
+    set vd_aimline:vec to cur_aim_line_pos - prev_aim_pos.
+    set vd_aimpos:start to ship:position.
+    set vd_aimpos:vec to cur_aim_pos - ship:position.
+
+    set wantCompass to compass_between_latlngs(ship:geoposition, cur_aim_geo).
+    set wantSpeed to cur_spd_want.
+
+    set wantClimb to get_want_climb(ship, cur_aim_geo, cur_aim_alt).
+
+    if (cur_aim_line_pos - ship:position):mag < cur_aim_radius {
+      set cur_aim_i to cur_aim_i - 1.
+      if gui_exists {
+        gui_update_course_index(cur_aim_i).
+      }
+    }
+    // Let the user change the course index from gui if they did:
+    if gui_exists {
+      set cur_aim_i to gui_get_course_index().
+    }
+      
+
+
+    set shipSpd to ship:airspeed.
+    set scriptThrottle to throtPid:Update(time:seconds, shipSpd - wantSpeed).
+    lock throttle to scriptThrottle.
+
+    set shipRoll to roll_for(ship).
+    set shipCompass to compass_for(ship,2). // srf vel mode
+
+    set yokePull to pitchPID:Update( time:seconds, ship:verticalspeed - wantClimb ).
+    set ship:control:pitch to yokePull.
+
+    // normal desired bank when things are going well:
+    set wantBank to bankPid:Update( time:seconds, angle_off(wantCompass, shipCompass) ).
+    // override that with a sanity-seeking flat bank when things aren't going well:
+    if abs(wantClimb-ship:verticalspeed) > 50 {
+      set wantBank to 0.
+      if not need_pid_reinit { // first time this happened.
+        hudtext( "PANIC MODE - IGNORING COMPASS - JUST LEVELLING", 8, 2, 32, yellow, false).
+      }
+      set need_pid_reinit to true.
+    } else {
+      // When we have been overriding the bank this way, need to reinit the PID
+      // controller for it so it doesn't "learn" incorrectly from what was happening
+      // in the past while its suggested inputs weren't actually being used:
+      if need_pid_reinit {
+        hudtext( "PANIC MODE OVER - RESUMING NORMAL FLIGHT", 8, 2, 32, white, false).
+        set bankPid to init_bank_pid().
+        set throtPid to init_throt_pid().
+        set rollPid to init_roll_pid().
+        set pitchPid to init_pitch_pid().
+        set need_pid_reinit to false.
+      }
+    }
+    
+    set yokeRoll to rollPID:Update(time:seconds, shipRoll - wantBank ).
+    set ship:control:roll to yokeRoll.
+
+    displayCompass(5,8).
+    displayRoll(5,12).
+    displayPitch(5,16).
+    displaySpeed(5,20).
+    displayOffset(5,24,offset_angle).
+    displayProgress(cur_aim_i, nav_list[cur_aim_i]["GEO"], cur_aim_alt, nav_list[cur_aim_i]["RADIUS"], 3,27).
+    print round(nav_list[cur_aim_i]["SPD"],0) + " m/s " at (39,1).
+
+    if (not has_been_airborne) and
+       ship:status <> "LANDED" and 
+       ship:status <> "PRELAUNCH" {
+
+       set has_been_airborne to true.
+    }
   }
 }
 
@@ -400,9 +415,11 @@ if user_quit {
   sas on.
   print "QUITTING.. USER ABORT".
 } else {
-  brakes on.
-  print "BRAKES ON.".
-  lock throttle to 0.
+  if status="LANDED" or status="SPLASHED" {
+    brakes on.
+    print "BRAKES ON.".
+    lock throttle to 0.
+  }
   // use SAS instead of steering to keep it from doing a ground spin:
   unlock steering.
   SAS on.
@@ -413,3 +430,5 @@ set vd_aimpos to 0.
 set vd_aimline to 0.
 set ship:control:pilotmainthrottle to 0.
 set ship:control:neutralize to true.
+if gui_exists
+  gui_close_edit_course().

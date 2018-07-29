@@ -30,9 +30,30 @@ brakes off.
 local nav_list is LIST().
 local gui_exists is false.
 local cur_aim_i is -1.
+local sync_new_cur_aim_i is cur_aim_i.
+local sync_new_nav_list is nav_list.
+
+// A callback delegate the gui will use to tell us it changed the
+// course list or course index in some way:
+function list_change_new_sync_val {
+  parameter new_i, new_list.
+
+  set sync_new_cur_aim_i to new_i.
+  set sync_new_nav_list to new_list.
+}
+
+// When the gui told us it changed the course list or course index,
+// this will sync us to it.  This is delayed to only happen once
+// per main loop iteration so we don't use the new changed list halfway
+// through (which could cause runtime errors like "index out of range" when
+// they got edited mid-loop by the GUI triggers.)
+function sync_new_gui_list {
+  set cur_aim_i to sync_new_cur_aim_i.
+  set nav_list to sync_new_nav_list.
+}
 
 if preset = "GUI" {
-  set nav_list to gui_edit_course( -1, { parameter new_i. set cur_aim_i to new_i. } ).
+  set nav_list to (gui_edit_course( -1, list_change_new_sync_val@)):COPY.
   set gui_exists to true.
 }
 else if preset <> "" {
@@ -244,7 +265,7 @@ function handle_input_key {
       set vd_aimline:show to not vd_aimline:show.
       set vd_aimpos:show to not vd_aimpos:show.
     } else if ch = "g" {
-      set nav_list to gui_edit_course( cur_aim_i, { parameter new_i. set cur_aim_i to new_i. } ).
+      set nav_list to (gui_edit_course( cur_aim_i, list_change_new_sync_val@)):COPY.
     }
   }
 }
@@ -284,20 +305,22 @@ until user_quit or
 
   handle_input_key().
 
+  // Let the user change the course index from gui if they did:
+  if gui_exists {
+    sync_new_gui_list().
+  }
+
   if cur_aim_i < 0 {
     print "WAITING for NAVPOINT." at (10,5).
     // Let the user change the course index from gui if they did:
-    if gui_exists {
-      set cur_aim_i to gui_get_course_index().
-    }
   } else {
-
     print "                     " at (10,5).
 
     local cur_aim_geo is nav_list[cur_aim_i]["GEO"].
     local cur_spd_want is nav_list[cur_aim_i]["SPD"].
     local cur_aim_alt is nav_list[cur_aim_i]["ALT"].
     local cur_aim_AGL is nav_list[cur_aim_i]["AGL"].
+    local cur_aim_spd is nav_list[cur_aim_i]["SPD"].
     local cur_aim_radius is nav_list[cur_aim_i]["RADIUS"].
     // transform AGL to ASL:
     if cur_aim_AGL {
@@ -351,19 +374,18 @@ until user_quit or
 
     set wantClimb to get_want_climb(ship, cur_aim_geo, cur_aim_alt).
 
+    // Let the user change the course index from gui if they did:
+    if gui_exists {
+      sync_new_gui_list().
+    }
+    // Then we change it if we hit a waypoint.
     if (cur_aim_line_pos - ship:position):mag < cur_aim_radius {
       set cur_aim_i to cur_aim_i - 1.
       if gui_exists {
         gui_update_course_index(cur_aim_i).
       }
     }
-    // Let the user change the course index from gui if they did:
-    if gui_exists {
-      set cur_aim_i to gui_get_course_index().
-    }
       
-
-
     set shipSpd to ship:airspeed.
     set scriptThrottle to throtPid:Update(time:seconds, shipSpd - wantSpeed).
     lock throttle to scriptThrottle.
@@ -405,8 +427,8 @@ until user_quit or
     displayPitch(5,16).
     displaySpeed(5,20).
     displayOffset(5,24,offset_angle).
-    displayProgress(cur_aim_i, nav_list[cur_aim_i]["GEO"], cur_aim_alt, nav_list[cur_aim_i]["RADIUS"], 3,27).
-    print round(nav_list[cur_aim_i]["SPD"],0) + " m/s " at (39,1).
+    displayProgress(cur_aim_i, cur_aim_geo, cur_aim_alt, cur_aim_radius, 3,27).
+    print round(cur_aim_spd,0) + " m/s " at (39,1).
 
     if (not has_been_airborne) and
        ship:status <> "LANDED" and 

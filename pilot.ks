@@ -83,7 +83,10 @@ function displayRoll {
 function displayCompass {
   parameter col,row.
 
-  print "Want Comp = " + round(wantCompass,0) + " deg  " at (col,row).
+  local dispCompass is wantCompass.
+  if dispCompass < 0 
+    set dispCompass to dispCompass + 360.
+  print "Want Comp = " + round(dispCompass,0) + " deg  " at (col,row).
   print "     Comp = " + round(shipCompass,0) + " deg  " at (col,row+1).
 }
 
@@ -106,7 +109,7 @@ function displayProgress {
 
   print "Aiming at nav_list["+index+"]" at (col,row).
   print "Aiming at LAT=" + round(geo:lat,2) + " LNG=" + round(geo:lng,2) + ", ALT " + round(alti,0) + "m" at (col,row+1).
-  local d is geo:altitudeposition(alti+geo:terrainheight):mag.
+  local d is geo:altitudeposition(alti):mag.
   print "Dist to aim point " + round(d,0) + "m (radius=" +radius+"m) " at (col,row+2).
   print "          Cur ALT " + round(ship:altitude,0) + "m" at (col,row+3).
 }
@@ -216,11 +219,17 @@ function get_want_climb {
 
 // Made into a separate function calls so that it's possible to re-init them later
 // with the same PID gains - used below in the part called "PANIC MODE".
+local pitch_base_Kp is 0.03.
+local pitch_base_Ki is 0.01.
+local pitch_base_Kd is 0.01.
 function init_pitch_pid {
-  return PIDLOOP(0.03, 0.01, 0.003, -1, 1).
+  return PIDLOOP(pitch_base_Kp, pitch_base_Ki, pitch_base_Kd, -1, 1).
 }
+local roll_base_Kp is 0.005.
+local roll_base_Ki is 0.00005.
+local roll_base_Kd is 0.003.
 function init_roll_pid {
-  return PIDLOOP(0.005, 0.00005, 0.001, -1, 1).
+  return PIDLOOP(roll_base_Kp, roll_base_Ki, roll_base_Kd, -1, 1).
 }
 function init_bank_pid {
   return PIDLOOP(3, 0.00, 5, -45, 45).
@@ -316,7 +325,7 @@ until user_quit or
   } else {
     print "                     " at (10,5).
 
-    local cur_aim_geo is nav_list[cur_aim_i]["GEO"].
+    local cur_way_geo is nav_list[cur_aim_i]["GEO"].
     local cur_spd_want is nav_list[cur_aim_i]["SPD"].
     local cur_aim_alt is nav_list[cur_aim_i]["ALT"].
     local cur_aim_AGL is nav_list[cur_aim_i]["AGL"].
@@ -324,7 +333,7 @@ until user_quit or
     local cur_aim_radius is nav_list[cur_aim_i]["RADIUS"].
     // transform AGL to ASL:
     if cur_aim_AGL {
-      set cur_aim_alt to cur_aim_alt + cur_aim_geo:terrainheight.
+      set cur_aim_alt to cur_aim_alt + cur_way_geo:terrainheight.
       set nav_list[cur_aim_i]["AGL"] to False.
       set nav_list[cur_aim_i]["ALT"] to cur_aim_alt.
     }
@@ -352,7 +361,7 @@ until user_quit or
 
     local prev_aim_pos is prev_aim_geo:altitudeposition(prev_aim_alt).
 
-    local cur_aim_line_pos is cur_aim_geo:altitudeposition(cur_aim_alt).
+    local cur_aim_line_pos is cur_way_geo:altitudeposition(cur_aim_alt).
 
     // Change the cur_aim_geo to a point partway between point i+1 and i,
     // a fraction of the distance from ship to point i, along the line backward from
@@ -378,7 +387,7 @@ until user_quit or
     if gui_exists {
       sync_new_gui_list().
     }
-    // Then we change it if we hit a waypoint.
+    // Then we change it if we hit the waypoint.
     if (cur_aim_line_pos - ship:position):mag < cur_aim_radius {
       set cur_aim_i to cur_aim_i - 1.
       if gui_exists {
@@ -418,6 +427,8 @@ until user_quit or
         set need_pid_reinit to false.
       }
     }
+    // Adjust PID tune according to speed of aircraft:
+    pid_tune_for_speed(shipSpd, pitchPID, rollPID).
     
     set yokeRoll to rollPID:Update(time:seconds, shipRoll - wantBank ).
     set ship:control:roll to yokeRoll.
@@ -427,7 +438,7 @@ until user_quit or
     displayPitch(5,16).
     displaySpeed(5,20).
     displayOffset(5,24,offset_angle).
-    displayProgress(cur_aim_i, cur_aim_geo, cur_aim_alt, cur_aim_radius, 3,27).
+    displayProgress(cur_aim_i, cur_way_geo, cur_aim_alt, cur_aim_radius, 3,27).
     print round(cur_aim_spd,0) + " m/s " at (39,1).
 
     if (not has_been_airborne) and
@@ -460,3 +471,15 @@ set ship:control:pilotmainthrottle to 0.
 set ship:control:neutralize to true.
 if gui_exists
   gui_close_edit_course().
+
+function pid_tune_for_speed {
+  parameter speed, pitchPID, rollPID.
+
+  local dampener is 200/(2*speed+50).
+  set pitchPID:Kp to pitch_base_Kp * dampener.
+  set pitchPID:Ki to pitch_base_Ki * dampener.
+  set pitchPID:Kd to pitch_base_Kd * dampener.
+  set rollPID:Kp to roll_base_Kp * dampener.
+  set rollPID:Ki to roll_base_Ki * dampener.
+  set rollPID:Kd to roll_base_Kd * dampener.
+}

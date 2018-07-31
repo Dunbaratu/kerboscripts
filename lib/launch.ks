@@ -293,7 +293,7 @@ function wanted_eta_apo {
     return 10.
   } else {
     local formula_eta is target_eta_apo * ship:velocity:surface:mag / target_eta_spd. 
-    local min_wanted is target_eta_apo/5.
+    local min_wanted is target_eta_apo/4.
     local max_wanted is target_eta_apo.
     return max(min(max_wanted, formula_eta), min_wanted).
   }

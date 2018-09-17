@@ -123,8 +123,8 @@ function launch {
 
   // To aim roof at ground, I'm aiming at opposite compass, with pitch > 90 to pitch the roof on its back:
   local slow_kick_amount is 0.
-  until slow_kick_amount = 7 {
-    lock steering to lookdirup(heading(dest_compass, 85-slow_kick_amount*TWR_for_launch):forevector, -ship:up:vector).
+  until slow_kick_amount = 10 {
+    lock steering to lookdirup(heading(dest_compass, 85-slow_kick_amount*1.5*TWR_for_launch):forevector, -ship:up:vector).
     // kick over more slowly when there's atmosphere:
     if atmo_end = 0 
       wait 0.
@@ -143,8 +143,8 @@ function launch {
   // proportions of a unit vector:
   until abs(off_horiz) < 0.04 and off_vert < 2 {
     local srf_vel_unit is ship:velocity:surface:normalized.
-    set off_vec to steering:forevector:normalized - srf_vel_unit).
-    local lower = vdot(ship:up:vector, off_vec) < 0. //true if error is off in the "too low" direction.
+    set off_vec to steering:forevector:normalized - srf_vel_unit.
+    local lower is vdot(ship:up:vector, off_vec) < 0. //true if error is off in the "too low" direction.
     set off_vert to vang(steering:forevector:normalized, srf_vel_unit).
     // Give a sign to the off vertical angle:
     if lower

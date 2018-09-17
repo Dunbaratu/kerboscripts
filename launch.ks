@@ -5,12 +5,12 @@ parameter
   count is 5,
   launch_twr is 1.2,
   eta_apo is 120,
-  eta_apo_spd is 1500,
+  eta_apo_spd is 1700,
   steering_ts is 2,
   solid_thrust is 0,
   second_height is -1,
   second_height_long is -1,
-  atmo_end is 70000,
+  atmo_end is ship:body:atm:height,
   ignitions is 2.
 
 if launch_gui() {
@@ -50,6 +50,7 @@ if launch_gui() {
 
 } else {
   print "LAUNCH SCRUBBED".
+  set global_scrubbed to true.
 }
 
 function launch_gui {

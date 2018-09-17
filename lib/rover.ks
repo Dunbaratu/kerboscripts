@@ -26,10 +26,12 @@ local leveler_lasers is 0.
 local battery_full is 0.
 local debug is false.
 local leveler_deadzone is 3. // don't let leveler steering get integral windup for sitting unlevel.
-global g_left_slope is 0.
-global g_right_slope is 0.
-global g_dist is 0.
-global yaw_enabled is true.
+local g_left_slope is 0.
+local g_right_slope is 0.
+local g_dist is 0.
+local yaw_enabled is true.
+local twarp is kuniverse:timewarp.
+local suppress_control is false.
 
 on abort {
   brakes on.
@@ -53,6 +55,7 @@ function drive_to {
   local collision_eta is 0.
   local collision_steer_sign is 1.
   local steering_is_locked is false.
+
 
   local v1 is getvoice(1).
   set v1:wave to "pulse".
@@ -95,25 +98,101 @@ function drive_to {
   brakes off.
 
   local battery_panic is false.
+  local timestamp_start_okay_speed is time:seconds.
+  local timestamp_start_poor_speed is -1.
+  local hill_sideways_mode is false.
+  local hill_sideways_sign is 0.
 
   until geo_dist(geopos) < proximity_needed {
-    local use_bearing is  rotated_bearing( geopos, offset_pitch, cruise_spd, collision_eta ).
-    local use_wheelsteer is steer_pid:update(time:seconds, use_bearing).
     local battery_ratio is ship:electriccharge / battery_full.
     if battery_ratio < 0.1 {
       set battery_panic to true.
       all_lasers_toggle(false).
     }
-    local speed_diff is 0.
+    if battery_ratio < 0.05 {
+      set battery_panic to true.
+      all_lasers_toggle(false).
+      HUDTEXT("ALL CONTROLS OFF FOR HIBERNATION!", 3,2,20,yellow,false).
+      brakes on.
+      getvoice(1):play(list(note(200,0.3),note(150,0.3),note(130,0.4))).
+      set suppress_control to true.
+      set ship:control:wheelsteer to 0.
+      set ship:control:wheelthrottle to 0.
+    }
     local forSpeed is forward_speed(offset_pitch).
-    set speed_diff to forSpeed - wanted_speed(geopos, cruise_spd, offset_pitch, battery_panic, jump_detect).
+    local wSpeed is wanted_speed(geopos, cruise_spd, offset_pitch, battery_panic, jump_detect).
+    if hill_sideways_mode {
+      set wSpeed to wSpeed*2. // speed will be in "wrong" direction, don't dampen as much as that usually does.
+    }
+    local speed_diff is forSpeed - wSpeed.
+    local achieved_speed_ratio is forSpeed/max(wSpeed,0.1).
     local use_wheelthrottle is throttle_pid:update(time:seconds, speed_diff).
-    if speed_diff > 5 or forSpeed < -4 { brakes on.  } else { brakes off. }
+    if not(battery_panic) and (speed_diff > 5 or forSpeed < -4) { brakes on.  } else { brakes off. }
+
+    if achieved_speed_ratio < 0.3 {
+      if timestamp_start_poor_speed < 0 {
+        set timestamp_start_poor_speed to time:seconds.
+        set timestamp_start_okay_speed to -1.
+      } else {
+        if time:seconds > timestamp_start_poor_speed + 3 {
+          if not(hill_sideways_mode) { // only do this message when it first changes:
+            HUDTEXT("Too hard to go forward.  Going sideways a bit.",3,2,20,yellow,false).
+            getvoice(1):play(list(note(500,0.3),note(450,0.3),note(400,0.4))).
+          }
+          set hill_sideways_mode to true.
+        }
+      }
+      if timestamp_start_poor_speed > 0 and time:seconds > timestamp_start_poor_speed + 35 {
+        HUDTEXT("This deflection doesn't work.  Try the other way.",3,2,20,yellow,false).
+        getvoice(1):play(list(note(200,0.5))).
+        set hill_sideways_sign to -1 * hill_sideways_sign.
+      }
+    } else if achieved_speed_ratio > 0.5 {
+      if timestamp_start_okay_speed < 0 {
+        set timestamp_start_okay_speed to time:seconds.
+        set timestamp_start_poor_speed to -1.
+      } else {
+        if time:seconds > timestamp_start_okay_speed + 20 {
+          if hill_sideways_mode { // only do this message when it first changes:
+            HUDTEXT("Done going sideways a bit.  Back to forward.",3,2,20,yellow,false).
+            getvoice(1):play(list(note(400,0.3),note(450,0.3),note(500,0.4))).
+          }
+          set hill_sideways_mode to false.
+          set hill_sideways_sign to 0.
+        }
+      }
+    }
+
+    local use_bearing is  rotated_bearing( geopos, offset_pitch, cruise_spd, collision_eta ).
+    if hill_sideways_mode {
+      if hill_sideways_sign = 0 {
+        local want_vec is geopos:position:normalized.
+        local right_vec is vcrs(ship:up:vector, want_vec).
+        local height_right is ship:body:geopositionof(10*(want_vec+right_vec)):terrainheight.
+        local height_left is ship:body:geopositionof(10*(want_vec-right_vec)):terrainheight.
+        if height_right < height_left 
+          set hill_sideways_sign to 1.
+        else
+          set hill_sideways_sign to -1.
+      }
+      set use_bearing to use_bearing + hill_sideways_sign*65.
+    }
+    local use_wheelsteer is steer_pid:update(time:seconds, use_bearing).
 
     // in battery panic mode once we slow down enough just hit the brakes and hold there.
-    if battery_panic and ship:velocity:surface:mag < 0.4 {
+    if battery_panic and
+        (ship:velocity:surface:mag < 0.4 or vang(ship:velocity:surface,ship:facing:forevector) > 50) {
       brakes on.
+      set suppress_control to true.
+      set ship:control:wheelsteer to 0.
+      set ship:control:wheelthrottle to 0.
       set use_wheelthrottle to 0.
+      if twarp:mode <> "RAILS" {
+        set twarp:warp to 0.
+        wait until groundspeed < 0.4.
+      }
+      set twarp:mode to "RAILS".
+      set twarp:WARP to 5.
     }
 
     if ship:status = "LANDED" or ship:status = "SPLASHED" {
@@ -130,8 +209,14 @@ function drive_to {
       }
     }
 
-    if battery_panic and battery_ratio > 0.5 {
+    if battery_panic and battery_ratio > 0.9 {
       set battery_panic to false. 
+      set twarp:WARP to 0.
+      wait until twarp:issettled.
+      set twarp:mode to "PHYSICS".
+      set twarp:WARP to 1.
+      set hill_sideways_mode to false.
+      set hill_sideways_sign to 0.
       all_lasers_toggle(true).
       steeringmanager:resetpids().
     }
@@ -182,6 +267,12 @@ function drive_to {
     if vdot(ship:velocity:surface, rotated_forevector(offset_pitch)) < 0 {
       set use_wheelsteer to -use_wheelsteer.
     }
+
+    // When trying to recharge, stop trying to power the driving as that can keep power pegged at zero and never recharges:
+    if suppress_control {
+      set use_wheelsteer to 0.
+      set use_wheelthrottle to 0.
+    }
     
     set ship:control:wheelsteer to use_wheelsteer.
     set ship:control:wheelthrottle to use_wheelthrottle.
@@ -193,7 +284,7 @@ function drive_to {
     print "current control:wheelsteer is " + round(ship:control:wheelsteer,3).
     print "brakes on? " + brakes + ". ".
     print "forward_speed is " + round(forward_speed(offset_pitch), 3).
-    print "wanted_speed is  " + round(wanted_speed(geopos,cruise_spd, offset_pitch, battery_panic, jump_detect),3).
+    print "wanted_speed is  " + round(wSpeed,1).
     print "geodist to target is " + round(geo_dist(geopos),2).
     print " -------- obstacle detection: --------  ".
     print "LASERS: left: " + has_left_lasers + ", right: " + has_right_lasers + ", leveler: " + has_leveler_lasers.
@@ -550,11 +641,19 @@ function wanted_speed {
   parameter jump_detecting.
 
   if battery_panic { return 0. }
+  brakes off.
+  set suppress_control to false.
   local bear is rotated_bearing(spot, offset_pitch).
   local return_val is 0.
   if bear = 0 
     set bear to 0.001. // avoid divide-by-zero in next line.
-  set return_val to min( abs(90/bear), min( 0.5 + spot:distance / 10, cruise_spd)).
+
+  // Amount to suppress speed to when facing wrong way varies by gravity because it's an anti-flipover measure.
+  local grav is ship:body:mu / ship:body:radius^2. 
+
+  set return_val to min( 0.5 + spot:distance / 10, cruise_spd).
+  set return_val to min( return_val*abs((grav*2.5)/bear), return_val).
+
   // If there is an obstacle detector laser, use it.
   if has_left_lasers and jump_detecting {
     local dist is get_laser_dist(left_lasers[0]).

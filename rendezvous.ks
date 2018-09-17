@@ -20,7 +20,7 @@ if skips = 0 {
     print "No intersect point in the orbits yet.".
     print "Waiting for periapsis to correct this.".
 
-    wait until eta:periapsis < 5*(warp+1)^2.
+    wait until eta:periapsis < 20*(warp+1)^1.5.
     set warp to 0.
 
     // May have to enlarge or shink the orbit:
@@ -34,6 +34,8 @@ if skips = 0 {
 
     wait until ship:obt:trueanomaly >= 0 and ship:obt:trueanomaly < 90.
 
+    print "Waiting until steering has settled in.".
+    wait until steeringmanager:angleerror < 5.
     print "Burning until there's a crossing point.".
     lock throttle to 1.
 
@@ -75,7 +77,7 @@ if skips <= 1 {
   until wait_left <= 0 {
     set wait_left to intersect_first_utime - time:seconds.
     print "Wait " + round(wait_left,0) + " s   " at (5,0).
-    if wait_left < 20 {
+    if wait_left < 50 {
       if warp > 0 {
         set warp to 0.
       }
@@ -142,7 +144,7 @@ if skips <= 2 {
   until rendezvous_eta <= 0 {
     set rendezvous_eta to my_rendezvous_pre_time - time:seconds.
     print "Wait " + round(rendezvous_eta,0) + " s   " at (5,0).
-    if rendezvous_eta < 20 {
+    if rendezvous_eta < 50 {
       if warp > 0 {
         set warp to 0.
       }

@@ -171,11 +171,12 @@ function obey_node_mode {
     lock throttle to 0.
     print "Type 'P' for precise node editor.".
     print "Type 'E' for Engine stats change.".
+    print "Type 'S' for Max Stopping Time Change.".
     if not hasnode {
       hudtext("Waiting for a node to exist...", 10, 2, 30, red, false).
       until hasnode or quit_condition:call() {
         wait 0.
-        just_obey_p_check(node_edit, do_engine_edit@).
+        just_obey_p_check(node_edit, do_engine_edit@, do_max_stopping_edit@).
       }
     }
     hudtext("I See a Node.  Waiting until just before it's supposed to burn.", 5, 2, 30, red, false).
@@ -195,7 +196,7 @@ function obey_node_mode {
       set full_burn_length to burn_seconds(dv_mag).
       set lead_time to half_burn_length + ullage_time + spool_time.
       draw_block(dv_mag, full_burn_length, half_burn_length, ullage_time, spool_time, lead_time).
-      just_obey_p_check(node_edit, do_engine_edit@).
+      just_obey_p_check(node_edit, do_engine_edit@, do_max_stopping_edit@).
       wait 0.2. // Don't re-calculate burn_seconds() more often than needed.
     }
     if hasnode { // just in case the user deleted the node - don't want to crash.
@@ -208,7 +209,7 @@ function obey_node_mode {
       hudtext("Node done, removing node.", 10, 5, 20, red, false).
       remove(n).
     }
-    just_obey_p_check(node_edit, do_engine_edit@).
+    just_obey_p_check(node_edit, do_engine_edit@, do_max_stopping_edit@).
   }
 }
 
@@ -227,7 +228,8 @@ function draw_block {
 function just_obey_p_check {
   parameter
     node_edit, // a delegate to call when P is hit.
-    eng_edit. // a delegate to call when E is hit.
+    eng_edit, // a delegate to call when E is hit.
+    mxstop_edit. // a delegate to call when S is hit.
 
   if node_edit:istype("Delegate") {
     if terminal:input:haschar {
@@ -238,8 +240,40 @@ function just_obey_p_check {
       if ch = "e" {
         eng_edit:call().
       }
+      if ch = "s" {
+        mxstop_edit:call().
+      }
     }
   }
+}
+
+function do_max_stopping_edit {
+  function draw_stopping_time {
+    print "MaxStoppingTime = " + steeringmanager:maxstoppingtime + " " at (30,5).
+  }
+
+  function add_with_clamp {
+    parameter inc.
+
+    local new_val is steeringmanager:maxstoppingtime + inc.
+
+    if new_val < 1 set new_val to 1.
+    if new_val > 10 set new_val to 10.
+
+    set steeringmanager:maxstoppingtime to new_val.
+  }
+
+  draw_stopping_time().
+
+  local stopping_menu is make_menu(
+    35, 7, 15, 10, "MaxStoppingTime", 
+    LIST(
+      LIST( "+1", { add_with_clamp(1). draw_stopping_time().}),
+      LIST( "-1", { add_with_clamp(-1). draw_stopping_time().})
+    )
+  ).
+
+  stopping_menu["start"]().
 }
 
 function do_engine_edit {

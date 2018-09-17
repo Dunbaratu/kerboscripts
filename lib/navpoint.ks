@@ -65,6 +65,24 @@ LEXICON(
       "ALT", 0,
       "AGL", True,
       "SPD", 0 )
+  ),
+
+  "GPP KSC w/KK 'Kerbin' name bug",
+  LIST(
+    LEXICON (
+      "BODYNAME", "Kerbin",
+      "LAT", 8.68703,
+      "LNG", -168.34211,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0 ),
+    LEXICON (
+      "BODYNAME", "Kerbin",
+      "LAT", 8.68749,
+      "LNG", -168.1107,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0 )
   )
 ).
 
@@ -137,6 +155,26 @@ function gui_edit_course {
   set g_land_insert_button:onclick to onclick_insert_landing@.
   set close_button:onclick to {set done to true. g_course:hide(). g_course:dispose().}.
 
+  g_course:addspacing(4).
+
+  // --------- Add arbitrary landing location -----------
+  set g_course:addlabel("<b>Arbitrary Lat/Lng landing</b>"):style:align to "CENTER".
+  local g_landlatlng_box is g_course:addhbox().
+  g_landlatlng_box:addlabel("Lat").
+  local g_landlatlng_lat is g_landlatlng_box:addtextfield("0").
+  set g_landlatlng_lat:style:width to 70.
+  g_landlatlng_box:addlabel("Lng").
+  local g_landlatlng_lng is g_landlatlng_box:addtextfield("0").
+  set g_landlatlng_lng:style:width to 70.
+  g_landlatlng_box:addlabel("Head").
+  local g_landlatlng_hdg is g_landlatlng_box:addtextfield("0").
+  set g_landlatlng_hdg:style:width to 30.
+  g_landlatlng_box:addlabel("Spd").
+  local g_landlatlng_spd is g_landlatlng_box:addtextfield("70").
+  set g_landlatlng_spd:style:width to 30.
+  local g_landlatlng_add to g_landlatlng_box:addbutton("Add").
+  set g_landlatlng_add:onclick to landlatlng_clicked@.
+ 
   g_course:addspacing(4).
 
   // --------- Add Arbitary LAT/LNG -------------
@@ -290,6 +328,38 @@ function gui_edit_course {
     }
     list_changed().
     gui_update_course_index(course_index + newThings:length).
+  }
+
+  function landlatlng_clicked {
+    local near_geo is latlng( 
+      g_landlatlng_lat:text:tonumber(0),
+      g_landlatlng_lng:text:tonumber(0)
+      ).
+    local hdg is g_landlatlng_hdg:text:tonumber(0).
+    local spd is g_landlatlng_spd:text:tonumber(0).
+    
+    local runway_length is 2000.
+    local meters_per_deg is ship:body:radius*2*constant():pi / 360.
+    local north_deg is cos(hdg) * runway_length / meters_per_deg.
+    local east_deg is sin(hdg) * runway_length / meters_per_deg.
+    local far_geo is latlng(near_geo:lat + north_deg, near_geo:lng + east_deg).
+    set known_runways["ad-hoc-land"] to LIST(
+      LEXICON (
+        "BODYNAME", ship:body:name,
+        "LAT", near_geo:lat,
+        "LNG", near_geo:lng,
+        "ALT", 0,
+        "AGL", True,
+        "SPD", 0 ),
+      LEXICON (
+        "BODYNAME", ship:body:name,
+        "LAT", far_geo:lat,
+        "LNG", far_geo:lng,
+        "ALT", 0,
+        "AGL", True,
+        "SPD", 0 )
+    ).
+    insert_into_course(make_landing_points("ad-hoc-land", false, spd)).
   }
 
   function latlng_waypoint_picked {

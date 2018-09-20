@@ -124,7 +124,7 @@ function launch {
   // To aim roof at ground, I'm aiming at opposite compass, with pitch > 90 to pitch the roof on its back:
   local slow_kick_amount is 0.
   until slow_kick_amount = 10 {
-    lock steering to lookdirup(heading(dest_compass, 85-slow_kick_amount*1.5*TWR_for_launch):forevector, -ship:up:vector).
+    lock steering to lookdirup(heading(dest_compass, 85-slow_kick_amount*TWR_for_launch^1.5):forevector, -ship:up:vector).
     // kick over more slowly when there's atmosphere:
     if atmo_end = 0 
       wait 0.

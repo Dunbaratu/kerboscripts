@@ -5,6 +5,7 @@ run once consts.
 run once stager.
 run once "/lib/isp".
 run once "/lib/ro".
+run once "/lib/persist".
 
 // How many seconds will it take to perform the
 // given burn (given as a delta V scalar magnitude)
@@ -56,7 +57,10 @@ function do_burn_with_display {
     want_dV,  // desired deltaV (as a vector or maneuver node).
     col, // desired location to print message.
     row, // desired location to print message.
-    ullage_time is 0.
+    ullage_time is -999.
+
+  if ullage_time <> -999 
+    persist_set("ullage_time", ullage_time).
 
   local engs is 0.
   list engines in engs.
@@ -91,7 +95,7 @@ function do_burn_with_display {
   
   // In this case we want to ensure we wait *at least* ullage time and don't
   // fire beforehand unless we must:
-  wait ullage_time.
+  wait persist_get("ullage_time").
   local actives is all_active_engines().
   until ullage_status(actives) {
     print  "Propellant still not Stable.  Waiting more." at (col,row).
@@ -152,17 +156,17 @@ function g_here {
 
 // Go into a mode where it will obey all future maneuver nodes you may put in
 // it's way:
-local ullage_time is 0. // store copies of these in the file scope.
-local spool_time is 0. // store copies of these in the file scope.
 function obey_node_mode {
   parameter
     quit_condition,  // pass in a delegate that will return boolean true when you want it to end.
     node_edit is "n/a",       // pass in a delegate that will edit precise nodes if called.
-    p_ullage_time is 0, // parameter ullage time.
-    p_spool_time is 0.  // parameter spool time.
+    p_ullage_time is -999, // parameter ullage time.
+    p_spool_time is -999.  // parameter spool time.
 
-  set ullage_time to p_ullage_time.
-  set spool_time to p_spool_time.
+  if p_ullage_time <> -999 
+    persist_set("ullage_time", p_ullage_time).
+  if p_spool_time <> -999
+    persis_set("spool_time", p_spool_time).
 
   until quit_condition:call() {
     clearscreen.
@@ -194,8 +198,8 @@ function obey_node_mode {
       set dv_mag to nextnode:deltaV:mag.
       set half_burn_length to burn_seconds(dv_mag/ 2).
       set full_burn_length to burn_seconds(dv_mag).
-      set lead_time to half_burn_length + ullage_time + spool_time.
-      draw_block(dv_mag, full_burn_length, half_burn_length, ullage_time, spool_time, lead_time).
+      set lead_time to half_burn_length + persist_get("ullage_time") + persist_get("spool_time").
+      draw_block(dv_mag, full_burn_length, half_burn_length, persist_get("ullage_time"), persist_get("spool_time"), lead_time).
       just_obey_p_check(node_edit, do_engine_edit@, do_max_stopping_edit@).
       wait 0.2. // Don't re-calculate burn_seconds() more often than needed.
     }
@@ -205,7 +209,7 @@ function obey_node_mode {
       wait 0.
       local n is nextnode.
       local utime is time:seconds + n:eta - lead_time.
-      do_burn_with_display(utime, n, 5, 15, ullage_time).
+      do_burn_with_display(utime, n, 5, 15, persist_get("ullage_time")).
       hudtext("Node done, removing node.", 10, 5, 20, red, false).
       remove(n).
     }
@@ -279,20 +283,20 @@ function do_max_stopping_edit {
 function do_engine_edit {
 
   function draw_engine_stats {
-    print "Ullage " + ullage_time + "s  " at (35,2).
-    print "Spool  " + spool_time + "s  " at (35,3).
+    print "Ullage " + persist_get("ullage_time") + "s  " at (35,2).
+    print "Spool  " + persist_get("spool_time") + "s  " at (35,3).
   }
 
   draw_engine_stats().
   local eng_menu is make_menu(
     35, 5, 15, 10, "Ullage, Spool", 
     LIST(
-      LIST( "Ullage 0s", { set ullage_time to 0. draw_engine_stats().}),
-      LIST( "Ullage 5s", { set ullage_time to 5. draw_engine_stats().}),
-      LIST( "Ullage 10s", { set ullage_time to 10. draw_engine_stats().}),
-      LIST( "Spool 0s", { set spool_time to 0. draw_engine_stats().}),
-      LIST( "Spool 3s", { set spool_time to 3. draw_engine_stats().}),
-      LIST( "Spool 6s", { set spool_time to 6. draw_engine_stats().})
+      LIST( "Ullage 0s", { persist_set("ullage_time", 0). draw_engine_stats().}),
+      LIST( "Ullage 5s", { persist_set("ullage_time",5). draw_engine_stats().}),
+      LIST( "Ullage 10s", { persist_set("ullage_time",10). draw_engine_stats().}),
+      LIST( "Spool 0s", { persist_set("spool_time", 0). draw_engine_stats().}),
+      LIST( "Spool 3s", { persist_set("spool_time", 3). draw_engine_stats().}),
+      LIST( "Spool 6s", { persist_set("spool_time", 6). draw_engine_stats().})
     )
   ).
 

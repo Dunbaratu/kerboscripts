@@ -21,6 +21,7 @@ if ship:periapsis < 100 and (status = "LANDED" or status = "PRELAUNCH") {
    copypath("0:/lib/menu","lib/").
    copypath("0:/just_obey_nodes.ks","/").
    copypath("0:/lib/burn","/lib/").
+   copypath("0:/lib/persist","/lib/").
  } else {
    hudtext("LOW CAPACITY DISK!  NOT LOADING OBEY_NODES.", 10, 2, 25, white, true).
  }

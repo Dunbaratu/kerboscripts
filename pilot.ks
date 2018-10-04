@@ -1,3 +1,5 @@
+print "waiting for remote tech to find itself.".
+wait 2.
 // pilot control.
 if HOMECONNECTION:ISCONNECTED {
   if not(exists("1:/lib")) {
@@ -5,6 +7,7 @@ if HOMECONNECTION:ISCONNECTED {
   }
   copypath("0:/lib/navpoint.ks", "1:/lib/").
 }
+
 run once "lib/navpoint".
 
 parameter

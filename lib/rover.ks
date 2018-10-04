@@ -37,6 +37,7 @@ on abort {
   brakes on.
   unlock wheelthrottle.
   unlock wheelsteering.
+  set ship:control:neutralize to true.
   print "deliberate error to quit.".
   print 1 / 0.
 }
@@ -45,7 +46,7 @@ on abort {
 // Given a location, drive there.
 // stop when you get there.
 function drive_to {
-  parameter geopos, cruise_spd, jump_detect is true, proximity_needed is 10, offset_pitch is 0.
+  parameter geopos, cruise_spd, jump_detect is false, proximity_needed is 10, offset_pitch is 0.
 
   local steer_pid is PIDLOOP(0.01, 0.00002, 0.003, -1, 1).
   local throttle_pid is PIDLOOP(0.5, 0.01, 0.2, -1, 1).
@@ -251,6 +252,7 @@ function drive_to {
       if abs_collision_eta > 0 and abs_collision_eta < 20 or
          time:seconds < steering_backup_timestamp {
         set steering_off_timestamp to time:seconds + 1.
+        v1:play(slidenote(300,500,0.3,0.1)).
         // If really close, then panic and actually try to back up straight.
         if abs_collision_eta > 0 and abs_collision_eta < 0.5 or
            time:seconds < steering_backup_timestamp {
@@ -286,6 +288,7 @@ function drive_to {
     print "forward_speed is " + round(forward_speed(offset_pitch), 3).
     print "wanted_speed is  " + round(wSpeed,1).
     print "geodist to target is " + round(geo_dist(geopos),2).
+    print "USE Abort Action group to kill program and park.".
     print " -------- obstacle detection: --------  ".
     print "LASERS: left: " + has_left_lasers + ", right: " + has_right_lasers + ", leveler: " + has_leveler_lasers.
     if has_left_lasers and has_right_lasers {
@@ -294,7 +297,6 @@ function drive_to {
     }
     if time:seconds < steering_off_timestamp {
       print "AVOIDING OBSTACLE!!".
-      v1:play(slidenote(300,500,0.2,0.1)).
       if collision_eta < 0 {
         print "FORCING AIM TO THE LEFT.".
       } else if collision_eta > 0 {
@@ -458,12 +460,12 @@ function collision_danger {
 
     
     // We now know left/right distances and left/right slopes - make the decision based on that:
-    if g_left_slope < 0.9 { // if less than about 40 degree slope
+    if g_left_slope < 1.7 { // if less than about 60 degree slope
       // terrain hit not obstacle hit so pretend it's really far away:
       set dist_L0 to 500.
       set dist_L1 to 500.
     }
-    if g_right_slope < 0.9 { // if less than about 40 degree slope
+    if g_right_slope < 1.7 { // if less than about 60 degree slope
       // terrain hit not obstacle hit so pretend it's really far away:
       set dist_R0 to 500.
       set dist_R1 to 500.

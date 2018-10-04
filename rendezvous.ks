@@ -106,12 +106,12 @@ if skips <= 1 {
     local i is 0.
     until found or i = 4 {
       set my_rendezvous_utime to burn_start_time + ship:obt:period * i.
-      print "[" + i + "], mine =" + round(my_rendezvous_utime,1) + " s  " at (2,10+i).
+      print "[" + i + "], my ETA = " + utime_to_eta_time(my_rendezvous_utime,1) + "s  " at (2,10+i).
       local j is 0.
       until found or j = 4 {
         local other_rendezvous_utime is rendezvous_utimes[j].
         local time_diff is my_rendezvous_utime - other_rendezvous_utime.
-        print "other =" + round(other_rendezvous_utime,1)+" s  " at (30,10+j).
+        print "other ETA = " + utime_to_eta_time(other_rendezvous_utime,1)+"s  " at (30,10+j).
         if abs(time_diff) < rendezvous_tolerance_1 {
           lock throttle to 0.1.
         }
@@ -209,3 +209,9 @@ if skips <= 3 {
   }
 }
 print "Rendezvous program ending.".
+
+function utime_to_eta_time {
+  parameter utime, decimals is 0.
+
+  return round(utime - time:seconds, decimals).
+}

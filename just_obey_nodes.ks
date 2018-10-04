@@ -1,12 +1,7 @@
 run once "/lib/ro".
-run once "lib/menu".
+run once "/lib/menu".
 
 clearscreen.
-// TODO: Make these user-tweakable:
-// TODO: Maybe check for presense of ModuleEnginesRF to see if the right mod
-//       is installed to make these even matter at all:
-global ullage_time is 10. // anticipate pushng RCS forward for this many seconds before engine firing.
-global spool_time is 3. // anticipate the engine taking this long to reach full power.
 
 print "This is a program that just obeys whatever maneuver nodes you put in front of it.".
 
@@ -27,7 +22,7 @@ print "Toggle action group 10 to quit.".
 
 push_steering_mgr_config(2, 1, 0.02, 0.25).
 
-obey_node_mode(should_quit@, do_precise_node@, ullage_time, spool_time).
+obey_node_mode(should_quit@, do_precise_node@).
 
 pop_steering_mgr_config().
 

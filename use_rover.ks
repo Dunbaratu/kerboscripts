@@ -1,4 +1,4 @@
-parameter dest, speed, jump_protect is true, prox is 10, offpitch is 0.
+parameter dest, speed, jump_protect is false, prox is 10, offpitch is 0.
 
 run once "/lib/rover".
 

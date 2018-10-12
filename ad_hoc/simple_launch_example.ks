@@ -130,6 +130,7 @@ lock throttle to 0.
 // When out of atmo, lets lightly time warp, till ready for
 // the burn:
 wait until altitude > 70_000. // out of atmosphere.
+wait 1. // Because somtimes KSP doesn't remove the restriction on phys warp right away when hitting vacuum.
 msg("Doing light time warp till apoapsis.").
 set warp to 2. // 10x in stock no mods.
 wait until eta:apoapsis < 30..

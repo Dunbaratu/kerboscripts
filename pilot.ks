@@ -1,5 +1,5 @@
 print "waiting for remote tech to find itself.".
-wait 2.
+wait 3.
 // pilot control.
 if HOMECONNECTION:ISCONNECTED {
   if not(exists("1:/lib")) {

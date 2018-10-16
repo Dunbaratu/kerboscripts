@@ -16,7 +16,7 @@ function stager {
   // simple dumb - check if nothing active,
   // then stage:
   if ship:maxthrust = 0 {
-    print "Staged because ship:maxthrust = 0 when throttle=" + throttle.
+    print "Staged because maxthrust = 0 when throttle=" + round(throttle,1).
     if zeroThrot lock throttle to 0. wait 0.
     wait until stage:ready. stage.
     set did_stage to true.

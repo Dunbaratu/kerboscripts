@@ -133,3 +133,16 @@ function aim_laser_at {
   lasMod:setfield("Bend X", - hAngle).
   lasMod:setfield("Bend Y", - vAngle).
 }
+
+// Returns a list of which chute partmodules on the ship are in the
+// given state right now.
+function chutes_in_state {
+  parameter query_state. // "not", "semi", "full"
+
+  local chute_modules is ship:modulesnamed("ModuleParachute").
+  // TODO: There is no way to query chute state like this right now in kOS.
+  // The logic will be to remove items from the list which don't
+  // fit the state criteria, then return it.
+  // That part is missing right now.
+  return chute_modules. // replace with working logic later.
+}

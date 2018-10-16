@@ -19,8 +19,9 @@ if tgt:ISTYPE("VESSEL") {
 if tgt:ISTYPE("DOCKINGPORT") {
   lock steering to lookdirup(- tgt:portfacing:forevector, tgt:portfacing:topvector).
 } else {
-  lock steering to lookdirup(-tgt:facing:forevector,tgt:facing:topvector).
-}
+  print "Target is a docking port.".
+  lock steering to lookdirup(- tgt:portfacing:vector, tgt:portfacing:topvector).
+} 
 
 local from_parts is ship:partstagged("from here").
 hudtext_until_condition(

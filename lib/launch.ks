@@ -230,7 +230,9 @@ function launch {
             set coast_circular to true.
             if not(throttle_was_zero) {
               set min_throt to 0.
-              print "Now Coasting to Ap for circularizing.".
+              print "Start mild time warp coast to Ap.".
+              set kuniverse:warp:mode to "rails".
+              set warp to 2.
             }
           } 
         } else {
@@ -244,6 +246,7 @@ function launch {
     // try to circularize in little spurts that consume lots of
     // ignitions:
     if throttle_was_zero and throttle > 0 {
+      set warp to 0. // come off rails to let the engine work:
       set min_throt to 0.001.
     }
 

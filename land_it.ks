@@ -39,9 +39,9 @@ if ship:availablethrust <= 0 {
   wait 0.1. // KSP doesn't calc isp right if you don't do this.
 }
 
+clearscreen. print " ". print " ".
 local first_aim is true.
 
-set burn_now to false.
 SAS off.
 lock steering to rotate_for_probe_core(srfretrograde, off_pitch, off_yaw).
 gear on.
@@ -58,8 +58,11 @@ if lasParts:length > 0 {
 
 local prev_time is time:seconds.
 local deltaT is 0.1.
-
-until burn_now {
+local burn_done is false.
+local burn_start to false.
+local burn_continuing to false.
+local initial_twr is 9999.
+until burn_done {
 
   set result to sim_land_spot(
     ship:body:mu,
@@ -73,24 +76,40 @@ until burn_now {
     false).
 
   set pos to result["pos"].
-  if has_safe_distance(pos, deltaT) {
+  local safe_dist is get_safe_distance(pos, deltaT).
+  print "Safe Dist = " + round(safe_dist,1) + "m" at (5,0).
+  if safe_dist >= 0 {
     set theColor to green.
+    if burn_start and safe_dist > 500 {
+      print "Looks like we burned too soon - back to waiting again.".
+      set burn_start to false.
+      set burn_continuing to false.
+      lock throttle to 0.
+    }
   } else {
     set theColor to red.
-    set burn_now to true.
+    set burn_start to true.
   }
 
-  if not burn_now
+  if burn_start {
+    if burn_continuing {
+      if verticalspeed > -4.0 {
+        set burn_done to true.
+      }
+    } else  {
+      print "Now in angled suicide burn.".
+      set initial_twr to ship:availablethrust / (ship:mass * ship:body:mu / (ship:body:radius+ship:altitude)^2).
+      lock throttle to 1.
+      set burn_continuing to true.
+    }
+  } else {
     wait 0.
+  }
   
   set deltaT to time:seconds - prev_time.
   set prev_time to time:seconds.
 }
 
-print "Now in angled suicide burn.".
-local initial_twr is ship:availablethrust / (ship:mass * ship:body:mu / (ship:body:radius+ship:altitude)^2).
-lock throttle to 1.
-wait until verticalspeed > -2.0.
 print "Now in final touchdown vertical descent.".
 set descendPID to pidloop(1/initial_twr, 0.05/initial_twr, 0.2/initial_twr, 0, 1).
 lock throttle to descendPID:update(time:seconds, verticalspeed+descentSpeed()).
@@ -198,10 +217,9 @@ function alt_radar_or_sea {
 
 // True if there's still a safe margin of distance.
 // False if the suicide burn MUST start NOW.
-function has_safe_distance {
+function get_safe_distance {
   parameter pos, deltaT.
 
-  local safe is false.
   local use_fallback is true.
   local compare_dist is 0.
   local test_dist is 0.
@@ -237,12 +255,11 @@ function has_safe_distance {
     set label_prefix to "Margin (terrain database guess): ".
   }
   if test_dist < compare_dist { // try to start the burn just a few ticks early
-    set safe to true.
     set vd1 to vecdraw(v(0,0,0),pos, green, label_prefix + round(compare_dist-test_dist,1)+"m", 1, true).
   } else {
     set vd1 to 0.
   }
 
-  return safe.
+  return compare_dist - test_dist.
 }
 

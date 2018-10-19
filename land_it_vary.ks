@@ -177,6 +177,10 @@ until stop_burn {
     set theColor to rgb(1,0.4,0).
   }
 
+  if land_spot:hassuffix("geoposition") {
+    // for any of the types that have a geoposition (vessel, waypoint, etc), use that:
+    set land_spot to land_spot:geoposition.
+  }
   if land_spot:istype("GeoCoordinates") {
     update_steer_offsets().
   }

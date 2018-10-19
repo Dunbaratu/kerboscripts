@@ -166,7 +166,9 @@ function obey_node_mode {
   if p_ullage_time <> -999 
     persist_set("ullage_time", p_ullage_time).
   if p_spool_time <> -999
-    persis_set("spool_time", p_spool_time).
+    persist_set("spool_time", p_spool_time).
+
+  get_stopping().
 
   until quit_condition:call() {
     clearscreen.
@@ -278,6 +280,23 @@ function do_max_stopping_edit {
   ).
 
   stopping_menu["start"]().
+}
+
+function set_stopping {
+  parameter new_val.
+  persist_set("maxstoptime", new_val).
+  set steeringmanager:maxstoppingtime to new_val.
+}
+
+function get_stopping {
+  local get_val is persist_get("maxstoptime").
+  if get_val > 0 {
+    set steeringmanager:maxstoppingtime to get_val.
+  } else {
+    // persist val never got set yet, so initialize to current val:
+    persist_set("maxstoptime", steeringmanager:maxstoppingtime).
+  }
+  return steeringmanager:maxstoppingtime.
 }
 
 function do_engine_edit {

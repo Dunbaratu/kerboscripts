@@ -25,9 +25,11 @@ if skips = 0 {
 
     // May have to enlarge or shink the orbit:
     if ship:obt:semimajoraxis < other:obt:semimajoraxis {
+      sas off.
       lock steering to prograde.
       print "Will enlarge my orbit when at periapsis.".
     } else {
+      sas off.
       lock steering to retrograde.
       print "Will shrink my orbit when at periapsis.".
     }
@@ -81,6 +83,7 @@ if skips <= 1 {
       if warp > 0 {
         set warp to 0.
       }
+      sas off.
       lock steering to prograde.
     }
     wait 0.
@@ -148,6 +151,7 @@ if skips <= 2 {
       if warp > 0 {
         set warp to 0.
       }
+      sas off.
       lock steering to other:velocity:orbit - ship:velocity:orbit.
     }
     wait 0.
@@ -179,16 +183,19 @@ if skips <= 3 {
   set maxAccel to ship:maxthrust / ship:mass.
 
   local mysteer is other:position+(40*ship:north:vector).
+  sas off.
   lock steering to mysteer.
   lock rel_vel to ship:velocity:orbit - other:velocity:orbit.
   until other:position:mag < 350 {
     // Push toward until drifting fast enough at other:
     print "... Pushing toward target faster".
     lock mysteerpoint to other:position+(40*ship:north:vector).
+    sas off.
     lock steering to mysteerpoint.
     wait until vang(mysteerpoint, ship:facing:forevector) < 2.
     lock throttle to 1/(0.01*maxAccel).
     wait until vdot(rel_vel,mysteerpoint:normalized) > 4+(mysteerpoint:mag/100).
+    sas off.
     lock steering to mysteer. // put it back to what it was.
 
     // While drifting, get ready by aiming retro:

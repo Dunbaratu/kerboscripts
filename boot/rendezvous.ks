@@ -17,6 +17,7 @@ if homeconnection:isconnected {
   copypath("0:/rendezvous","/").
   copypath("0:/match_inc","/").
   copypath("0:/lib/prediction","/lib/").
+  copypath("0:/lib/persist","/lib/").
 
   copypath("0:/consts","/").
   copypath("0:/stager","/").

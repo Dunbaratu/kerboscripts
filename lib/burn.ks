@@ -160,6 +160,7 @@ function obey_node_mode {
   parameter
     quit_condition,  // pass in a delegate that will return boolean true when you want it to end.
     node_edit is "n/a",       // pass in a delegate that will edit precise nodes if called.
+    boot_name is "", // pass in a name of a boot script.
     p_ullage_time is -999, // parameter ullage time.
     p_spool_time is -999.  // parameter spool time.
 
@@ -175,6 +176,7 @@ function obey_node_mode {
     print "Aiming at sun for panels.".
     lock steering to sun:position.
     lock throttle to 0.
+    print "Type 'B' for: Is core bootfilename on? Currently "+(core:bootfilename = boot_name).
     print "Type 'P' for precise node editor.".
     print "Type 'E' for Engine stats change.".
     print "Type 'S' for Max Stopping Time Change.".
@@ -182,7 +184,7 @@ function obey_node_mode {
       hudtext("Waiting for a node to exist...", 10, 2, 30, red, false).
       until hasnode or quit_condition:call() {
         wait 0.
-        just_obey_p_check(node_edit, do_engine_edit@, do_max_stopping_edit@).
+        just_obey_p_check(node_edit, do_engine_edit@, do_max_stopping_edit@, boot_name).
       }
     }
     hudtext("I See a Node.  Waiting until just before it's supposed to burn.", 5, 2, 30, red, false).
@@ -202,7 +204,7 @@ function obey_node_mode {
       set full_burn_length to burn_seconds(dv_mag).
       set lead_time to half_burn_length + persist_get("ullage_time") + persist_get("spool_time").
       draw_block(dv_mag, full_burn_length, half_burn_length, persist_get("ullage_time"), persist_get("spool_time"), lead_time).
-      just_obey_p_check(node_edit, do_engine_edit@, do_max_stopping_edit@).
+      just_obey_p_check(node_edit, do_engine_edit@, do_max_stopping_edit@, boot_name).
       wait 0.2. // Don't re-calculate burn_seconds() more often than needed.
     }
     if hasnode { // just in case the user deleted the node - don't want to crash.
@@ -215,7 +217,7 @@ function obey_node_mode {
       hudtext("Node done, removing node.", 10, 5, 20, red, false).
       remove(n).
     }
-    just_obey_p_check(node_edit, do_engine_edit@, do_max_stopping_edit@).
+    just_obey_p_check(node_edit, do_engine_edit@, do_max_stopping_edit@, boot_name).
   }
 }
 
@@ -235,7 +237,8 @@ function just_obey_p_check {
   parameter
     node_edit, // a delegate to call when P is hit.
     eng_edit, // a delegate to call when E is hit.
-    mxstop_edit. // a delegate to call when S is hit.
+    mxstop_edit, // a delegate to call when S is hit.
+    boot_name. // filename to boot to on powerup.
 
   if node_edit:istype("Delegate") {
     if terminal:input:haschar {
@@ -248,6 +251,13 @@ function just_obey_p_check {
       }
       if ch = "s" {
         mxstop_edit:call().
+      }
+      if ch = "b" {
+        if core:bootfilename = boot_name {
+          set core:bootfilename to "".
+        } else {
+          set core:bootfilename to boot_name.
+        }
       }
     }
   }

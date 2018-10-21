@@ -230,8 +230,10 @@ function launch {
             set coast_circular to true.
             if not(throttle_was_zero) {
               set min_throt to 0.
+              do_fairings(fairings).
+              wait 5.
               print "Start mild time warp coast to Ap.".
-              set kuniverse:warp:mode to "rails".
+              set kuniverse:timewarp:mode to "rails".
               set warp to 2.
             }
           } 
@@ -249,24 +251,6 @@ function launch {
       set warp to 0. // come off rails to let the engine work:
       set min_throt to 0.001.
     }
-
-  // TODO: Incorporate this into it somehow:
-  //     if full_thrust_over and low_atmo_pending and ship:Q < 0.003 and ship:altitude > atmo_end/2 {
-  //       set low_atmo_pending to false. // Never execute this again.
-  //       if full_thrust_over {
-  //         print "LOW DYNAMIC PRESSURE AND FULL THROTTLE FINISHED:  Activating AG 1.".
-  //         set AG1 to true. wait 0.
-  //         if fairings:length > 0 {
-  //           for fairing in fairings {
-  //             if fairing:hasevent("deploy") {
-  //               print "!!Deploying a fairing part!!".
-  //               fairing:doevent("deploy").
-  //             }
-  //           }
-  //           set fairings to LIST().  // Make it empty so it won't re-trigger this.
-  //         }
-  //       }
-  // 
 
     if coast_circular {
       if periapsis > atmo_end and (ship:obt:trueanomaly < 90 or ship:obt:trueanomaly > 270) {
@@ -494,6 +478,20 @@ function srf_pitch_for_vel {
   return 90 - vang(ves:up:vector, ves:velocity:surface).
 }
 
+// Deploy all fairings in ths list of partmodules given.
+function do_fairings {
+  parameter f_list.
+
+  if f_list:length > 0 {
+    for fairing in f_list {
+      if fairing:hasevent("deploy") {
+        print "!!Deploying a fairing part!!".
+        fairing:doevent("deploy").
+      }
+    }
+    f_list:clear(). // so it won't trigger again.
+  }
+}
 
 function circularize {
   print "Circularizing.".

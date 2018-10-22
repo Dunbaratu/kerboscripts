@@ -15,7 +15,11 @@ run once "/lib/persist".
 //   It's going to be done by the current SHIP.
 //   You aren't going to change the thrust limiters from current setting.
 //   All engines active right now are the same ISP.
-global burn_seconds_msg_cooldown is 0.
+local burn_seconds_msg_cooldown is 0.
+
+// What program to boot to on power-out-restart:
+local obey_node_boot_name is "".
+
 function burn_seconds {
   parameter dv_mag.  // delta V magnitude (scalar)
 
@@ -168,23 +172,20 @@ function obey_node_mode {
     persist_set("ullage_time", p_ullage_time).
   if p_spool_time <> -999
     persist_set("spool_time", p_spool_time).
+  if boot_name <> ""
+    set obey_node_boot_name to boot_name.
 
   get_stopping().
 
   until quit_condition:call() {
-    clearscreen.
-    print "Aiming at sun for panels.".
     lock steering to sun:position.
     lock throttle to 0.
-    print "Type 'B' for: Is core bootfilename on? Currently "+(core:bootfilename = boot_name).
-    print "Type 'P' for precise node editor.".
-    print "Type 'E' for Engine stats change.".
-    print "Type 'S' for Max Stopping Time Change.".
+    draw_menu().
     if not hasnode {
       hudtext("Waiting for a node to exist...", 10, 2, 30, red, false).
       until hasnode or quit_condition:call() {
         wait 0.
-        just_obey_p_check(node_edit, do_engine_edit@, do_max_stopping_edit@, boot_name).
+        just_obey_p_check(node_edit, do_engine_edit@, do_max_stopping_edit@, obey_node_boot_name).
       }
     }
     hudtext("I See a Node.  Waiting until just before it's supposed to burn.", 5, 2, 30, red, false).
@@ -204,7 +205,7 @@ function obey_node_mode {
       set full_burn_length to burn_seconds(dv_mag).
       set lead_time to half_burn_length + persist_get("ullage_time") + persist_get("spool_time").
       draw_block(dv_mag, full_burn_length, half_burn_length, persist_get("ullage_time"), persist_get("spool_time"), lead_time).
-      just_obey_p_check(node_edit, do_engine_edit@, do_max_stopping_edit@, boot_name).
+      just_obey_p_check(node_edit, do_engine_edit@, do_max_stopping_edit@, obey_node_boot_name).
       wait 0.2. // Don't re-calculate burn_seconds() more often than needed.
     }
     if hasnode { // just in case the user deleted the node - don't want to crash.
@@ -217,8 +218,16 @@ function obey_node_mode {
       hudtext("Node done, removing node.", 10, 5, 20, red, false).
       remove(n).
     }
-    just_obey_p_check(node_edit, do_engine_edit@, do_max_stopping_edit@, boot_name).
+    just_obey_p_check(node_edit, do_engine_edit@, do_max_stopping_edit@, obey_node_boot_name).
   }
+}
+
+function draw_menu {
+  clearscreen.
+  print "Type 'B' for bootfilename on? Currently "+(core:bootfilename = obey_node_boot_name).
+  print "Type 'P' for precise node editor.".
+  print "Type 'E' for Engine stats change.".
+  print "Type 'S' for Max Stopping Time Change.".
 }
 
 function draw_block {
@@ -238,13 +247,14 @@ function just_obey_p_check {
     node_edit, // a delegate to call when P is hit.
     eng_edit, // a delegate to call when E is hit.
     mxstop_edit, // a delegate to call when S is hit.
-    boot_name. // filename to boot to on powerup.
+    obey_node_boot_name. // filename to boot to on powerup.
 
   if node_edit:istype("Delegate") {
     if terminal:input:haschar {
       local ch is terminal:input:getchar().
       if ch = "p" {
         node_edit:call().
+        draw_menu().
       }
       if ch = "e" {
         eng_edit:call().
@@ -253,11 +263,12 @@ function just_obey_p_check {
         mxstop_edit:call().
       }
       if ch = "b" {
-        if core:bootfilename = boot_name {
+        if core:bootfilename = obey_node_boot_name {
           set core:bootfilename to "".
         } else {
-          set core:bootfilename to boot_name.
+          set core:bootfilename to obey_node_boot_name.
         }
+        draw_menu().
       }
     }
   }

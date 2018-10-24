@@ -96,9 +96,10 @@ if skips <= 1 {
   print " ".
   print " ".
   print " ".
-  set rendezvous_tolerance_1 to 50. // (seconds).
-  set rendezvous_tolerance_2 to 5. // (seconds).
-  set rendezvous_tolerance_3 to 1. // (seconds).
+  set rendezvous_tolerance_1 to 500. // (seconds).
+  set rendezvous_tolerance_2 to 40. // (seconds).
+  set rendezvous_tolerance_3 to 10. // (seconds).
+  set rendezvous_tolerance_4 to 1. // (seconds).
   set found to false.
   set my_rendezvous_utime to 0. // will calculate later in the loop.
   set num_orbits to 0. // how many orbits until a hit.
@@ -119,9 +120,12 @@ if skips <= 1 {
           lock throttle to 0.1.
         }
         if abs(time_diff) < rendezvous_tolerance_2 {
-          lock throttle to 0.01.
+          lock throttle to 0.05.
         }
         if abs(time_diff) < rendezvous_tolerance_3 {
+          lock throttle to 0.005.
+        }
+        if abs(time_diff) < rendezvous_tolerance_4 {
           lock throttle to 0.
           set found to true.
           set num_orbits to i.

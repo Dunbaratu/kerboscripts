@@ -240,7 +240,7 @@ function launch {
         } else {
           set maintain_ap_mode to true.
         }
-      } else if altitude > atmo_end { // out of atmo, yet apoapsis still not high enough.
+      } else if atmo_end > 0 and altitude > atmo_end { // out of atmo on an atmo world, yet apoapsis still not high enough.
         if apoapsis < 0.8*dest_pe  and min_throt < 0.5 {
           set min_throt to 0.5. // force it to keep thrusting a lot.
           hudtext("Escaped Atmo but Ap still way too low - upping throttle.",8,2,20, green, true).

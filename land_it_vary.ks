@@ -329,10 +329,10 @@ function pid_tune {
 
   // Adjust PID tuning as we go depending on TWR and dist to target:
   local twr is athrust / (ship:mass * mu / (bodRad+ship:altitude)^2).
-  local dampener is sqrt(burn_dist)*twr.
-  set throt_pid:Kp to 15/dampener.
-  set throt_pid:Ki to 1/dampener.
-  set throt_pid:Kd to 2/dampener. 
+  local dampener is twr*sqrt(burn_dist).
+  set throt_pid:Kp to 10/dampener.
+  set throt_pid:Ki to 2/dampener.
+  set throt_pid:Kd to 3/dampener. 
 
   set pitch_pid:Kp to 50/dampener.
   set pitch_pid:Ki to 5/dampener.

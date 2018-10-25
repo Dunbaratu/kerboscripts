@@ -141,10 +141,10 @@ function launch {
   // It's more okay to be off vertically than horizontally here, thus the two different check values:
   // Note they're not using the same system.  off_vert is measured in degrees.  off_horiz is in linear
   // proportions of a unit vector:
-  until abs(off_horiz) < 0.04 and off_vert < 2 {
+  until abs(off_horiz) < 0.04 and off_vert < 10 {
     local srf_vel_unit is ship:velocity:surface:normalized.
     set off_vec to steering:forevector:normalized - srf_vel_unit.
-    local lower is vdot(ship:up:vector, off_vec) < 0. //true if error is off in the "too low" direction.
+    local lower is vdot(ship:up:vector, off_vec) > 0. //true if error is off in the "too low" direction.
     set off_vert to vang(steering:forevector:normalized, srf_vel_unit).
     // Give a sign to the off vertical angle:
     if lower
@@ -240,10 +240,16 @@ function launch {
         } else {
           set maintain_ap_mode to true.
         }
-      } else if atmo_end > 0 and altitude > atmo_end { // out of atmo on an atmo world, yet apoapsis still not high enough.
-        if apoapsis < 0.8*dest_pe  and min_throt < 0.5 {
+      } else if altitude > atmo_end { // out of atmo on an atmo world, yet apoapsis still not high enough.
+        if atmo_end > 0 and apoapsis < 0.8*dest_pe  and min_throt < 0.5 {
           set min_throt to 0.5. // force it to keep thrusting a lot.
           hudtext("Escaped Atmo but Ap still way too low - upping throttle.",8,2,20, green, true).
+        } else if
+            ship:velocity:surface:mag > 5 and // don't trigger when not really taken off yet.
+            apoapsis < dest_pe and
+            vang(ship:velocity:surface:normalized, ship:up:vector) > 85 {
+          set min_throt to 0.5. // force it to keep thrusting a lot.
+          hudtext("Aiming horizontally so keeping throt low for ETA is dumb, forcing throttle up.", 8, 2, 20, green, true).
         }
       }
     }

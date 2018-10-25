@@ -106,7 +106,7 @@ local yaw_pid is PIDloop(1, 0, 0, -8, 8).
 local yaw_off is 0. // The output of yaw_pid
 local bias is -2. // The bias factor in the PID making negative errors more severe than positive ones.
 
-pid_tune(altitude).
+pid_tune(999999). // 999999 = dummy start value until the predictions start being calculated.
 
 set cnt_before to ship:parts:length.
 set timeslice_size to 2.0.
@@ -162,7 +162,7 @@ until stop_burn {
 
   set pos to result["pos"].
   set eta_end to result["seconds"].
-  set dist to terrain_distance(pos).
+  set dist to terrain_distance(pos, eta_end).
   if time:seconds > vd_show_msg_cooldown {
     set vd_show_msg_cooldown to vd_show_msg_cooldown + 15.
     HUDTEXT("Action Group 10 hides/shows prediction vector.", 5, 3, 18, rgb(0,0.4,0), false).
@@ -198,7 +198,7 @@ until stop_burn {
       }
 
       // Adjust PID tuning as we go depending on TWR:
-      pid_tune(pos:mag).
+      pid_tune(eta_end).
 
       lock throttle to (real_throt-minThrot)/(1-minThrot) + 0.001.
       // From now on the engine stays on - so take these times out of the prediction:
@@ -325,11 +325,11 @@ function info_block_update {
 }
 
 function pid_tune {
-  parameter burn_dist.
+  parameter burn_time. // how long is the burn to a stop expected to take?
 
   // Adjust PID tuning as we go depending on TWR and dist to target:
   local twr is athrust / (ship:mass * mu / (bodRad+ship:altitude)^2).
-  local dampener is twr*sqrt(burn_dist).
+  local dampener is twr*sqrt((10+burn_time)*50).
   set throt_pid:Kp to 10/dampener.
   set throt_pid:Ki to 2/dampener.
   set throt_pid:Kd to 3/dampener. 
@@ -338,15 +338,9 @@ function pid_tune {
   set pitch_pid:Ki to 5/dampener.
   set pitch_pid:Kd to 10/dampener. 
 
-  // If predicted to crash, limit how much it's allowed to pitch down.
-  // Crashing is Bad Mmmkay?  Worse than missing the target:
-  if dist < 0 {
-    set pitch_pid:minoutput to max(-8, burn_dist/(6*dist)).
-  }
-
-  set yaw_pid:Kp to 50/(10+sqrt(burn_dist)*twr).
-  set yaw_pid:Ki to 5/(sqrt(burn_dist)*twr).
-  set yaw_pid:Kd to 10/(sqrt(burn_dist)*twr). 
+  set yaw_pid:Kp to 50/(10+sqrt((10+burn_time)*50)*twr).
+  set yaw_pid:Ki to 5/(sqrt((10+burn_time)*50)*twr).
+  set yaw_pid:Kd to 10/(sqrt((10+burn_time)*50)*twr). 
 }
 
 // Return retrograde or up vectors depending on
@@ -440,7 +434,7 @@ function alt_radar_or_sea {
 // True if there's still a safe margin of distance.
 // False if the suicide burn MUST start NOW.
 function terrain_distance {
-  parameter pos.
+  parameter pos, secs.
 
   local safe is false.
   local use_fallback is true.
@@ -448,8 +442,9 @@ function terrain_distance {
   local label_prefix is "".
 
   if use_fallback {
-    local groundPos is ship:body:geopositionof(pos):position.
-    local seaPos is ship:body:geopositionof(pos):altitudeposition(0).
+    local geo is geopos_later(ship:body:geopositionof(pos), secs).
+    local groundPos is geo:position.
+    local seaPos is geo:altitudeposition(0).
     set dist_ground to vdot(pos-groundPos,ship:up:vector).
     set dist_sea to vdot(pos-seaPos,ship:up:vector).
     set dist to min(dist_ground, dist_sea).
@@ -465,7 +460,19 @@ function terrain_distance {
     set vd1 to vecdraw(v(0,0,0),pos, theColor, label_prefix + round(dist,1)+"m", 1, true, 0.3).
   }
   return dist.
-
-
 }
 
+// Given a geoposition, find what that geoposition will become later
+// as the body rotates under it x seconds.  Useful for landing on
+// rotating bodies that don't have atmo.
+function geopos_later {
+  parameter geo_in, secs.  // input geoposition, number of seconds to rotate body.
+
+  local bod is geo_in:body.
+  if bod:atm:exists // Assume atmo forces locking to surface reference so no rotation happens.
+    return geo_in.
+
+  local newlong is geo_in:lng - secs*360/bod:rotationperiod.
+
+  return bod:geopositionlatlng(geo_in:lat, newlong).
+}

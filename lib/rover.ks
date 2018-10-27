@@ -38,6 +38,7 @@ on abort {
   unlock wheelthrottle.
   unlock wheelsteering.
   set ship:control:neutralize to true.
+  steeringmanager:resettodefault().
   print "deliberate error to quit.".
   print 1 / 0.
 }
@@ -347,11 +348,13 @@ function all_lasers_toggle {
   }
 }
 
-global yaw_disable_roll_angle_orig is 0.
-global yaw_disable_Kp_orig is 0.
-global yaw_disable_Ki_orig is 0.
-global yaw_disable_Kd_orig is 0.
-global yaw_disable_Ts_orig is 0.
+steeringmanager:resettodefault(). // just in case a previous run of this script left it screwed up.
+
+global yaw_disable_roll_angle_orig is steeringmanager:RollControlAngleRange.
+global yaw_disable_Kp_orig is steeringmanager:yawpid:Kp.
+global yaw_disable_Ki_orig is steeringmanager:yawpid:Ki.
+global yaw_disable_Kd_orig is steeringmanager:yawpid:Kd.
+global yaw_disable_Ts_orig is steeringManager:yawts.
 function disable_yaw {
   if not(yaw_enabled)
     return.
@@ -390,7 +393,14 @@ function level_orientation {
   parameter offset_pitch, leveler_lasers.
   local norm is get_laser_normal(leveler_lasers).
 
-  return lookdirup(vxcl(norm,rotated_forevector(offset_pitch)), norm).
+  local aim is 0.
+  // Aim either at facing (if landed) or at velocity (if in a jump):
+  if yaw_enabled {
+    set aim to velocity:surface.
+  } else {
+    set aim to rotated_forevector(offset_pitch).
+  }
+  return lookdirup(vxcl(norm,aim), norm).
 }
 
 // Use forward facing collision lasers to detect the slope ahead of us.  If it's

@@ -67,7 +67,7 @@ LEXICON(
       "SPD", 0 )
   ),
 
-  "GPP KSC w/KK 'Kerbin' name bug",
+  "GPP KSC 'Kerbin=Gael'",
   LIST(
     LEXICON (
       "BODYNAME", "Kerbin",
@@ -80,6 +80,24 @@ LEXICON(
       "BODYNAME", "Kerbin",
       "LAT", 8.68749,
       "LNG", -168.1107,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0 )
+  ),
+
+  "GPP DomRok 'Kerbin=Gael'",
+  LIST(
+    LEXICON (
+      "BODYNAME", "Kerbin",
+      "LAT", -7.354855,
+      "LNG", -114.578911,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0 ),
+    LEXICON (
+      "BODYNAME", "Kerbin",
+      "LAT", -7.353289,
+      "LNG", -114.9399995,
       "ALT", 0,
       "AGL", True,
       "SPD", 0 )

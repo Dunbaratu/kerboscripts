@@ -96,8 +96,12 @@ local eta_end is 9999.
 local active_engs is all_active_engines().
 local dist is 0.
 
-// Output of throt_pid is a value between min throt and max throt, for throttle.
-local throt_pid is PIDloop(1, 0, 0, minThrot, 1).
+// Output of throt_pid is a value to add/subtract from the predcited throttle
+// in throt_predict_mult:
+// The clamp range is not 0 to 1 becasue it's not centered at zero but at throt_predict_mult:
+local pid_min is - throt_predict_mult.  // i.e. if predict = .8, go as low as -0.8
+local pid_max is pid_min + 1. // i.e. if predict = 0.8, this becomes 0.2
+local throt_pid is PIDloop(1, 0, 0, pid_min, pid_max).
 // output of pitch_pid is a deflection above srfretrograde in degrees.
 local pitch_pid is PIDloop(1, 0, 0, -8, 8).
 local pitch_off is 0. // The output of pitch_pid
@@ -185,10 +189,12 @@ until stop_burn {
     update_steer_offsets().
   }
 
-  local real_throt is throt_pid:update(time:seconds, signbias(dist-margin,bias)). 
-
-  if real_throt > minThrot {
+  local real_throt is throt_predict_mult + throt_pid:update(time:seconds, signbias(dist-margin,bias)). 
+  if dist-margin < 0 {
     set burn_started to true.
+  }
+
+  if burn_started and real_throt > minThrot {
     // Account for RO's screwy throttle scaling, and don't
     // let throttle reach 0 entirely:
     if ullage_safe {
@@ -329,10 +335,10 @@ function pid_tune {
 
   // Adjust PID tuning as we go depending on TWR and dist to target:
   local twr is athrust / (ship:mass * mu / (bodRad+ship:altitude)^2).
-  local dampener is twr*sqrt((10+burn_time)*50).
-  set throt_pid:Kp to 10/dampener.
-  set throt_pid:Ki to 2/dampener.
-  set throt_pid:Kd to 3/dampener. 
+  local dampener is twr*sqrt((1+burn_time)*50).
+  set throt_pid:Kp to 3/dampener.
+  set throt_pid:Ki to 0.5/dampener.
+  set throt_pid:Kd to 1/dampener. 
 
   set pitch_pid:Kp to 50/dampener.
   set pitch_pid:Ki to 5/dampener.

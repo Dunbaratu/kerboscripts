@@ -190,8 +190,10 @@ until stop_burn {
   }
 
   local real_throt is throt_predict_mult + throt_pid:update(time:seconds, signbias(dist-margin,bias)). 
-  if dist-margin < 0 {
+  if dist-margin < 0 and not(burn_started) {
     set burn_started to true.
+    throt_pid:reset(). // Erase the integral wind up from all the time it said "I don't need to throttle".
+    set real_throt to throt_predict_mult. // temp value for the first time through before the PID control starts reacting.
   }
 
   if burn_started and real_throt > minThrot {
@@ -213,12 +215,7 @@ until stop_burn {
       rcs on. set ship:control:fore to 1.
       print "Ullage RCS thrusting".
     }
-  } else if burn_started {
-      if ullage_safe {
-        lock throttle to 0.001.
-      }
   }
-
   wait 0.
 
   // If each iteration is taking a long time, use a more coarse timeslice
@@ -336,9 +333,9 @@ function pid_tune {
   // Adjust PID tuning as we go depending on TWR and dist to target:
   local twr is athrust / (ship:mass * mu / (bodRad+ship:altitude)^2).
   local dampener is twr*sqrt((1+burn_time)*50).
-  set throt_pid:Kp to 3/dampener.
-  set throt_pid:Ki to 0.5/dampener.
-  set throt_pid:Kd to 1/dampener. 
+  set throt_pid:Kp to 10/dampener.
+  set throt_pid:Ki to 3/dampener.
+  set throt_pid:Kd to 2/dampener. 
 
   set pitch_pid:Kp to 50/dampener.
   set pitch_pid:Ki to 5/dampener.

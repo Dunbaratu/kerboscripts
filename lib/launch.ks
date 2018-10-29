@@ -197,6 +197,8 @@ function launch {
   local allow_zero is ignitions > 1. // allow zeroing throttle only if we area allowing multiple ignitions to orbit.
   local still_must_thrust is true.
   local throttle_was_zero is false.
+  local msg1_happened is false.
+  local msg2_happened is false.
   lock throttle to throttle_func(coast_circular,min_throt,dest_spd, dest_pe, maintain_ap_mode).
 
   until done {
@@ -243,13 +245,19 @@ function launch {
       } else if altitude > atmo_end { // out of atmo on an atmo world, yet apoapsis still not high enough.
         if atmo_end > 0 and apoapsis < 0.8*dest_pe  and min_throt < 0.5 {
           set min_throt to 0.5. // force it to keep thrusting a lot.
-          hudtext("Escaped Atmo but Ap still way too low - upping throttle.",8,2,20, green, true).
+          if not(msg2_happened) {
+            hudtext("Escaped Atmo but Ap still way too low - upping throttle.",8,2,20, green, true).
+            set msg2_happened to true.
+          }
         } else if
             ship:velocity:surface:mag > 5 and // don't trigger when not really taken off yet.
             apoapsis < dest_pe and
             vang(ship:velocity:surface:normalized, ship:up:vector) > 85 {
           set min_throt to 0.5. // force it to keep thrusting a lot.
-          hudtext("Aiming horizontally so keeping throt low for ETA is dumb, forcing throttle up.", 8, 2, 20, green, true).
+          if not(msg1_happened) {
+            hudtext("Aiming horizontally so keeping throt low for ETA is dumb, forcing throttle up.", 8, 2, 20, green, true).
+            set msg1_happened to true.
+          }
         }
       }
     }

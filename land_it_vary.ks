@@ -99,8 +99,8 @@ local dist is 0.
 // Output of throt_pid is a value to add/subtract from the predcited throttle
 // in throt_predict_mult:
 // The clamp range is not 0 to 1 becasue it's not centered at zero but at throt_predict_mult:
-local pid_min is - throt_predict_mult.  // i.e. if predict = .8, go as low as -0.8
-local pid_max is pid_min + 1. // i.e. if predict = 0.8, this becomes 0.2
+local pid_min is minThrot - throt_predict_mult.  // i.e. if predict = .8, go as low as -0.8 (plus min throt).
+local pid_max is pid_min + 1.
 local throt_pid is PIDloop(1, 0, 0, pid_min, pid_max).
 // output of pitch_pid is a deflection above srfretrograde in degrees.
 local pitch_pid is PIDloop(1, 0, 0, -8, 8).
@@ -196,6 +196,8 @@ until stop_burn {
     set real_throt to throt_predict_mult. // temp value for the first time through before the PID control starts reacting.
   }
 
+  // NOTE: It's vital that throt_pid NEVER return a result that sets real_throt below minThrot because
+  // of the check below.  That's why throt_pid's min value is what it is (see pid_min waay above):
   if burn_started and real_throt > minThrot {
     // Account for RO's screwy throttle scaling, and don't
     // let throttle reach 0 entirely:
@@ -221,7 +223,7 @@ until stop_burn {
   // If each iteration is taking a long time, use a more coarse timeslice
   // for the prediction.  If each iteration is going fast, use a tighter timeslice:
   if deltaT > 0 { // skip the first time when we haven't measured a proper deltaT yet.
-    set timeslice_size to (0.02 + deltaT)*2.
+    set timeslice_size to (0.02 + deltaT)*4.
   }
 
   info_block_update(burn_started, real_throt, throt_pid, bias, dist, margin, throt_predict_mult, timeslice_size).
@@ -333,9 +335,9 @@ function pid_tune {
   // Adjust PID tuning as we go depending on TWR and dist to target:
   local twr is athrust / (ship:mass * mu / (bodRad+ship:altitude)^2).
   local dampener is twr*sqrt((1+burn_time)*50).
-  set throt_pid:Kp to 10/dampener.
-  set throt_pid:Ki to 3/dampener.
-  set throt_pid:Kd to 2/dampener. 
+  set throt_pid:Kp to 3/dampener.
+  set throt_pid:Ki to 0.5/dampener.
+  set throt_pid:Kd to 1/dampener. 
 
   set pitch_pid:Kp to 50/dampener.
   set pitch_pid:Ki to 5/dampener.

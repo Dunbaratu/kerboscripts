@@ -456,6 +456,7 @@ until user_quit or
 if user_quit {
   sas on.
   print "QUITTING.. USER ABORT".
+  set warp to 0.
 } else {
   if status="LANDED" or status="SPLASHED" {
     brakes on.

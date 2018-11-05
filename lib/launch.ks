@@ -146,6 +146,11 @@ function launch {
     set off_vec to steering:forevector:normalized - srf_vel_unit.
     local lower is vdot(ship:up:vector, off_vec) > 0. //true if error is off in the "too low" direction.
     set off_vert to vang(steering:forevector:normalized, srf_vel_unit).
+    // dummy check for if it's near enough to be in tolerance, but in the wrong direction past the up vector:
+    local steer_project is vxcl(ship:up:vector, steering:forevector:normalized). // steering projected to flat plane.
+    local vel_project is vxcl(ship:up:vector, ship:velocity:surface:normalized). // velocity projected to flat plane.
+    if vdot(steer_project,vel_project) < 0
+      set off_vert to off_vert + 999. // make it "too big" to count.
     // Give a sign to the off vertical angle:
     if lower
       set off_vert to -off_vert.
@@ -503,9 +508,11 @@ function do_fairings {
 
   if f_list:length > 0 {
     for fairing in f_list {
-      if fairing:hasevent("deploy") {
-        print "!!Deploying a fairing part!!".
-        fairing:doevent("deploy").
+      if fairing:part:vessel = ship { // skip if the fairing part decoupled away and is now on a new vessel
+        if fairing:hasevent("deploy") {
+          print "!!Deploying a fairing part!!".
+          fairing:doevent("deploy").
+        }
       }
     }
     f_list:clear(). // so it won't trigger again.

@@ -17,6 +17,7 @@ function countdown {
 
 local target_eta_spd is 0.
 local target_eta_apo is 0.
+local vertoff_allow is 0.15.
 
 function launch {
   parameter dest_compass. // not exactly right when not 90.
@@ -134,14 +135,14 @@ function launch {
   }
  
   print "Waiting for prograde to match steering close enough.".
-  local off_horiz is 999.
+  local heading_err is 999.
   local off_vert is 999.
   local off_vec is v(1,0,0).
   local remember_compass is dest_compass.
   // It's more okay to be off vertically than horizontally here, thus the two different check values:
-  // Note they're not using the same system.  off_vert is measured in degrees.  off_horiz is in linear
+  // Note they're not using the same system.  off_vert and heading_err are measured in degrees.
   // proportions of a unit vector:
-  until abs(off_horiz) < 0.04 and off_vert < 10 {
+  until abs(heading_err) < 0.5 and off_vert < 10 {
     local srf_vel_unit is ship:velocity:surface:normalized.
     set off_vec to steering:forevector:normalized - srf_vel_unit.
     local lower is vdot(ship:up:vector, off_vec) > 0. //true if error is off in the "too low" direction.
@@ -149,26 +150,23 @@ function launch {
     // dummy check for if it's near enough to be in tolerance, but in the wrong direction past the up vector:
     local steer_project is vxcl(ship:up:vector, steering:forevector:normalized). // steering projected to flat plane.
     local vel_project is vxcl(ship:up:vector, ship:velocity:surface:normalized). // velocity projected to flat plane.
-    if vdot(steer_project,vel_project) < 0
-      set off_vert to off_vert + 999. // make it "too big" to count.
+    local remember_heading is heading(remember_compass,0).
+    set heading_err to vang(remember_heading:vector,vel_project).
+    local desired_starboard is remember_heading:starvector.
+    if vdot(desired_starboard, vel_project - remember_heading:vector) < 0 {
+      set heading_err to -heading_err.
+    }
     // Give a sign to the off vertical angle:
     if lower
       set off_vert to -off_vert.
-    // Offset vector for horizontal check is based on desired heading, NOT current steering,
-    // because current steering will be off on purpose to correct the heading being bad.
-    // (This is only a problem when launching from an initially titled orientation like on
-    // a precarious moon hill):
-    set off_vec to heading(remember_compass,85):vector - srf_vel_unit.
-    set right_vec to heading(remember_compass+90,0):vector. // 90 deg to the right of compass direction.
-    set off_horiz to -vdot(off_vec, right_vec). // how far "to the right" is it off? negative=left.
-
     // Next line will aim a bit left or right of desired heading if it starts off
     // really far off - which only happens when launching on low grav moons from a
     // badly tllted terrain angle:
-    set dest_compass to remember_compass - 150*off_horiz.
+    set dest_compass to remember_compass - 4*heading_err.
 
     info_block().
-    print "--- Off Horiz = " + round(off_horiz,3) + ", Off Vert deg = " + round(off_vert,3) + " ---" at (0,30).
+    do_keys().
+    print "--- Off Horiz deg = " + round(heading_err,2) + ", Off Vert deg = " + round(off_vert,3) + " ---" at (0,30).
     wait 0.
   }
   set dest_compass to remember_compass.
@@ -178,7 +176,7 @@ function launch {
 
   print "Letting heading go where it wants.  Adjusting only pitch and throttle by ETA Apoapsis.".
   local want_pitch_off is 0.
-  lock steering to lookdirup(which_vel():normalized + clamp_abs((wanted_eta_apo(coast_circular,dest_spd)-signed_eta_ap())*0.5/wanted_eta_apo(coast_circular,dest_spd),0.15)*ship:up:vector, -ship:up:vector).
+  lock steering to lookdirup(which_vel():normalized + clamp_abs((wanted_eta_apo(coast_circular,dest_spd)-signed_eta_ap())*0.5/wanted_eta_apo(coast_circular,dest_spd),vertoff_allow)*ship:up:vector, -ship:up:vector).
 
   // This was the old steering logic: need something new:
   // local alt_divisor is atmo_end*(6.0/7.0).
@@ -298,6 +296,7 @@ function launch {
     }
 
     info_block(coast_circular).
+    do_keys().
   }
 
   lock throttle to 0.  set ship:control:pilotmainthrottle to 0.
@@ -308,15 +307,15 @@ function launch {
   // Print some useful info in a block during this function:
   function info_block {
     parameter coast_circular is false.
-    print "==========================================" at (0,0).
-    print "| CURRENT | APO:         m  ETA:      s  |" at (0,1).
-    print "|         | PER:         m               |" at (0,2).
-    print "|         | SPD:         m/s             |" at (0,3).
-    print "| ---------------------------------------|" at (0,4).
-    print "| WANTED  | APO:         m  ETA:      s  |" at (0,5).
-    print "|         | PER:         m               |" at (0,6).
-    print "|         | SPD:         m/s             |" at (0,7).
-    print "==========================================" at (0,8).
+    print "=================================================" at (0,0).
+    print "| CURRENT | APO:         m  ETA:      s | Max   |" at (0,1).
+    print "|         | PER:         m              | Voff  |" at (0,2).
+    print "|         | SPD:         m/s            | (V,v) |" at (0,3).
+    print "| --------------------------------------|       |" at (0,4).
+    print "| WANTED  | APO:         m  ETA:      s |       |" at (0,5).
+    print "|         | PER:         m              |       |" at (0,6).
+    print "|         | SPD:         m/s            |       |" at (0,7).
+    print "=================================================" at (0,8).
     print "      " at (17,1).
     print round(apoapsis) at (17,1).
     print "      " at (33,1).
@@ -333,6 +332,21 @@ function launch {
     print dest_pe at (17,6).
     print "      " at (17,7).
     print round(dest_spd) at (17,7).
+    print "    " at (42,4).
+    print round(vertoff_allow,2) at (42,4).
+  }
+
+  // Terminal input keys can change some parameters:
+  function do_keys {
+    if not(terminal:input:haschar())
+      return.
+    local ch is terminal:input:getchar().
+    // must use unchar to get case-sensitive checks.
+    if unchar(ch) = unchar("V") {
+      set vertoff_allow to vertoff_allow + 0.01.
+    } else if unchar(ch) = unchar("v") {
+      set vertoff_allow to max(vertoff_allow - 0.01, 0).
+    }
   }
 
 }
@@ -508,7 +522,7 @@ function do_fairings {
 
   if f_list:length > 0 {
     for fairing in f_list {
-      if fairing:part:vessel = ship { // skip if the fairing part decoupled away and is now on a new vessel
+      if fairing:part:ship = ship { // skip if the fairing part decoupled away and is now on a new vessel
         if fairing:hasevent("deploy") {
           print "!!Deploying a fairing part!!".
           fairing:doevent("deploy").

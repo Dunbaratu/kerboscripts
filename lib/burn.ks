@@ -46,7 +46,7 @@ function burn_seconds {
   // The ISP of first engine found active:
   // (For more accuracy with multiple differing engines,
   // some kind of weighted average would be needed.)
-  local ISP is isp_calc().
+  local ISP is isp_calc(999999). // "infinite" altitude for assuming vacuum.
 
   // From rocket equation, and definition of ISP:
   return (g0*ISP*m0/F)*( 1 - e^(-dv_mag/(g0*ISP)) ).

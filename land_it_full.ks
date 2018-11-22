@@ -57,7 +57,7 @@ local deltaT is 0.1.
 local landed is false.
 until landed {
   local burn_now is false.
-  local calced_isp is isp_calc(). // WARNING: by pre-calcing, this is wrong for atmo situations where it changes.
+  local calced_isp is isp_calc(0). // WARNING: by pre-calcing, this is wrong for atmo situations where it changes.
   local mu is ship:body:mu.
   local athrust is ship:availablethrust.
   until burn_now {

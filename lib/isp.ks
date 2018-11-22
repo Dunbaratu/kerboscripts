@@ -7,6 +7,7 @@ local isp_calc_prev_availablethrust is -9999.
 local isp_calc_prev_isp is -9999.
 
 function isp_calc {     //-----calculates the average isp of all of the active engins on the ship-----
+  parameter air_alt. // altitude above current body (air pressure changes ISP).
 
   local need_recalc is false.
   // Check to see if there's a reason to bother realculating anything:
@@ -26,12 +27,12 @@ function isp_calc {     //-----calculates the average isp of all of the active e
     LIST ENGINES IN engineList.
     LOCAL totalFlow IS 0.
     LOCAL totalThrust IS 0.
+    LOCAL press is ship:body:atm:altitudePressure(air_alt).
     FOR engine IN engineList {
       IF engine:IGNITION AND NOT engine:FLAMEOUT {
-        local seaPres is ship:body:atm:altitudePressure(0).
-        local avail is engine:availablethrustat(seaPres).
+        local avail is engine:availablethrustat(press).
         // the 9.802 term is wrong?: SET totalFlow TO totalFlow + (engine:AVAILABLETHRUST / (engine:ISP * 9.802)).
-        SET totalFlow TO totalFlow + (avail / engine:ISPAT(seaPres)).
+        SET totalFlow TO totalFlow + (avail / engine:ISPAT(press)).
         SET totalThrust TO totalThrust + avail.
       }
     }

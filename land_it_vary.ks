@@ -86,7 +86,7 @@ local vd1 is 0.
 local vd_off is 0.
 local prev_time is time:seconds.
 local deltaT is 0.1. // how long an iteration is *actually* taking, measured.
-local calced_isp is isp_calc(). // WARNING: by pre-calcing, this is wrong for atmo situations where it changes.
+local calced_isp is isp_calc(0). // WARNING: by pre-calcing, this is wrong for atmo situations where it changes.
 local mu is ship:body:mu.
 local bodRad is ship:body:radius.
 local athrust is ship:availablethrust.
@@ -246,6 +246,7 @@ set ship:control:pilotmainthrottle to 0.
 wait 0.
 unlock throttle.
 set vd1 to 0.
+set vd_off to 0.
 //clearscreen.
 print "program cut off at alt:radar = " + round(alt:radar,1) + " (desired margin = " + round(margin,1)+").".
 print "Waiting for landed state.".

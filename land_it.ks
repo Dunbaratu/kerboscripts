@@ -68,7 +68,7 @@ until burn_done {
     ship:body:mu,
     ship:body:position,
     ship:availablethrust,
-    isp_calc(),
+    isp_calc(0),
     ship:mass,
     ship:drymass,
     ship:velocity:surface,

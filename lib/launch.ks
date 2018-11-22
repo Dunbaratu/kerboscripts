@@ -236,7 +236,11 @@ function launch {
             if not(throttle_was_zero) {
               set min_throt to 0.
               do_fairings(fairings).
-              wait 5.
+
+              // Wait 10s, but allow that wait to prematurely stop if near ap:
+              local wait_start is time:seconds.
+              wait until time:seconds > wait_start + 10 or eta:apoapsis < 15.
+              
               print "Start mild time warp coast to Ap.".
               set kuniverse:timewarp:mode to "rails".
               set warp to 2.

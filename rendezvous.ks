@@ -97,9 +97,9 @@ if skips <= 1 {
   print " ".
   print " ".
   set rendezvous_tolerance_1 to 500. // (seconds).
-  set rendezvous_tolerance_2 to 40. // (seconds).
-  set rendezvous_tolerance_3 to 10. // (seconds).
-  set rendezvous_tolerance_4 to 1. // (seconds).
+  set rendezvous_tolerance_2 to 200. // (seconds).
+  set rendezvous_tolerance_3 to 50. // (seconds).
+  set rendezvous_tolerance_4 to 3. // (seconds).
   set found to false.
   set my_rendezvous_utime to 0. // will calculate later in the loop.
   set num_orbits to 0. // how many orbits until a hit.
@@ -117,7 +117,7 @@ if skips <= 1 {
         local time_diff is my_rendezvous_utime - other_rendezvous_utime.
         print "other ETA = " + utime_to_eta_time(other_rendezvous_utime,1)+"s  " at (30,10+j).
         if abs(time_diff) < rendezvous_tolerance_1 {
-          lock throttle to 0.1.
+          lock throttle to 0.2.
         }
         if abs(time_diff) < rendezvous_tolerance_2 {
           lock throttle to 0.05.
@@ -198,7 +198,7 @@ if skips <= 3 {
     lock steering to mysteerpoint.
     wait until vang(mysteerpoint, ship:facing:forevector) < 2.
     lock throttle to 1/(0.01*maxAccel).
-    wait until vdot(rel_vel,mysteerpoint:normalized) > 4+(mysteerpoint:mag/100).
+    wait until vdot(rel_vel,mysteerpoint:normalized) > 4+min(30,(mysteerpoint:mag/200)).
     sas off.
     lock steering to mysteer. // put it back to what it was.
 

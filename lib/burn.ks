@@ -81,7 +81,6 @@ function do_burn_with_display {
     local prev_fore is ship:facing:forevector.
     wait 0.01.
   }.
-  local start_vel is ship:velocity:orbit.
   local dv_to_go is 9999999.
 
   // Throttle at max most of the way, but start throttling

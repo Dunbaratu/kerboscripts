@@ -72,6 +72,11 @@ function drive_to {
 
   local oldSas is SAS.
   SAS off.
+  set warp to 0.
+  until kuniverse:timewarp:rate = 1 {
+    print "Waiting for timewarp rate to come down to 1x before starting.".
+    wait 1.
+  }
 
   list resources in reses.
   for res in reses {

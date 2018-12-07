@@ -136,6 +136,7 @@ function launch {
  
   print "Waiting for prograde to match steering close enough.".
   local heading_err is 999.
+  local remember_min_throt is min_throt.
   local off_vert is 999.
   local off_vec is v(1,0,0).
   local remember_compass is dest_compass.
@@ -162,7 +163,13 @@ function launch {
     // Next line will aim a bit left or right of desired heading if it starts off
     // really far off - which only happens when launching on low grav moons from a
     // badly tllted terrain angle:
-    set dest_compass to remember_compass - 4*heading_err.
+    // clamped to +/-60 deg so it doesn't circle round the compass to the wrong way.
+    set dest_compass to remember_compass - max(-90,min(90,4*heading_err)).
+
+    // Prevent throttle from being too weak while we're trying to force heading to change:
+    local g is body:mu / (body:radius+altitude)^2.
+    local twr is ship:availablethrust / (g*ship:mass).
+    set min_throt to 3 / max(twr, 0.01).
 
     info_block().
     do_keys().
@@ -170,6 +177,7 @@ function launch {
     wait 0.
   }
   set dest_compass to remember_compass.
+  set min_throt to remember_min_throt.
 
   // Kick has started, initial direction has started, so now just follow prograde as-is and
   // adjust pitch and throttle by ETA:apoapsis.

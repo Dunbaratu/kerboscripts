@@ -1,6 +1,22 @@
 // A dumb script to orbit, designed to be simple.
 // made during twitch stream.
 
+// SHIP DESIGN RULES TO USE THIS SCRIPT::
+//
+// 1 - LAUNCH CLAMPS - If you have launch clamps, set them up so
+//     they let go as the first stage starts (same item in staging list).
+// 2 - PAYLOAD_CUT_PE - Set variable in this script: "payload_cut_pe" to the 
+//     height you want to detach any parts you'd like to de-orbit just before
+//     finishing circularizing.
+// 3 - TAG NAMES THAT MEAN SOMETHING:
+//     3.1 - "fairing" : Any part tagged "fairing" with ModuleProceduralFairing
+//           in it, will be "Deploy"ed when Pe hits payload_cut_pe.
+//     3.2 - "payload cutoff" : Any part tagged "payload cutoff" is assumed to
+//           be in the "launcher" part of the rocket that must be staged away
+//           just before finishing circularlization.  At "payload_cut_pe", the
+//           script will stage until all the "payload_cutoff" parts have been
+//           detached.  (i.e. tag the decoupler just under the payload with this name).
+
 local the_voice is getvoice(0).
 
 // You can ignore this if you dont care about
@@ -35,8 +51,8 @@ function stage_if_needed {
   for eng in eng_list {
     if eng:flameout {
       msg("An engine flamed out, so staging.").
+      wait until stage:ready.
       stage.
-      wait 0.
       break.
     } else if eng:ignition {
       set num_act to num_act + 1.
@@ -81,6 +97,8 @@ lock throttle to 1.
 local done is false.
 local prev_pitch is cur_pitch.
 local cutoff_ap is 80_000.
+local payload_cut_pe is 40_000.
+local fairingModName is "ModuleProceduralFairing".
 
 // This loop does liftoff until coast TO AP:
 // This primitive loop doesn't account for
@@ -132,7 +150,9 @@ lock throttle to 0.
 // When out of atmo, lets lightly time warp, till ready for
 // the burn:
 wait until altitude > 70_000. // out of atmosphere.
-wait 1. // Because somtimes KSP doesn't remove the restriction on phys warp right away when hitting vacuum.
+set warp to 0.
+wait 2. // Because somtimes KSP doesn't remove the restriction on phys warp right away when hitting vacuum.
+set kuniverse:timewarp:mode to "RAILS". // so the warp below works right even if player was phys warping to vacuum.
 msg("Doing light time warp till apoapsis.").
 set warp to 2. // 10x in stock no mods.
 wait until eta:apoapsis < 30..
@@ -144,10 +164,48 @@ lock throttle to 1.
 
 
 // This loop does the circularization burn:
-set done to false.
+local done is false.
+local payload_cut_yet is false.
+local fairing_cut_yet is false.
 until done {
   stage_if_needed().
   local signed_eta is eta:apoapsis.
+
+  if periapsis >= payload_cut_pe {
+    // If Pe >= payload cutoff point, and the fairing is still
+    // attached to the ship, then deploy all fairing parts away:
+    if not(fairing_cut_yet) {
+      local fairing_parts is ship:partstagged("fairing"). // expensive walk - don't do it too much.
+      for p in fairing_parts {
+	lock throttle to 0.
+	wait 1.
+	if p:hasmodule(fairingModName) {
+          local fair_module is p:getmodule(fairingModName).
+	  fair_module:doevent("Deploy").
+	  msg("Pe above " + payload_cut_pe + "m.  Deploying Fairing.").
+        }
+      }
+      set fairing_cut_yet to true.
+    }
+    // If Pe >= payload cutoff point, and some parts are
+    // still attached to the ship with the "payload cutoff"
+    // tag, then stage until that's not true anymore:
+    if not(payload_cut_yet) {
+      local cut_parts_list is ship:partstagged("payload cutoff"). // expensive walk - don't do it too much.
+      if cut_parts_list:length > 0 {
+	lock throttle to 0.
+	wait 1.
+	until cut_parts_list:length = 0 {
+	  msg("Pe above " + payload_cut_pe + "m.  Decoupling until payload cutoff parts gone").
+	  wait until stage:ready.
+	  stage.
+	  set cut_parts_list to ship:partstagged("payload cutoff"). // expensive walk - don't do it too much.
+	}
+      }
+      set payload_cut_yet to true.
+      lock throttle to 1.
+    }
+  }
 
   // If the Ap is behind us, it will be reported
   // instead as being in our far future, more than

@@ -14,11 +14,11 @@ function do_dock {
   local old_rcs_value is RCS.
   RCS on.
 
-  local fore_control_pid         is PIDLoop( 7, 0.05, 1, -1, 1 ).
-  local top_want_speed_pid       is PIDLoop( 0.05, 0, 0.02, -5, 5 ).
-  local top_control_pid          is PIDLoop( 7, 0.05, 1, -1, 1 ).
-  local starboard_want_speed_pid is PIDLoop( 0.05, 0, 0.02, -5, 5 ).
-  local starboard_control_pid    is PIDLoop( 7, 0.05, 1, -1, 1 ).
+  local fore_control_pid         is PIDLoop( 4, 0.05, 0.5, -1, 1 ).
+  local top_want_speed_pid       is PIDLoop( 0.1, 0.01, 0.03, -5, 5 ).
+  local top_control_pid          is PIDLoop( 0.5, 0.05, 0.1, -1, 1 ).
+  local starboard_want_speed_pid is PIDLoop( 0.1, 0.01, 0.03, -5, 5 ).
+  local starboard_control_pid    is PIDLoop( 0.5, 0.05, 0.1, -1, 1 ).
 
   // Track when the part count goes up: if it goes up that must mean the two ships
   // have merged, right?
@@ -102,6 +102,7 @@ function do_dock {
     }
   }
   print "Docked!".
+  rcs off.
 }
 
 function wanted_approach_speed {

@@ -23,7 +23,7 @@ print "Now falling straight".
 
 until status = "LANDED" {
   local surf_g is body:mu / (body:radius)^2.
-  local engine_a is maxthrust / mass.
+  local engine_a is (0.95*availablethrust) / mass.
   local sum_a is (engine_a - surf_g).
   print "Sum Accel upward I can do is: " + round(sum_a,2) +" m/(s^2)." at (5,3).
   local done is false.

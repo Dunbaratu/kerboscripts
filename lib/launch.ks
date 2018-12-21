@@ -18,6 +18,8 @@ function countdown {
 local target_eta_spd is 0.
 local target_eta_apo is 0.
 local vertoff_allow is 0.15.
+local payload_cut_pe is 0.
+local payload_cut_yet is false.
 
 function launch {
   parameter dest_compass. // not exactly right when not 90.
@@ -33,6 +35,13 @@ function launch {
   parameter ignitions is 2.
 
   if second_dest_ap < 0 { set second_dest_ap to dest_pe. }
+
+  if body:atm:exists {
+    set payload_cut_pe to body:atm:height*0.5.
+  } else {
+    set payload_cut_pe to 0.
+  }
+  set payload_cut_yet to false.
 
   local dest_sma is (body:radius*2 + dest_pe + second_dest_ap)/2.
   local dest_rad is ship:body:radius + dest_pe.
@@ -72,8 +81,8 @@ function launch {
   lock throttle to 0.
   local actives is all_active_engines().
   until actives:length > 0 {
+    wait until stage:ready.
     stage.
-    wait 1.
     set actives to all_active_engines().
   }
   print "Now there is an active engine".
@@ -125,13 +134,16 @@ function launch {
   // To aim roof at ground, I'm aiming at opposite compass, with pitch > 90 to pitch the roof on its back:
   local slow_kick_amount is 0.
   until slow_kick_amount = 10 {
-    lock steering to lookdirup(heading(dest_compass, 85-slow_kick_amount*TWR_for_launch^1.5):forevector, -ship:up:vector).
+    set TWR_avail to AVAILABLETHRUST/(MASS*g).
+    lock clamp_pitch_down to min(50, max(0, slow_kick_amount*TWR_avail)).
+    lock steering to lookdirup(heading(dest_compass, 90-clamp_pitch_down):forevector, -ship:up:vector).
     // kick over more slowly when there's atmosphere:
     if atmo_end = 0 
-      wait 0.
+      wait 0.1.
     else 
       wait 1. 
     set slow_kick_amount to slow_kick_amount+1.
+    print "TWR=" + TWR_avail + " steerpitch= " + (85-clamp_pitch_down).
   }
  
   print "Waiting for prograde to match steering close enough.".
@@ -305,6 +317,26 @@ function launch {
       abort on.
       hudtext("INVOKING ABORT ACTION!!! BECAUSE FALLING.", 15, 2, 30, red, true).
       set done to true.
+    }
+    if periapsis >= payload_cut_pe {
+      // If Pe >= payload cutoff point, and some parts are
+      // still attached to the ship with the "payload cutoff"
+      // tag, then stage until that's not true anymore:
+      if not(payload_cut_yet) {
+	local cut_parts_list is ship:partstagged("payload cutoff"). // expensive walk - don't do it too much.
+	if cut_parts_list:length > 0 {
+	  lock throttle to 0.
+	  wait 1.
+	  until cut_parts_list:length = 0 {
+	    msg("Pe above " + payload_cut_pe + "m.  Decoupling until payload cutoff parts gone").
+	    wait until stage:ready.
+	    stage.
+	    set cut_parts_list to ship:partstagged("payload cutoff"). // expensive walk - don't do it too much.
+	  }
+	}
+	set payload_cut_yet to true.
+	lock throttle to 1.
+      }
     }
 
     info_block(coast_circular).

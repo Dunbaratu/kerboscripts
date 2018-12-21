@@ -97,6 +97,7 @@ lock throttle to 1.
 local done is false.
 local prev_pitch is cur_pitch.
 local cutoff_ap is 80_000.
+local min_pe is 70_000. // min safe Pe because of atmo.
 local payload_cut_pe is 40_000.
 local fairingModName is "ModuleProceduralFairing".
 
@@ -225,6 +226,11 @@ until done {
   if ship:obt:trueanomaly < 90 or ship:obt:trueanomaly > 270 {
     set done to true.
     msg("Now closer to Pe than Ap, so stopping circ burn.").
+    until periapsis > min_pe {
+      msg("Still thrusting because Pe ("+round(periapsis,0)+") is too low (min="+min_pe+")").
+      wait 2.
+    }
+    msg("Done launnching to orbit.").
   }
 }
 

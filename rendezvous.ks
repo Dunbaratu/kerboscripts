@@ -89,7 +89,7 @@ if skips <= 1 {
     wait 0.
   }
 
-  print "Embiggenig orbit until matching a rendezvous time.".
+  print "Embiggening orbit until matching a rendezvous time.".
   print " ".
   print " ".
   print " ".
@@ -110,12 +110,12 @@ if skips <= 1 {
     local i is 0.
     until found or i = 4 {
       set my_rendezvous_utime to burn_start_time + ship:obt:period * i.
-      print "[" + i + "], my ETA = " + utime_to_eta_time(my_rendezvous_utime,1) + "s  " at (2,10+i).
+      print "[" + i + "], my ETA = " + utime_to_eta_time(my_rendezvous_utime,1) + "s  " at (2,15+i).
       local j is 0.
       until found or j = 4 {
         local other_rendezvous_utime is rendezvous_utimes[j].
         local time_diff is my_rendezvous_utime - other_rendezvous_utime.
-        print "other ETA = " + utime_to_eta_time(other_rendezvous_utime,1)+"s  " at (30,10+j).
+        print "other ETA = " + utime_to_eta_time(other_rendezvous_utime,1)+"s  " at (30,15+j).
         if abs(time_diff) < rendezvous_tolerance_1 {
           lock throttle to 0.2.
         }

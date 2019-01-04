@@ -5,6 +5,11 @@
 // to align to the target:
 function do_dock {
   parameter from_part, to_part.
+  local from_part_module is 0.
+  if not from_part:istype("Part") {
+    print "TARGET does not seem to be a docking port.  Plese fix that.".
+    return.
+  }
   until abs(steeringmanager:angleerror) < 1 and abs(steeringmanager:rollerror) < 1 {
     print "Waiting for orientation to match direction of the port.".
     wait 2.
@@ -15,10 +20,13 @@ function do_dock {
   RCS on.
 
   local fore_control_pid         is PIDLoop( 4, 0.05, 0.5, -1, 1 ).
-  local top_want_speed_pid       is PIDLoop( 0.1, 0.01, 0.03, -5, 5 ).
-  local top_control_pid          is PIDLoop( 0.5, 0.05, 0.1, -1, 1 ).
-  local starboard_want_speed_pid is PIDLoop( 0.1, 0.01, 0.03, -5, 5 ).
-  local starboard_control_pid    is PIDLoop( 0.5, 0.05, 0.1, -1, 1 ).
+  local top_want_speed_pid       is PIDLoop( 0.2, 0.0001, 0.03, -4, 4 ).
+  local top_control_pid          is PIDLoop( 1, 0.003, 0.2, -1, 1 ).
+  local starboard_want_speed_pid is PIDLoop( 0.2, 0.0001, 0.03, -4, 4 ).
+  local starboard_control_pid    is PIDLoop( 1, 0.003, 0.2, -1, 1 ).
+
+  lock steering to lookdirup( -to_part:portfacing:vector, to_part:portfacing:topvector).
+  local steering_locked is true.
 
   // Track when the part count goes up: if it goes up that must mean the two ships
   // have merged, right?
@@ -50,24 +58,12 @@ function do_dock {
     // Note, this drives the forward part of the RCS thrust vector by
     // our relative SPEED, but drives the top and starboard parts of
     // the RCS thrust vector by our relative POSITIONS:
-    set ship:control:fore to fore_control_pid:UPDATE( now, (rel_spd_fore - wanted_approach_speed(rel_port_pos)) ).
-    set top_want_speed to top_want_speed_pid:UPDATE( now, rel_pos_top).
-    set ship:control:top to top_control_pid:UPDATE( now, rel_spd_top - top_want_speed).
-    set starboard_want_speed to starboard_want_speed_pid:UPDATE( now, rel_pos_starboard ).
-    set ship:control:starboard to starboard_control_pid:UPDATE( now, rel_spd_star - starboard_want_speed).
-
-    // Only have an integral term when we are close to lined up, so as to
-    // prevent integral windup during the long slow approach, but still have
-    // some when we get to the final alignment:
-    if top_want_speed < 0.2 {
-      set top_want_speed_pid:Ki to 0.0005.
-    } else {
-      set top_want_speed_pid:Ki to 0.
-    }
-    if starboard_want_speed < 0.2 {
-      set starboard_want_speed_pid:Ki to 0.0005.
-    } else {
-      set starboard_want_speed_pid:Ki to 0.
+    if from_part:state  = "Ready" { // do NOT do this when the docking magnets are pulling
+      set ship:control:fore to fore_control_pid:UPDATE( now, (rel_spd_fore - wanted_approach_speed(rel_port_pos)) ).
+      set top_want_speed to top_want_speed_pid:UPDATE( now, rel_pos_top).
+      set ship:control:top to top_control_pid:UPDATE( now, rel_spd_top - top_want_speed).
+      set starboard_want_speed to starboard_want_speed_pid:UPDATE( now, rel_pos_starboard ).
+      set ship:control:starboard to starboard_control_pid:UPDATE( now, rel_spd_star - starboard_want_speed).
     }
 
     print "Rel Pos:" at (10,6).
@@ -86,6 +82,24 @@ function do_dock {
     print "FORE: " + round(ship:control:fore,2) + " m/s " at (20,18).
     print " TOP: " + round(ship:control:top,2) + " m/s " at (20,19).
     print "STAR: " + round(ship:control:starboard,2) + " m/s " at (20,20).
+    
+    print "Docking port status: " + from_part:state + "       " at (10,22).
+    
+    if from_part:state = "Acquire" {
+      print "PORTS MAGNETICALLY PULLING - RELEASING CONTROL." at (5,23).
+      set ship:control:neutralize to true.
+      unlock steering.
+      set steering_locked to false.
+      // stop the integral windup that happens due to "doing nothing" for a while.
+      fore_control_pid:RESET().
+      top_want_speed_pid:RESET().
+      top_control_pid:RESET().
+      starboard_want_speed_pid:RESET().
+      starboard_control_pid:RESET().
+    } else if (not steering_locked) and from_part:state = "Ready" {
+      lock steering to lookdirup(- to_part:portfacing:vector, to_part:portfacing:topvector).
+      set steering_locked to true.
+    }
   }
 
   print "Port magnetism taking over. Letting go of controls.".

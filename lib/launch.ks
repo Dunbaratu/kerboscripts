@@ -328,7 +328,7 @@ function launch {
 	  lock throttle to 0.
 	  wait 1.
 	  until cut_parts_list:length = 0 {
-	    msg("Pe above " + payload_cut_pe + "m.  Decoupling until payload cutoff parts gone").
+	    hudtext("Pe above " + payload_cut_pe + "m.  Decoupling until payload cutoff parts gone", 6, 2, 20, green, true).
 	    wait until stage:ready.
 	    stage.
 	    set cut_parts_list to ship:partstagged("payload cutoff"). // expensive walk - don't do it too much.
@@ -469,6 +469,9 @@ function throttle_func {
 // of seconds since Apo, rather than a large positive number
 // far in the future like it normally does:
 function signed_eta_ap {
+  if apoapsis < 1 { // hyperbolic
+    return 9999999999. // bignum not quite infinity.
+  }
   local per is ship:obt:period.
   local future_eta is eta:apoapsis.
   local past_eta is future_eta - per.
@@ -484,6 +487,9 @@ function signed_eta_ap {
 // of seconds since Apo, rather than a large positive number
 // far in the future like it normally does:
 function signed_eta_pe {
+  if apoapsis < 1 { // hyperbolic
+    return 9999999999. // bignum not quite infinity.
+  }
   local per is ship:obt:period.
   local future_eta is eta:periapsis.
   local past_eta is future_eta - per.
@@ -528,15 +534,6 @@ function east_for {
 
   return vcrs(ves:up:vector, ves:north:vector).
 }
-// Return eta:apoapsis but with times behind you
-// rendered as negative numbers in the past:
-function eta_ap_with_neg {
-  local ret_val is eta:apoapsis.
-  if ret_val > ship:obt:period / 2 {
-    set ret_val to ret_val - ship:obt:period.
-  }
-  return ret_val.
-}
 
 function compass_of_vel {
   parameter pointing. // ship:velocity:orbit or ship:velocity:surface
@@ -579,7 +576,7 @@ function do_fairings {
 
 function circularize {
   print "Circularizing.".
-  lock steering to heading(compass_of_vel(ship:velocity:orbit), -(eta_ap_with_neg()/3)).
+  lock steering to heading(compass_of_vel(ship:velocity:orbit), -(signed_eta_ap()/3)).
   print "..Waiting for steering to finish locking in place.".
   local vdraw is vecdraw(v(0,0,0), steering:vector*50, white, "waiting to point here", 1, true).
   wait until

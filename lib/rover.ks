@@ -111,6 +111,8 @@ function drive_to {
   local hill_sideways_sign is 0.
 
   until geo_dist(geopos) < proximity_needed {
+    tune_pid(steer_pid).
+
     local battery_ratio is ship:electriccharge / battery_full.
     if battery_ratio < 0.1 {
       set battery_panic to true.
@@ -353,10 +355,23 @@ function all_lasers_toggle {
   }
 }
 
+// Tune the steering pid to dampen it when in phys warp.
+function tune_pid {
+  parameter the_pid.
+
+  local phys_warp is 1.
+  if kuniverse:timewarp:mode = "PHYSICS" {
+    set phys_warp to kuniverse:timewarp:rate.
+  }
+  set the_pid:KP to 0.01 / phys_warp.
+  set the_pid:KI to 0.00002 / phys_warp.
+  set the_pid:KD to 0.003 / phys_warp.
+}
+
 steeringmanager:resettodefault(). // just in case a previous run of this script left it screwed up.
 
 global yaw_disable_roll_angle_orig is steeringmanager:RollControlAngleRange.
-global yaw_disable_Kp_orig is steeringmanager:yawpid:Kp.
+
 global yaw_disable_Ki_orig is steeringmanager:yawpid:Ki.
 global yaw_disable_Kd_orig is steeringmanager:yawpid:Kd.
 global yaw_disable_Ts_orig is steeringManager:yawts.

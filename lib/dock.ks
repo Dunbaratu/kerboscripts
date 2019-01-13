@@ -7,7 +7,7 @@ function do_dock {
   parameter from_part, to_part.
   local from_part_module is 0.
   if not from_part:istype("Part") {
-    print "TARGET does not seem to be a docking port.  Plese fix that.".
+    print "Source 'from part' needs to be a part.  Plese fix that.".
     return.
   }
   until abs(steeringmanager:angleerror) < 1 and abs(steeringmanager:rollerror) < 1 {
@@ -25,7 +25,7 @@ function do_dock {
   local starboard_want_speed_pid is PIDLoop( 0.2, 0.0001, 0.03, -4, 4 ).
   local starboard_control_pid    is PIDLoop( 1, 0.003, 0.2, -1, 1 ).
 
-  lock steering to lookdirup( -to_part:portfacing:vector, to_part:portfacing:topvector).
+  lock steering to lookdirup( -get_facing(to_part):vector, get_facing(to_part):topvector).
   local steering_locked is true.
 
   // Track when the part count goes up: if it goes up that must mean the two ships
@@ -58,7 +58,7 @@ function do_dock {
     // Note, this drives the forward part of the RCS thrust vector by
     // our relative SPEED, but drives the top and starboard parts of
     // the RCS thrust vector by our relative POSITIONS:
-    if from_part:state  = "Ready" { // do NOT do this when the docking magnets are pulling
+    if get_state(from_part)  = "Ready" { // do NOT do this when the docking magnets are pulling
       set ship:control:fore to fore_control_pid:UPDATE( now, (rel_spd_fore - wanted_approach_speed(rel_port_pos)) ).
       set top_want_speed to top_want_speed_pid:UPDATE( now, rel_pos_top).
       set ship:control:top to top_control_pid:UPDATE( now, rel_spd_top - top_want_speed).
@@ -83,9 +83,9 @@ function do_dock {
     print " TOP: " + round(ship:control:top,2) + " m/s " at (20,19).
     print "STAR: " + round(ship:control:starboard,2) + " m/s " at (20,20).
     
-    print "Docking port status: " + from_part:state + "       " at (10,22).
+    print "Docking port status: " + get_state(from_part) + "       " at (10,22).
     
-    if from_part:state = "Acquire" {
+    if get_state(from_part) = "Acquire" {
       print "PORTS MAGNETICALLY PULLING - RELEASING CONTROL." at (5,23).
       set ship:control:neutralize to true.
       unlock steering.
@@ -96,8 +96,8 @@ function do_dock {
       top_control_pid:RESET().
       starboard_want_speed_pid:RESET().
       starboard_control_pid:RESET().
-    } else if (not steering_locked) and from_part:state = "Ready" {
-      lock steering to lookdirup(- to_part:portfacing:vector, to_part:portfacing:topvector).
+    } else if (not steering_locked) and get_state(from_part) = "Ready" {
+      lock steering to lookdirup(- get_facing(to_part):vector, get_facing(to_part):topvector).
       set steering_locked to true.
     }
   }
@@ -117,6 +117,24 @@ function do_dock {
   }
   print "Docked!".
   rcs off.
+}
+
+function get_facing {
+  parameter a_part.
+
+  if a_part:istype("DOCKINGPORT")
+    return a_part:portfacing.
+  else
+    return a_part:facing.
+}
+
+function get_state {
+  parameter a_part.
+
+  if a_part:istype("DOCKINGPORT")
+    return a_part:state.
+  else
+    return "Ready". // fake docking port "state" when it's not really a docking port.
 }
 
 function wanted_approach_speed {

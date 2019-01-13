@@ -17,10 +17,11 @@ if tgt:ISTYPE("VESSEL") {
 // If the part being targetted is a docking port, then lock to its port facing,
 // else lock to its normal facing if it's any other kind of part:
 if tgt:ISTYPE("DOCKINGPORT") {
+  print "Target is a docking port.".
   lock steering to lookdirup(- tgt:portfacing:forevector, tgt:portfacing:topvector).
 } else {
-  print "Target is a docking port.".
-  lock steering to lookdirup(- tgt:portfacing:vector, tgt:portfacing:topvector).
+  print "Target is NOT a docking port.".
+  lock steering to lookdirup(- tgt:facing:vector, tgt:facing:topvector).
 } 
 
 local from_parts is ship:partstagged("from here").

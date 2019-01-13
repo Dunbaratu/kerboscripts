@@ -37,7 +37,7 @@ function launch {
   if second_dest_ap < 0 { set second_dest_ap to dest_pe. }
 
   if body:atm:exists {
-    set payload_cut_pe to body:atm:height*0.5.
+    set payload_cut_pe to body:atm:height/3.0. // cutoff at 1/3 of atmo so KSP will delete it.
   } else {
     set payload_cut_pe to 0.
   }

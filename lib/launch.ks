@@ -328,7 +328,7 @@ function launch {
 	  lock throttle to 0.
 	  wait 1.
 	  until cut_parts_list:length = 0 {
-	    hudtext("Pe above " + payload_cut_pe + "m.  Decoupling until payload cutoff parts gone", 6, 2, 20, green, true).
+	    hudtext("Pe above " + round(payload_cut_pe) + "m.  Decoupling until payload cutoff parts gone", 6, 2, 20, green, true).
 	    wait until stage:ready.
 	    stage.
 	    set cut_parts_list to ship:partstagged("payload cutoff"). // expensive walk - don't do it too much.

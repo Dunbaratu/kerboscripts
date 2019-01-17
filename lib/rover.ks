@@ -47,7 +47,9 @@ on abort {
 // Given a location, drive there.
 // stop when you get there.
 function drive_to {
-  parameter geopos, cruise_spd, jump_detect is false, proximity_needed is 10, offset_pitch is 0.
+  parameter geopos, cruise_spd, jump_detect is false, proximity_needed is 10, offset_pitch is 0, save_dist is 5000, ocean_check is "".
+
+  local orig_ship_parts is ship:parts:length.
 
   local steer_pid is PIDLOOP(0.01, 0.00002, 0.003, -1, 1).
   local throttle_pid is PIDLOOP(0.5, 0.01, 0.2, -1, 1).
@@ -57,6 +59,13 @@ function drive_to {
   local collision_eta is 0.
   local collision_steer_sign is 1.
   local steering_is_locked is false.
+  if ocean_check:istype("string") { // If it's the default and hasn't been passed.
+    set ocean_check to false.
+    if body:hassuffix("HASOCEAN") and body:hasocean {
+      set ocean_check to true.
+    }
+  }
+  local last_save_spot is latlng(latitude,longitude).
 
 
   local v1 is getvoice(1).
@@ -296,6 +305,7 @@ function drive_to {
     print "forward_speed is " + round(forward_speed(offset_pitch), 3).
     print "wanted_speed is  " + round(wSpeed,1).
     print "geodist to target is " + round(geo_dist(geopos),2).
+    print "ocean_check is " + ocean_check.
     print "USE Abort Action group to kill program and park.".
     print " -------- obstacle detection: --------  ".
     print "LASERS: left: " + has_left_lasers + ", right: " + has_right_lasers + ", leveler: " + has_leveler_lasers.
@@ -315,6 +325,23 @@ function drive_to {
     }
     if battery_panic {
       print "BATTERY LOW PANIC MODE.". 
+    }
+    if ocean_check and terrain_alt_ahead(1000) < 0 {
+      print "=== BELOW SEA LEVEL AHEAD ===".
+      stop_and_save(true).
+    }
+    if geo_dist(last_save_spot) > save_dist {
+      if ship:parts:length < orig_ship_parts {
+        print "REFUSING TO SAVE BECAUSE SHIP PARTS BROKE!!".
+	getvoice(5):play(list(slidenote(400,700,1),slidenote(400,700,1),slidenote(400,700,1))).
+	brakes on.
+	set ship:control:neutralize to true.
+	print 1/0. // fail on purpose.
+      } else {
+        print "=== gone a ways - saving ===".
+	stop_and_save(false).
+	set last_save_spot to latlng(latitude,longitude).
+      }
     }
     wait 0.001.
   }
@@ -538,7 +565,15 @@ function geo_dist {
 
   local ship_geo is ship:body:geopositionof(ship:position).
 
-  return (geo_spot:position - ship_geo:position):mag.
+  // Great circle dist:
+  local v1 is ship:position - body:position.
+  local v2 is geo_spot:position - body:position.
+  local ang is vang(v1,v2).
+  local mean_radius is (v1:mag + v2:mag) / 2.
+
+  // calculate distance as a portion of the circumference
+  // at a radius equal to the avg of the two altitudes:
+  return ang * mean_radius*constant:pi / 180.
 }
 
 function flip_me {
@@ -694,4 +729,32 @@ function wanted_speed {
     }
   }
   return return_val.
+}
+
+function terrain_alt_ahead {
+  parameter how_far.
+  local ahead_pos is how_far*facing:forevector.
+  return ship:body:geopositionof(ahead_pos):terrainheight.
+}
+
+function stop_and_save {
+  parameter bad.
+  print "STOPPING AND SAVING".
+  if bad {
+    print "   -- BECAUSE SOMETHING BAD --".
+    getvoice(5):play(list(note(400,1),note(350,1),note(400,1),note(350,1),note(400,1),note(350,1))).
+  } else {
+    getvoice(5):play(list(note(300,0.4),note(0,0.4),note(300,0.4),note(0,0.4),note(300,0.4))).
+  }
+  set ship:control:neutralize to true.
+  brakes on.
+  wait until groundspeed < 0.4.
+  print "stopped. Now saving".
+  wait 1.
+  kUniverse:quicksave().
+  wait 1.
+  if bad {
+    print "DYING ON PURPOSE - NEED ATTENTION".
+    print 1/0. // deliberate runtime bador.
+  }
 }

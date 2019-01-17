@@ -237,7 +237,7 @@ function gui_edit_course {
   local g_latlng_box_waypoint_pick is g_latlng_box_buttons:addpopupmenu().
   set g_latlng_box_waypoint_pick:style:width to 200.
   g_latlng_box_waypoint_pick:addoption("-- Copy a Waypoint").
-  for w_point in allwaypoints() {
+  for w_point in get_unique_waypoints() {
     if w_point:body = ship:body {
       g_latlng_box_waypoint_pick:addoption(w_point:name).
     }
@@ -419,6 +419,16 @@ function gui_edit_course {
     ).
 
     insert_into_course(list(latlng_point)).
+  }
+
+  // Deal with the fact that the stock game makes duplicate waypoints,
+  // by first putting them into a uniqueset list:
+  function get_unique_waypoints {
+    local r_val is uniqueset().
+    for wp in allwaypoints() {
+      r_val:add(wp).
+    }
+    return r_val.
   }
 
 }

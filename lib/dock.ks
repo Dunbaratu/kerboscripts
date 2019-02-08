@@ -1,5 +1,9 @@
 // routines for docking
 
+// I can't thrust less than this anyway,
+// so I have to account for that.
+local rcs_null_zone is 0.05.
+
 // This handles only the docking translation, and assumes
 // you've already done a LOCK STEERING to the right direction
 // to align to the target:
@@ -24,6 +28,13 @@ function do_dock {
   local top_control_pid          is PIDLoop( 1, 0.003, 0.2, -1, 1 ).
   local starboard_want_speed_pid is PIDLoop( 0.2, 0.0001, 0.03, -4, 4 ).
   local starboard_control_pid    is PIDLoop( 1, 0.003, 0.2, -1, 1 ).
+
+  // These track the total accumulation of thrusting that has failed to
+  // happen because the RCS nullzone suppressed it.  When they accumulate
+  // enough, then it will be time to briefly thrust at nullzone minimum:
+  local null_deficit_fore is 0.
+  local null_deficit_top is 0.
+  local null_deficit_starboard is 0.
 
   lock steering to lookdirup( -get_facing(to_part):vector, get_facing(to_part):topvector).
   local steering_locked is true.
@@ -54,39 +65,95 @@ function do_dock {
     local rel_pos_top is vdot(topUnit, rel_port_pos).
     local rel_pos_starboard is vdot(starUnit, rel_port_pos).
 
+    local rcs_requested_fore is 0.
+    local rcs_requested_top is 0.
+    local rcs_requested_starboard is 0.
 
     // Note, this drives the forward part of the RCS thrust vector by
     // our relative SPEED, but drives the top and starboard parts of
     // the RCS thrust vector by our relative POSITIONS:
     if get_state(from_part)  = "Ready" { // do NOT do this when the docking magnets are pulling
-      set ship:control:fore to fore_control_pid:UPDATE( now, (rel_spd_fore - wanted_approach_speed(rel_port_pos)) ).
+      set rcs_requested_fore to fore_control_pid:UPDATE( now, (rel_spd_fore - wanted_approach_speed(rel_port_pos)) ).
+
       set top_want_speed to top_want_speed_pid:UPDATE( now, rel_pos_top).
-      set ship:control:top to top_control_pid:UPDATE( now, rel_spd_top - top_want_speed).
+      set rcs_requested_top to top_control_pid:UPDATE( now, rel_spd_top - top_want_speed).
+
       set starboard_want_speed to starboard_want_speed_pid:UPDATE( now, rel_pos_starboard ).
-      set ship:control:starboard to starboard_control_pid:UPDATE( now, rel_spd_star - starboard_want_speed).
+      set rcs_requested_starboard to starboard_control_pid:UPDATE( now, rel_spd_star - starboard_want_speed).
     }
 
-    print "Rel Pos:" at (10,6).
-    print "FORE: " + round(rel_pos_fore,2) + " m " at (20,6).
-    print " TOP: " + round(rel_pos_top,2) + " m " at (20,7).
-    print "STAR: " + round(rel_pos_starboard,2) + " m " at (20,8).
-    print "Rel Spd:" at (10,10).
-    print "FORE: " + round(rel_spd_fore,2) + " m/s " at (20,10).
-    print " TOP: " + round(rel_spd_top,2) + " m/s " at (20,11).
-    print "STAR: " + round(rel_spd_star,2) + " m/s " at (20,12).
-    print "Want Spd: " at (10,14).
-    print "FORE: " + "(Not calculated) " + " m/s " at (20,14).
-    print " TOP: " + round(top_want_speed,2) + " m/s " at (20,15).
-    print "STAR: " + round(starboard_want_speed,2) + " m/s " at (20,16).
-    print "Controls: " at (10,18).
-    print "FORE: " + round(ship:control:fore,2) + " m/s " at (20,18).
-    print " TOP: " + round(ship:control:top,2) + " m/s " at (20,19).
-    print "STAR: " + round(ship:control:starboard,2) + " m/s " at (20,20).
+    // Account for the stock RCS null zone of 5% - by accumulating
+    // the amount of failed thrust we wanted but couldn't do because the thrust
+    // the PID controller asked for was less than the null zone.  Then thrust
+    // at barely above null for a moment and zero the accumulation again:
+    // ------------------------------------------------------------
+    if abs(rcs_requested_fore) > rcs_null_zone {
+      set ship:control:fore to rcs_requested_fore.
+      set null_deficit_fore to 0.
+    }
+    else {
+      set null_deficit_fore to null_deficit_fore + rcs_requested_fore.
+      set ship:control:fore to 0.
+      if abs(null_deficit_fore) > rcs_null_zone {
+        set ship:control:fore to null_deficit_fore.
+	set null_deficit_fore to 0.
+      }
+    }
+
+    if abs(rcs_requested_top) > rcs_null_zone {
+      set ship:control:top to rcs_requested_top.
+      set null_deficit_top to 0.
+    }
+    else {
+      set null_deficit_top to null_deficit_top + rcs_requested_top.
+      set ship:control:top to 0.
+      if abs(null_deficit_top) > rcs_null_zone {
+        set ship:control:top to null_deficit_top.
+	set null_deficit_top to 0.
+      }
+    }
+
+    if abs(rcs_requested_starboard) > rcs_null_zone {
+      set ship:control:starboard to rcs_requested_starboard.
+      set null_deficit_starboard to 0.
+    }
+    else {
+      set null_deficit_starboard to null_deficit_starboard + rcs_requested_starboard.
+      set ship:control:starboard to 0.
+      if abs(null_deficit_starboard) > rcs_null_zone {
+        set ship:control:starboard to null_deficit_starboard.
+	set null_deficit_starboard to 0.
+      }
+    }
+
+
+    // READOUTS
+    // --------
+    print "Rel Pos:" at (0,6).
+    print "FORE: " + round(rel_pos_fore,2) + " m " at (10,6).
+    print " TOP: " + round(rel_pos_top,2) + " m " at (10,7).
+    print "STAR: " + round(rel_pos_starboard,2) + " m " at (10,8).
+    print "Rel Spd:" at (0,10).
+    print "FORE: " + round(rel_spd_fore,2) + " m/s " at (10,10).
+    print " TOP: " + round(rel_spd_top,2) + " m/s " at (10,11).
+    print "STAR: " + round(rel_spd_star,2) + " m/s " at (10,12).
+    print "Want Spd: " at (0,14).
+    print "FORE: " + "(Not calculated) " + " m/s " at (10,14).
+    print " TOP: " + round(top_want_speed,2) + " m/s " at (10,15).
+    print "STAR: " + round(starboard_want_speed,2) + " m/s " at (10,16).
+    print "Controls Requested: " at (0,18).
+    print "FORE: Request:" + round(100*rcs_requested_fore) + "%  " at (10,19).
+    print " TOP: Request:" + round(100*rcs_requested_top) + "%  " at (10,20).
+    print "STAR: Request:" + round(100*rcs_requested_starboard) + "%  " at (10,21).
+    print "Controls Actual: " at (0,22).
+    print "FORE: Actual:" + round(100*ship:control:fore) + "%  " at (10,23).
+    print " TOP: Actual:" + round(100*ship:control:top) + "%  " at (10,24).
+    print "STAR: Actual:" + round(100*ship:control:starboard) + "%  " at (10,25).
     
-    print "Docking port status: " + get_state(from_part) + "       " at (10,22).
+    print "Docking port status: " + get_state(from_part) + "       " at (0,27).
     
     if get_state(from_part) = "Acquire" {
-      print "PORTS MAGNETICALLY PULLING - RELEASING CONTROL." at (5,23).
+      print "PORTS MAGNETICALLY PULLING - RELEASING CONTROL." at (0,28).
       set ship:control:neutralize to true.
       unlock steering.
       set steering_locked to false.

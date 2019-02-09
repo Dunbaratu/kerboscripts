@@ -346,6 +346,8 @@ function launch {
   lock throttle to 0.  set ship:control:pilotmainthrottle to 0.
   unlock steering.
   wait 0.
+
+  deploy_launch_done_code().
   print "DONE".
 
   // Print some useful info in a block during this function:
@@ -393,6 +395,21 @@ function launch {
     }
   }
 
+}
+
+function deploy_launch_done_code {
+  local done_parts is ship:partstaggedpattern("^done:.*").
+  if done_parts:length > 0 {
+    print "Running done: tags from ship:".
+    if exists("tmp_do_this.ks")
+      deletepath("tnp_do_this.ks").
+    for p in done_parts {
+      local cmd is p:tag:remove(0,5) + ".".
+      log cmd to "tmp_do_this.ks".
+      print "cmd: " + cmd.
+    }
+    runpath("tmp_do_this.ks").
+  }
 }
 
 // Return either orbital or surface vel depending on altitude:

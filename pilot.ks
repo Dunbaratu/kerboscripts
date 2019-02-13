@@ -238,7 +238,7 @@ function init_bank_pid {
   return PIDLOOP(3, 0.00, 5, -45, 45).
 }
 function init_throt_pid {
-  return PIDLOOP(0.1, 0.001, 0.05, 0, 1).
+  return PIDLOOP(0.02, 0.002, 0.05, 0, 1).
 }
 
 set pitchPid to init_pitch_pid().
@@ -479,7 +479,7 @@ if gui_exists
 function pid_tune_for_speed {
   parameter speed, pitchPID, rollPID.
 
-  local dampener is 200/(2*speed+50).
+  local dampener is 200/(4*speed+50).
   set pitchPID:Kp to pitch_base_Kp * dampener.
   set pitchPID:Ki to pitch_base_Ki * dampener.
   set pitchPID:Kd to pitch_base_Kd * dampener.

@@ -4,16 +4,26 @@
 // so I have to account for that.
 local rcs_null_zone is 0.05.
 
+local mode is "Evade".
+
 // This handles only the docking translation, and assumes
 // you've already done a LOCK STEERING to the right direction
 // to align to the target:
 function do_dock {
   parameter from_part, to_part.
   local from_part_module is 0.
+
+  local original_length is ship:parts:length.
+
   if not from_part:istype("Part") {
     print "Source 'from part' needs to be a part.  Plese fix that.".
     return.
   }
+
+  // If terminal is too small, enlarge it.  Leave it alone if big enough already:
+  set terminal:width to MAX(40, terminal:width).
+  set terminal:height to MAX(30, terminal:height).
+
   until abs(steeringmanager:angleerror) < 1 and abs(steeringmanager:rollerror) < 1 {
     print "Waiting for orientation to match direction of the port.".
     wait 2.
@@ -42,7 +52,6 @@ function do_dock {
   // Track when the part count goes up: if it goes up that must mean the two ships
   // have merged, right?
 
-  local original_length is ship:parts:length.
   until ship:parts:length > original_length {
 
     // Make sure to grab all physical world readings right at the
@@ -55,6 +64,7 @@ function do_dock {
     local topUnit is ship:facing:topvector.
     local starUnit is ship:facing:starvector.
     local now is time:seconds.
+    local angle_from_port is vang(to_part:portfacing:vector, rel_port_pos).
     // ^^^ All relevant readings have been taken now.  After this point it's safe to have tick interruptions:
 
     local rel_spd_fore is vdot(foreUnit, rel_spd).
@@ -69,16 +79,39 @@ function do_dock {
     local rcs_requested_top is 0.
     local rcs_requested_starboard is 0.
 
+    // Change what we want to do depending on if we are on the 
+    // correct side of the vessel or not:
+    local leftright_dist is abs( vdot( ship:facing:starvector, rel_port_pos ) ).
+    if angle_from_port <= 45 {
+      set mode to "Approach".
+    } else if angle_from_port < 135 and leftright_dist > 50{
+      set mode to "Advance".
+    } else {
+      set mode to "Evade".
+    }
+
     // Note, this drives the forward part of the RCS thrust vector by
     // our relative SPEED, but drives the top and starboard parts of
     // the RCS thrust vector by our relative POSITIONS:
     if get_state(from_part)  = "Ready" { // do NOT do this when the docking magnets are pulling
-      set rcs_requested_fore to fore_control_pid:UPDATE( now, (rel_spd_fore - wanted_approach_speed(rel_port_pos)) ).
+      if mode = "Approach" {
+	set rcs_requested_fore to fore_control_pid:UPDATE( now, (rel_spd_fore - wanted_approach_speed(rel_port_pos)) ).
 
-      set top_want_speed to top_want_speed_pid:UPDATE( now, rel_pos_top).
+	set top_want_speed to top_want_speed_pid:UPDATE( now, rel_pos_top).
+
+	set starboard_want_speed to starboard_want_speed_pid:UPDATE( now, rel_pos_starboard ).
+      } else if mode = "Evade" {
+	set rcs_requested_fore to fore_control_pid:UPDATE( now, rel_spd_fore ). // try to kill all fore speed - just go sideways.
+	set top_want_speed to 0.
+	set starboard_want_speed to 2.0.
+      } else if mode = "Advance" {
+	set rcs_requested_fore to fore_control_pid:UPDATE( now, rel_spd_fore + 2.0 ). // try to move  -1.5 fore.
+	set top_want_speed to 0.
+	set starboard_want_speed to 0.
+      } else {
+        PRINT "HUH?  What Mode is this??". // should't happen.
+      }
       set rcs_requested_top to top_control_pid:UPDATE( now, rel_spd_top - top_want_speed).
-
-      set starboard_want_speed to starboard_want_speed_pid:UPDATE( now, rel_pos_starboard ).
       set rcs_requested_starboard to starboard_control_pid:UPDATE( now, rel_spd_star - starboard_want_speed).
     }
 
@@ -150,10 +183,11 @@ function do_dock {
     print " TOP: Actual:" + round(100*ship:control:top) + "%  " at (10,24).
     print "STAR: Actual:" + round(100*ship:control:starboard) + "%  " at (10,25).
     
-    print "Docking port status: " + get_state(from_part) + "       " at (0,27).
+    print "MODE: " + mode + " angle_from_port = " +round(angle_from_port,1)+" lr_dist="+round(leftright_dist,0) at (0,27).
+    print "Docking port status: " + get_state(from_part) + "       " at (0,29).
     
     if get_state(from_part) = "Acquire" {
-      print "PORTS MAGNETICALLY PULLING - RELEASING CONTROL." at (0,28).
+      print "PORTS MAGNETICALLY PULLING - RELEASING CONTROL." at (0,30).
       set ship:control:neutralize to true.
       unlock steering.
       set steering_locked to false.

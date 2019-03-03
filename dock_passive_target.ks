@@ -30,7 +30,6 @@ hudtext_until_condition(
   "Choose docking port on this vessel to dock from by giving exactly 1 port the name tag 'from here'.",
   8, 2, 20, yellow, true).
 
-
 print "DOCKING SCRIPT COMMENCING".
 do_dock(from_parts[0], tgt).
 

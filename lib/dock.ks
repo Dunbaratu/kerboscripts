@@ -6,6 +6,9 @@ local rcs_null_zone is 0.05.
 
 local mode is "Evade".
 
+
+local wanted_spd_last_val is 0.
+
 // This handles only the docking translation, and assumes
 // you've already done a LOCK STEERING to the right direction
 // to align to the target:
@@ -14,6 +17,9 @@ function do_dock {
   local from_part_module is 0.
 
   local original_length is ship:parts:length.
+
+  from_part:controlfrom().
+  wait 0.
 
   if not from_part:istype("Part") {
     print "Source 'from part' needs to be a part.  Plese fix that.".
@@ -95,7 +101,7 @@ function do_dock {
     // the RCS thrust vector by our relative POSITIONS:
     if get_state(from_part)  = "Ready" { // do NOT do this when the docking magnets are pulling
       if mode = "Approach" {
-	set rcs_requested_fore to fore_control_pid:UPDATE( now, (rel_spd_fore - wanted_approach_speed(rel_port_pos)) ).
+	set rcs_requested_fore to fore_control_pid:UPDATE( now, (rel_spd_fore - wanted_approach_speed(rel_port_pos,from_part)) ).
 
 	set top_want_speed to top_want_speed_pid:UPDATE( now, rel_pos_top).
 
@@ -171,7 +177,7 @@ function do_dock {
     print " TOP: " + round(rel_spd_top,2) + " m/s " at (10,11).
     print "STAR: " + round(rel_spd_star,2) + " m/s " at (10,12).
     print "Want Spd: " at (0,14).
-    print "FORE: " + "(Not calculated) " + " m/s " at (10,14).
+    print "FORE: " + round(wanted_spd_last_val,2) + " m/s " at (10,14).
     print " TOP: " + round(top_want_speed,2) + " m/s " at (10,15).
     print "STAR: " + round(starboard_want_speed,2) + " m/s " at (10,16).
     print "Controls Requested: " at (0,18).
@@ -239,13 +245,11 @@ function get_state {
 }
 
 function wanted_approach_speed {
-  parameter rel_pos_vector.
+  parameter rel_pos_vector, from_part.
 
-  local dist is - vdot(rel_pos_vector, ship:facing:forevector).
-  if dist > 0 {
-    local side_dist is vxcl(ship:facing:forevector, rel_pos_vector). // the more side dist there is, the less forward speed we want.
-    set dist to dist / max(1,side_dist:mag). // pretend there's less dist, effectively slowing down.
-  }
-  local spd is min(0.1 + dist*(0.05), 5).
-  return spd.
+  local dist is abs(vdot(rel_pos_vector, from_part:portfacing:forevector)).
+  local side_dist is vxcl(from_part:portfacing:forevector, rel_pos_vector). // the more side dist there is, the less forward speed we want.
+  set dist to dist / max(1,side_dist:mag). // pretend there's less dist, effectively slowing down.
+  set wanted_spd_last_val to min(0.1 + dist*(0.05), 5).
+  return wanted_spd_last_val.
 }

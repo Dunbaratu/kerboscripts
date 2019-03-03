@@ -32,6 +32,7 @@ local g_dist is 0.
 local yaw_enabled is true.
 local twarp is kuniverse:timewarp.
 local suppress_control is false.
+local last_save_time is time:seconds.
 
 on abort {
   brakes on.
@@ -39,7 +40,7 @@ on abort {
   unlock wheelsteering.
   set ship:control:neutralize to true.
   steeringmanager:resettodefault().
-  print "deliberate error to quit.".
+  print "Abort Action Group: deliberate error to quit.".
   print 1 / 0.
 }
 
@@ -143,11 +144,15 @@ function drive_to {
       set wSpeed to wSpeed*2. // speed will be in "wrong" direction, don't dampen as much as that usually does.
     }
     local speed_diff is forSpeed - wSpeed.
+    local enable_spd_check is true.
+    if time:seconds < last_save_time + 10 {
+      set enable_spd_check to false. // Don't start watching for "too slow" till we have had time to get going.
+    }
     local achieved_speed_ratio is forSpeed/max(wSpeed,0.1).
     local use_wheelthrottle is throttle_pid:update(time:seconds, speed_diff).
     if not(battery_panic) and (speed_diff > 5 or forSpeed < -4) { brakes on.  } else { brakes off. }
 
-    if achieved_speed_ratio < 0.3 {
+    if enable_spd_check and achieved_speed_ratio < 0.3 {
       if timestamp_start_poor_speed < 0 {
         set timestamp_start_poor_speed to time:seconds.
         set timestamp_start_okay_speed to -1.
@@ -165,7 +170,7 @@ function drive_to {
         getvoice(1):play(list(note(200,0.5))).
         set hill_sideways_sign to -1 * hill_sideways_sign.
       }
-    } else if achieved_speed_ratio > 0.5 {
+    } else if enable_spd_check and achieved_speed_ratio > 0.5 {
       if timestamp_start_okay_speed < 0 {
         set timestamp_start_okay_speed to time:seconds.
         set timestamp_start_poor_speed to -1.
@@ -390,9 +395,9 @@ function tune_pid {
   if kuniverse:timewarp:mode = "PHYSICS" {
     set phys_warp to kuniverse:timewarp:rate.
   }
-  set the_pid:KP to 0.01 / phys_warp.
+  set the_pid:KP to 0.03 / phys_warp.
   set the_pid:KI to 0.00002 / phys_warp.
-  set the_pid:KD to 0.003 / phys_warp.
+  set the_pid:KD to 0.006 / phys_warp.
 }
 
 steeringmanager:resettodefault(). // just in case a previous run of this script left it screwed up.
@@ -752,6 +757,7 @@ function stop_and_save {
   print "stopped. Now saving".
   wait 1.
   kUniverse:quicksave().
+  set last_save_time to time:seconds.
   wait 1.
   if bad {
     print "DYING ON PURPOSE - NEED ATTENTION".

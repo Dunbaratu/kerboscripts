@@ -190,7 +190,7 @@ if skips <= 3 {
   sas off.
   lock steering to mysteer.
   lock rel_vel to ship:velocity:orbit - other:velocity:orbit.
-  until other:position:mag < 350 {
+  until other:position:mag < 120 {
     // Push toward until drifting fast enough at other:
     print "... Pushing toward target faster".
     lock mysteerpoint to other:position+(40*ship:north:vector).

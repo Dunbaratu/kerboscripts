@@ -40,9 +40,9 @@ function do_dock {
   RCS on.
 
   local fore_control_pid         is PIDLoop( 4, 0.05, 0.5, -1, 1 ).
-  local top_want_speed_pid       is PIDLoop( 0.2, 0.0001, 0.03, -4, 4 ).
+  local top_want_speed_pid       is PIDLoop( 0.1, 0.0001, 0.05, -3, 3 ).
   local top_control_pid          is PIDLoop( 1, 0.003, 0.2, -1, 1 ).
-  local starboard_want_speed_pid is PIDLoop( 0.2, 0.0001, 0.03, -4, 4 ).
+  local starboard_want_speed_pid is PIDLoop( 0.1, 0.0001, 0.05, -3, 3 ).
   local starboard_control_pid    is PIDLoop( 1, 0.003, 0.2, -1, 1 ).
 
   // These track the total accumulation of thrusting that has failed to

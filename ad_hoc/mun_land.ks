@@ -11,7 +11,7 @@ print " ".
 print " ".
 print " ".
 print "Pointing srf retrograde.".
-lock steering to srfretrograde.
+lock steering to srfretro_or_up().
 wait 0.1.
 wait until abs(steeringmanager:angleerror) < 2.
 print "Close enough.".
@@ -54,3 +54,9 @@ print "LANDED".
 unlock throttle.
 unlock steering.
 
+function srfretro_or_up {
+  if verticalspeed > -5 and alt:radar < 100
+    return up.
+  else
+    return srfretrograde.
+}

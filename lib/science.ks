@@ -1,8 +1,10 @@
-parameter run_now is false.
+parameter do_all is false, transmit_all is false.
 
-if run_now {
+if do_all {
   do_all_science_things().
   wait 5.
+}
+if transmit_all {
   transmit_all_science_things().
 }
 

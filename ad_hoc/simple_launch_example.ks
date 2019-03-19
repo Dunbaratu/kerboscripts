@@ -60,6 +60,7 @@ function stage_if_needed {
   }
   if num_act = 0 {
     msg("Zero active engines, so staging.").
+    wait until stage:ready.
     stage.
     wait 0.
   }
@@ -111,19 +112,19 @@ until done {
 
   if altitude > 50_000 {
   } else if altitude > 40_000 {
-    set cur_pitch to 15.
+    set cur_pitch to 12.
   } else if altitude > 30_000 {
-    set cur_pitch to 25.
+    set cur_pitch to 20.
   } else if altitude > 25_000 {
     set cur_pitch to 30.
   } else if altitude > 20_000 {
-    set cur_pitch to 38.
+    set cur_pitch to 35.
   } else if altitude > 15_000 {
-    set cur_pitch to 45.
+    set cur_pitch to 40.
   } else if altitude > 10_000 {
-    set cur_pitch to 55.
+    set cur_pitch to 45.
   } else if altitude > 5_000 {
-    set cur_pitch to 65.
+    set cur_pitch to 60.
   } else if altitude > 3_000 {
     set cur_pitch to 70.
   } else if altitude > 1_000 {
@@ -156,9 +157,9 @@ wait 2. // Because somtimes KSP doesn't remove the restriction on phys warp righ
 set kuniverse:timewarp:mode to "RAILS". // so the warp below works right even if player was phys warping to vacuum.
 msg("Doing light time warp till apoapsis.").
 set warp to 2. // 10x in stock no mods.
-wait until eta:apoapsis < 30..
+wait until eta:apoapsis < 50..
 set warp to 1. // 5x in stock no mods.
-wait until eta:apoapsis < 15.
+wait until eta:apoapsis < 30.
 set warp to 0. // 5x in stock no mods.
 msg("Near AP: doing circ burn").
 lock throttle to 1.

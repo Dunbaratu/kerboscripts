@@ -28,7 +28,7 @@ if capture_pe = -999 {
   lock throttle to 1.
   wait until apoapsis > 0.
   print "now in elliptical orbit".
-  wait until (apoapsis - altitude) < (altitude - periapsis).
+  wait until (mun:radius+apoapsis) < mun:soiradius*0.9.
   lock throttle to 0.
   lock steering to sun:position.
   wait 10.

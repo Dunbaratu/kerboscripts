@@ -297,14 +297,15 @@ on abort set user_quit to true.
 when alt:radar < 200 then {
   if not gear {
     gear on.
-    hudtext( "DEPLOYING GEAR DOWN", 8, 2, 32, WHITE, false).
+    set warp to 0.
+    hudtext( "GEAR DOWN AND WARP 1x", 8, 2, 32, WHITE, false).
   }
   preserve.
 }
 when alt:radar > 200 then {
   if gear {
     gear off.
-    hudtext( "RETRACTING GEAR UP", 8, 2, 32, WHITE, false).
+    hudtext( "GEAR UP", 8, 2, 32, WHITE, false).
   }
   preserve.
 }

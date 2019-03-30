@@ -102,6 +102,7 @@ local min_pe is 70_000. // min safe Pe because of atmo.
 local payload_cut_pe is 40_000.
 local fairingModName is "ModuleProceduralFairing".
 
+
 // This loop does liftoff until coast TO AP:
 // This primitive loop doesn't account for
 // changes for unusual thrust to weight ratios,
@@ -151,7 +152,15 @@ msg("Waiting for AP").
 lock throttle to 0.
 // When out of atmo, lets lightly time warp, till ready for
 // the burn:
-wait until altitude > 70_000. // out of atmosphere.
+until altitude > min_pe {
+  // If drag makes it drop in a bit, push it back up:
+  if apoapsis < cutoff_ap - (cutoff_ap - min_pe)/10 {
+    lock throttle to 1.
+  } else if apoapsis > cutoff_ap {
+    lock throttle to 0.
+  }
+  wait 1.
+}
 set warp to 0.
 wait 2. // Because somtimes KSP doesn't remove the restriction on phys warp right away when hitting vacuum.
 set kuniverse:timewarp:mode to "RAILS". // so the warp below works right even if player was phys warping to vacuum.

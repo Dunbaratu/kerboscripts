@@ -17,6 +17,13 @@ if capture_pe = -999 {
     lock throttle to 0.2.
     wait until periapsis > capture_pe.
     lock throttle to 0.
+  } else {
+    lock rad_in to vxcl(prograde:vector:normalized, mun:position:normalized).
+    lock steering to rad_in.
+    wait 10.
+    lock throttle to 0.2.
+    wait until periapsis < capture_pe.
+    lock throttle to 0.
   }
   print "okay safe now".
   lock steering to sun:position.

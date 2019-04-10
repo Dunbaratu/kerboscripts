@@ -17,6 +17,11 @@ parameter throt_predict_mult is 0.8. // predict landing as if throttle is only t
 parameter land_spot is 0. // set to a geoposition to make it try to aim to land there.
 parameter skycrane is false.
 
+if land_spot:hassuffix("geoposition") {
+  // for any of the types that have a geoposition (vessel, waypoint, etc), use that:
+  set land_spot to land_spot:geoposition.
+}
+
 if config:ipu < 800 {
   // BIG WARNING:
   local vv is getvoice(0).
@@ -109,6 +114,7 @@ local pitch_off is 0. // The output of pitch_pid
 local yaw_pid is PIDloop(1, 0, 0, -8, 8).
 local yaw_off is 0. // The output of yaw_pid
 local bias is -2. // The bias factor in the PID making negative errors more severe than positive ones.
+local stop_deflecting is false. // set to true when giving up on deflecting landing site.
 
 pid_tune(999999). // 999999 = dummy start value until the predictions start being calculated.
 
@@ -181,10 +187,6 @@ until stop_burn {
     set theColor to rgb(1,0.4,0).
   }
 
-  if land_spot:hassuffix("geoposition") {
-    // for any of the types that have a geoposition (vessel, waypoint, etc), use that:
-    set land_spot to land_spot:geoposition.
-  }
   if land_spot:istype("GeoCoordinates") {
     update_steer_offsets().
   }
@@ -251,8 +253,6 @@ set vd_off to 0.
 print "program cut off at alt:radar = " + round(alt:radar,1) + " (desired margin = " + round(margin,1)+").".
 print "Waiting for landed state.".
 wait until status = "LANDED" or status = "SPLASHED".
-SAS on.
-unlock steering.
 
 local cnt_after is ship:parts:length.
 local played is false.
@@ -276,9 +276,20 @@ if cnt_before = cnt_after {
   print "====== Oh Noes!! Something Broke!! ======" at (2, terminal:height/2).
   playsong(song_sad).
 }
-wait 10.
 for i in range(0,10) { getvoice(i):stop(). }
-SAS off.
+
+// consume anything buffered:
+until not(terminal:input:haschar()) {
+  terminal:input:getchar().
+}
+
+// wait for any key before letting go:
+print "PRESS ANY KEY IN TERMINAL TO LET GO STEERING.".
+terminal:input:getchar().
+unlock steering.
+wait 0.
+sas on.
+print "DONE.".
 
 // =================== END OF MAIN - START OF FUNCTIONS =============================
 
@@ -378,6 +389,7 @@ function aim_direction {
 }
 
 function update_steer_offsets {
+  if stop_deflecting { return. } // ignore when we already gave up.
 
   local target_spot is land_spot:altitudeposition(land_spot:terrainheight + margin).
   local xyz_off is pos - target_spot.
@@ -391,6 +403,17 @@ function update_steer_offsets {
   } else {
     // make new vecdraw - will update position on next pass through:
     set vd_off to vecdraw(v(0,0,0), v(0,0,0), blue, "Landing Site Error " + round(xyz_off:mag,1)+"m", 1, true, 0.3).
+  }
+  
+  // If just a few seconds from touch down, and offset is big enough that it's
+  // clear we won't be able to hit the mark, then give up on deflecting
+  // and just finish vertically so we don't tip over from lateral momentum.
+  if eta_end < 2.5 and xyz_off:mag > 50 {
+    set pitch_off to 0.
+    set yaw_off to 0.
+    set stop_deflecting to true.
+    print "Giving up on deflecting - just landing straight.".
+    return.
   }
 
   local xyz_up_spot is (land_spot:position - body:position):normalized.

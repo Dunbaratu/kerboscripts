@@ -297,7 +297,8 @@ function gui_edit_course {
       } else {
         set item_txt to item_txt + " (ASL " + round(course[i]["ALT"]) + "m, ".
       }
-      set item_txt to item_txt + "SPD "+ round(course[i]["SPD"]) +"m/s)".
+      set item_txt to item_txt + "SPD "+ round(course[i]["SPD"]) +"m/s".
+      set item_txt to item_txt + "RAD "+ round(course[i]["RADIUS"]) +"m".
       local list_item is g_course_row:addradiobutton(item_txt, is_on).
       set list_item:ONTOGGLE to toggle_course_list_button@:BIND(i).
       set list_item:style:margin:V to 0.

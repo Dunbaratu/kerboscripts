@@ -574,7 +574,7 @@ function do_fairings {
     }
   }
   if f_list:length > 0 {
-    print fairings:length + " Part(s) needing fairing deployment found.".
+    print f_list:length + " Part(s) needing fairing deployment found.".
     print "Will engage fairings at high altitude.".
   }
 

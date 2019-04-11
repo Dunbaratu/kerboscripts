@@ -59,22 +59,6 @@ function launch {
     set kick_speed to 0. // no need to go straight up when launching without air.
   }
 
-  local all_fairings is ship:modulesnamed("ModuleProceduralFairing").
-  local fairings is LIST().
-  for f_mod in all_fairings {
-    if f_mod:hasevent("deploy") {
-      if f_mod:part:tag:contains("manual") {
-        print "Will *NOT* Deploy fairing part: " + f_mod:part:name.
-      } else {
-        fairings:add(f_mod).
-      }
-    }
-  }
-  if fairings:length > 0 {
-    print fairings:length + " Part(s) needing fairing deployment found.".
-    print "Will engage fairings at high altitude.".
-  }
-
   sane_upward().
 
   print "Staging until there is an active engine".
@@ -255,7 +239,7 @@ function launch {
             set coast_circular to true.
             if not(throttle_was_zero) {
               set min_throt to 0.
-              do_fairings(fairings).
+              do_fairings().
 
               // Wait 10s, but allow that wait to prematurely stop if near ap:
               local wait_start is time:seconds.
@@ -576,7 +560,24 @@ function srf_pitch_for_vel {
 
 // Deploy all fairings in ths list of partmodules given.
 function do_fairings {
-  parameter f_list.
+
+  // Get all the fairings on the ship except ones tagged "manual":
+  local all_fairings is ship:modulesnamed("ModuleProceduralFairing").
+  local f_list is LIST().
+  for f_mod in all_fairings {
+    if f_mod:hasevent("deploy") {
+      if f_mod:part:tag:contains("manual") {
+        print "Will *NOT* Deploy fairing part: " + f_mod:part:name.
+      } else {
+        f_list:add(f_mod).
+      }
+    }
+  }
+  if f_list:length > 0 {
+    print fairings:length + " Part(s) needing fairing deployment found.".
+    print "Will engage fairings at high altitude.".
+  }
+
 
   if f_list:length > 0 {
     for fairing in f_list {

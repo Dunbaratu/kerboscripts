@@ -231,7 +231,7 @@ function launch {
 
     // TODO - DEBUG THIS FOR MUN lanch (no atmo) - it doesn't seem to be working right:
     if still_must_thrust {
-      if apoapsis > dest_pe {
+      if apoapsis > dest_pe or apoapsis < 0 {
         if altitude > atmo_end {
           set maintain_ap_mode to false.
           set still_must_thrust to false.

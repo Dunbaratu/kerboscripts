@@ -198,6 +198,14 @@ function launch {
   //   lock steering to heading(compass_of_vel(ship:velocity:surface), clamp_pitch(90 - 90*(altitude/alt_divisor)^(2/5), true)).
   // }
 
+  local logfile is "0:/launchlog.txt". // eraseme
+  if exists(logfile) deletepath(logfile). // eraseme
+  ag9 off. //eraseme
+  on ag9 { //eraseme
+    hudtext("Logging "+ag9,8,2,15, yellow, true). //eraseme
+    log "TOGGLE LOGGING = " + ag9 TO logfile. // eraseme
+    preserve. // eraseme
+  } //eraseme
   local done is false.
   local engs is 0.
   list engines in engs.
@@ -230,14 +238,20 @@ function launch {
     }
 
     // TODO - DEBUG THIS FOR MUN lanch (no atmo) - it doesn't seem to be working right:
+    local logtext is "". // eraseme.
     if still_must_thrust {
+      set logtext to logtext + "A ". // eraseme.
       if apoapsis > dest_pe or apoapsis < 0 {
+        set logtext to logtext + "B ". // eraseme.
         if altitude > atmo_end {
+          set logtext to logtext + "C ". // eraseme.
           set maintain_ap_mode to false.
           set still_must_thrust to false.
           if allow_zero {
+            set logtext to logtext + "D ". // eraseme.
             set coast_circular to true.
             if not(throttle_was_zero) {
+              set logtext to logtext + "E ". // eraseme.
               set min_throt to 0.
               do_fairings().
 
@@ -251,10 +265,13 @@ function launch {
             }
           } 
         } else {
+          set logtext to logtext + "F ". // eraseme.
           set maintain_ap_mode to true.
         }
       } else if altitude > atmo_end { // out of atmo on an atmo world, yet apoapsis still not high enough.
+        set logtext to logtext + "G ". // eraseme.
         if atmo_end > 0 and apoapsis < 0.8*dest_pe  and min_throt < 0.5 {
+          set logtext to logtext + "H ". // eraseme.
           set min_throt to 0.5. // force it to keep thrusting a lot.
           if not(msg2_happened) {
             hudtext("Escaped Atmo but Ap still way too low - upping throttle.",8,2,20, green, true).
@@ -264,6 +281,7 @@ function launch {
             ship:velocity:surface:mag > 5 and // don't trigger when not really taken off yet.
             apoapsis < dest_pe and
             vang(ship:velocity:surface:normalized, ship:up:vector) > 85 {
+          set logtext to logtext + "I ". // eraseme.
           set min_throt to 0.5. // force it to keep thrusting a lot.
           if not(msg1_happened) {
             hudtext("Aiming horizontally so keeping throt low for ETA is dumb, forcing throttle up.", 8, 2, 20, green, true).
@@ -272,6 +290,7 @@ function launch {
         }
       }
     }
+    if ag9 { log logtext to logfile. } // eraseme
 
     // Once the throttle was coasting and turns back on again,
     // from then on we want to keep it on to circularize, not
@@ -325,6 +344,7 @@ function launch {
 
     info_block(coast_circular).
     do_keys().
+    if ag9 { log "AP: "+round(apoapsis)+", ETA_AP: "+round(signed_eta_ap,1)+", PE: "+round(periapsis)+", VEL: "+round(which_vel():mag)+", dest_PE: "+dest_pe  TO  logfile. } // eraseme
   }
 
   lock throttle to 0.  set ship:control:pilotmainthrottle to 0.

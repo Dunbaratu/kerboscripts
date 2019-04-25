@@ -75,6 +75,11 @@ function make_Hohmann_node {
     set deg_to_wait to deg_to_wait + 360.
   print "deg_to_wait is " + deg_to_wait. // eraseme
 
+  // If dV is negative then this is a retro burn so I need
+  // to flip which (me or target) is the one catching up:
+  if calc["dV"] < 0
+    set deg_to_wait to deg_to_wait -360.
+
   // How fast does the phase angle between me and target change?
   local phase_rate is 360/ship:obt:period - 360/tgt:obt:period.
   // How long does it take me to sweep that many degrees?

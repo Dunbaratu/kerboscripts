@@ -108,10 +108,14 @@ local pid_min is minThrot - throt_predict_mult.  // i.e. if predict = .8, go as 
 local pid_max is pid_min + 1.
 local throt_pid is PIDloop(1, 0, 0, pid_min, pid_max).
 // output of pitch_pid is a deflection above srfretrograde in degrees.
-local pitch_pid is PIDloop(1, 0, 0, -8, 8).
+// Adjust the min/max deflection allowed based on how much leeway our
+// throttle gives to correct for burning too low:
+local max_pitch_up is arccos(throt_predict_mult)/3.
+local max_pitch_down is arccos(throt_predict_mult)/4. // pitching down is less safe.
+local max_yaw_off is arccos(throt_predict_mult)/3.
+local pitch_pid is PIDloop(1, 0, 0, -max_pitch_down, max_pitch_up).
+local yaw_pid is PIDloop(1, 0, 0, -max_yaw_off, max_yaw_off).
 local pitch_off is 0. // The output of pitch_pid
-// output of yaw_pid is a deflection right of srfretrograde in degrees.
-local yaw_pid is PIDloop(1, 0, 0, -8, 8).
 local yaw_off is 0. // The output of yaw_pid
 local bias is -2. // The bias factor in the PID making negative errors more severe than positive ones.
 local stop_deflecting is false. // set to true when giving up on deflecting landing site.
@@ -285,8 +289,10 @@ until not(terminal:input:haschar()) {
 
 // wait for any key before letting go:
 print "PRESS ANY KEY IN TERMINAL TO LET GO STEERING.".
+lock throttle to 0. // just to prevent user error of throttling up while steering locked.
 terminal:input:getchar().
 unlock steering.
+unlock throttle.
 wait 0.
 sas on.
 print "DONE.".
@@ -408,7 +414,7 @@ function update_steer_offsets {
   // If just a few seconds from touch down, and offset is big enough that it's
   // clear we won't be able to hit the mark, then give up on deflecting
   // and just finish vertically so we don't tip over from lateral momentum.
-  if eta_end < 2.5 and xyz_off:mag > 50 {
+  if eta_end < 5 and xyz_off:mag > 25 {
     set pitch_off to 0.
     set yaw_off to 0.
     set stop_deflecting to true.

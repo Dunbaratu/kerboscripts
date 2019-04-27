@@ -42,8 +42,4 @@ if ship:periapsis < 100 and (status = "LANDED" or status = "PRELAUNCH") {
   panels on.
   lights on.
   print "launch done.".
-  set core:bootfilename to "just_obey_nodes.ks".
-  print "Rebooting into just obey nodes mode.".
-  wait 1.
-  reboot.
 }

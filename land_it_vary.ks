@@ -280,7 +280,6 @@ if cnt_before = cnt_after {
   print "====== Oh Noes!! Something Broke!! ======" at (2, terminal:height/2).
   playsong(song_sad).
 }
-for i in range(0,10) { getvoice(i):stop(). }
 
 // consume anything buffered:
 until not(terminal:input:haschar()) {
@@ -296,6 +295,7 @@ unlock throttle.
 wait 0.
 sas on.
 print "DONE.".
+for i in range(0,10) { getvoice(i):stop(). }
 
 // =================== END OF MAIN - START OF FUNCTIONS =============================
 

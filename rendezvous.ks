@@ -101,7 +101,7 @@ if skips <= 1 {
   print " ".
   print " ".
   set rendezvous_tolerance_1 to 500. // (seconds).
-  set rendezvous_tolerance_2 to 200. // (seconds).
+  set rendezvous_tolerance_2 to 100. // (seconds).
   set rendezvous_tolerance_3 to 50. // (seconds).
   set rendezvous_tolerance_4 to 3. // (seconds).
   set found to false.

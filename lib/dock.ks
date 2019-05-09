@@ -30,6 +30,7 @@ function do_dock {
   set terminal:width to MAX(40, terminal:width).
   set terminal:height to MAX(30, terminal:height).
 
+  SAS off.
   until abs(steeringmanager:angleerror) < 1 and abs(steeringmanager:rollerror) < 1 {
     print "Waiting for orientation to match direction of the port.".
     wait 2.

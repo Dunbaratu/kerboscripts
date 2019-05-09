@@ -309,7 +309,7 @@ function launch {
       if not(payload_cut_yet) {
 	local cut_parts_list is ship:partstagged("payload cutoff"). // expensive walk - don't do it too much.
 	if cut_parts_list:length > 0 {
-	  lock throttle to 0.
+	  lock throttle to 0. // TODO - this is wrong if ignitions = 1 and we don't want to coast.
 	  wait 1.
 	  until cut_parts_list:length = 0 {
 	    hudtext("Pe above " + round(payload_cut_pe) + "m.  Decoupling until payload cutoff parts gone", 6, 2, 20, green, true).

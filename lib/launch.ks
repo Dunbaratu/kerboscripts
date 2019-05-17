@@ -116,10 +116,10 @@ function launch {
   print "Starting kickover toward " + dest_compass + " degree heading".
 
   // To aim roof at ground, I'm aiming at opposite compass, with pitch > 90 to pitch the roof on its back:
-  local slow_kick_amount is 0.
+  local slow_kick_amount is 1.
   until slow_kick_amount = 10 {
     set TWR_avail to AVAILABLETHRUST/(MASS*g).
-    lock clamp_pitch_down to min(50, max(0, slow_kick_amount*TWR_avail)).
+    lock clamp_pitch_down to min(50, max(0.5, slow_kick_amount*TWR_avail)).
     lock steering to lookdirup(heading(dest_compass, 90-clamp_pitch_down):forevector, -ship:up:vector).
     // kick over more slowly when there's atmosphere:
     if atmo_end = 0 

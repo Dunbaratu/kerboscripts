@@ -169,6 +169,11 @@ function gui_edit_course {
   local g_land_spd is g_land_spd_box:addTextField("70").
   set g_land_spd:style:width to 40.
   g_land_spd_box:addlabel("m/s").
+  local g_land_alt_box is g_land_box_hor:addhbox().
+  g_land_alt_box:addlabel("gearAlt").
+  local g_land_alt is g_land_alt_box:addTextField("10").
+  set g_land_alt:style:width to 40.
+  g_land_alt_box:addlabel("m").
   local g_land_insert_button is g_land_box_hor:addbutton("Add").
   set g_land_insert_button:onclick to onclick_insert_landing@.
   set close_button:onclick to {set done to true. g_course:hide(). g_course:dispose().}.
@@ -178,18 +183,26 @@ function gui_edit_course {
   // --------- Add arbitrary landing location -----------
   set g_course:addlabel("<b>Arbitrary Lat/Lng landing</b>"):style:align to "CENTER".
   local g_landlatlng_box is g_course:addhbox().
-  g_landlatlng_box:addlabel("Lat").
-  local g_landlatlng_lat is g_landlatlng_box:addtextfield("0").
+  local g_landlatlng_latbox is g_landlatlng_box:addvbox().
+  local g_landlatlng_lat is g_landlatlng_latbox:addtextfield("0").
   set g_landlatlng_lat:style:width to 70.
-  g_landlatlng_box:addlabel("Lng").
-  local g_landlatlng_lng is g_landlatlng_box:addtextfield("0").
+  g_landlatlng_latbox:addlabel("Lat").
+  local g_landlatlng_lngbox is g_landlatlng_box:addvbox().
+  local g_landlatlng_lng is g_landlatlng_lngbox:addtextfield("0").
   set g_landlatlng_lng:style:width to 70.
-  g_landlatlng_box:addlabel("Head").
-  local g_landlatlng_hdg is g_landlatlng_box:addtextfield("0").
+  g_landlatlng_lngbox:addlabel("Lng").
+  local g_landlatlng_headbox is g_landlatlng_box:addvbox().
+  local g_landlatlng_hdg is g_landlatlng_headbox:addtextfield("0").
   set g_landlatlng_hdg:style:width to 30.
-  g_landlatlng_box:addlabel("Spd").
-  local g_landlatlng_spd is g_landlatlng_box:addtextfield("70").
+  g_landlatlng_headbox:addlabel("Head").
+  local g_landlatlng_spdbox is g_landlatlng_box:addvbox().
+  local g_landlatlng_spd is g_landlatlng_spdbox:addtextfield("70").
   set g_landlatlng_spd:style:width to 30.
+  g_landlatlng_spdbox:addlabel("Spd").
+  local g_landlatlng_altbox is g_landlatlng_box:addvbox().
+  local g_landlatlng_alt is g_landlatlng_altbox:addtextfield("10").
+  set g_landlatlng_alt:style:width to 30.
+  g_landlatlng_altbox:addlabel("gearAlt").
   local g_landlatlng_add to g_landlatlng_box:addbutton("Add").
   set g_landlatlng_add:onclick to landlatlng_clicked@.
  
@@ -268,7 +281,8 @@ function gui_edit_course {
     local rway_name is r_name_cooked.
     local reverse is (j = 1).
     local spd is g_land_spd:text:tonumber(70).
-    insert_into_course(make_landing_points(rway_name, reverse, spd)).
+    local alt is g_land_alt:text:tonumber(10).
+    insert_into_course(make_landing_points(rway_name, reverse, spd, alt)).
     set done to true.
   }
 
@@ -356,6 +370,7 @@ function gui_edit_course {
       ).
     local hdg is g_landlatlng_hdg:text:tonumber(0).
     local spd is g_landlatlng_spd:text:tonumber(0).
+    local alt is g_landlatlng_alt:text:tonumber(10).
     
     local runway_length is 2000.
     local meters_per_deg is ship:body:radius*2*constant():pi / 360.
@@ -378,7 +393,7 @@ function gui_edit_course {
         "AGL", True,
         "SPD", 0 )
     ).
-    insert_into_course(make_landing_points("ad-hoc-land", false, spd)).
+    insert_into_course(make_landing_points("ad-hoc-land", false, spd, alt)).
   }
 
   function latlng_waypoint_picked {
@@ -448,7 +463,7 @@ function geo_from_lex {
 
 // Return a list of navpoints for aircraft landing between two flags marking a runway:
 function make_landing_points {
-  parameter which_runway, reverse, spd.
+  parameter which_runway, reverse, spd, landed_alt is 10.
 
   local near_geo is geo_from_lex(known_runways[which_runway][0]).
   local far_geo is geo_from_lex(known_runways[which_runway][1]).
@@ -495,7 +510,7 @@ function make_landing_points {
     lexicon( // near end of runway
       "NAME", which_runway + " Near end",
       "GEO", near_geo,
-      "ALT", 10,
+      "ALT", landed_alt,
       "AGL", True,
       "SPD", spd,
       "RADIUS", 200

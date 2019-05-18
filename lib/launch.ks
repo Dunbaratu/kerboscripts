@@ -160,7 +160,7 @@ function launch {
     // really far off - which only happens when launching on low grav moons from a
     // badly tllted terrain angle:
     // clamped to +/-60 deg so it doesn't circle round the compass to the wrong way.
-    set dest_compass to remember_compass - max(-90,min(90,4*heading_err)).
+    set dest_compass to remember_compass - max(-90,min(90,2*heading_err)).
 
     // Prevent throttle from being too weak while we're trying to force heading to change:
     local g is body:mu / (body:radius+altitude)^2.

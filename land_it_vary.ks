@@ -374,8 +374,8 @@ function pid_tune {
 function aim_direction {
   local aim_vec is srfretrograde:vector.
 
-  // Offset the aim a bit if near the ground:
-  if burn_started and verticalspeed > -1.5 {
+  // Stop aiming srfretro and aim vertical if near the end:
+  if burn_started and ship:velocity:surface:mag < 1.5 {
     set aim_vec to up:vector.
   }
   else if burn_started and verticalspeed > -5 {

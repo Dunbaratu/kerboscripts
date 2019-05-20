@@ -33,22 +33,28 @@ local yaw_enabled is true.
 local twarp is kuniverse:timewarp.
 local suppress_control is false.
 local last_save_time is time:seconds.
+local oldSAS is SAS.
 
 on abort {
   brakes on.
   unlock wheelthrottle.
   unlock wheelsteering.
   set ship:control:neutralize to true.
-  steeringmanager:resettodefault().
+  steeringmanager_init().
   print "Abort Action Group: deliberate error to quit.".
-  print 1 / 0.
+  unlock steering.
+  sas on.
+  print 1 / 0. // force exit.
 }
 
+LOCAL is_segway is true. 
 
 // Given a location, drive there.
 // stop when you get there.
 function drive_to {
-  parameter geopos, cruise_spd, jump_detect is false, proximity_needed is 10, offset_pitch is 0, save_dist is 5000, ocean_check is "".
+  parameter geopos, cruise_spd, segway is false, jump_detect is false, proximity_needed is 10, offset_pitch is 0, save_dist is 5000, ocean_check is "".
+
+  set is_segway to segway.
 
   local orig_ship_parts is ship:parts:length.
 
@@ -80,7 +86,7 @@ function drive_to {
     set debug_drawnorm to vecdraw(v(0,0,0), ship:up:vector, white, "collision_norm", 1, true).
   }
 
-  local oldSas is SAS.
+  set oldSAS to SAS.
   SAS off.
   set warp to 0.
   until kuniverse:timewarp:rate = 1 {
@@ -103,6 +109,9 @@ function drive_to {
   set has_leveler_lasers to leveler_lasers:length > 0.
   all_lasers_toggle(true).
   
+  // Only use the yaw disabler feature when there are leveler lazers AND
+  // this is NOT segway mode.  (In segway mode we want to torque the
+  // yaw since two-wheeled vehicles cannot steer by wheelsteering alone.)
   if has_leveler_lasers { 
 
     // If we are going to use locked steering to muck about
@@ -119,6 +128,7 @@ function drive_to {
   local timestamp_start_poor_speed is -1.
   local hill_sideways_mode is false.
   local hill_sideways_sign is 0.
+  local recent_steering_dir is north. // dummy to start with - will be overwritten.
 
   until geo_dist(geopos) < proximity_needed {
     tune_pid(steer_pid).
@@ -179,6 +189,11 @@ function drive_to {
           if hill_sideways_mode { // only do this message when it first changes:
             HUDTEXT("Done going sideways a bit.  Back to forward.",3,2,20,yellow,false).
             getvoice(1):play(list(note(400,0.3),note(450,0.3),note(500,0.4))).
+            if IS_SEGWAY { // wait to slow down before letting it yaw sideways.
+               // might be bad?  dunno not tested.
+              set ship:control:wheelthrottle to 0.
+              brakes on.  wait until groundspeed < 2.  brakes off.
+            }
           }
           set hill_sideways_mode to false.
           set hill_sideways_sign to 0.
@@ -255,6 +270,7 @@ function drive_to {
     }
     if has_leveler_lasers and not battery_panic {
       if not(steering_is_locked) {
+        set recent_steering_dir to level_orientation(offset_pitch, leveler_lasers).
         lock steering to level_orientation(offset_pitch, leveler_lasers).
         set steering_is_locked to true.
         HUDTEXT("STEERING IS LOCKED",3,2,15,yellow,false).
@@ -299,6 +315,15 @@ function drive_to {
     }
     
     set ship:control:wheelsteer to use_wheelsteer.
+    if is_segway {
+      local pitch_err_cos is cos(vang(recent_steering_dir:topvector, ship:facing:topvector)).
+      local dampener is pitch_err_cos^3. // reduce controls if not stood up.
+      set use_wheelthrottle to dampener * use_wheelthrottle.
+      // Note the '-' sign below.  Yaw and wheelsteer use oppposite signs for left/right.
+      set ship:control:yaw to - 0.5 * dampener * use_wheelsteer.
+      // using yaw *instead of* wheel steering:
+      set use_wheelsteering to 0.
+    }
     set ship:control:wheelthrottle to use_wheelthrottle.
 
     clearscreen.
@@ -306,6 +331,7 @@ function drive_to {
     print "spd is " + round(ship:groundspeed, 2) + "    ".
     print "current control:wheelthrottle is " + round(ship:control:wheelthrottle,2).
     print "current control:wheelsteer is " + round(ship:control:wheelsteer,3).
+    print "current control:yaw is " + round(ship:control:yaw,3).
     print "brakes on? " + brakes + ". ".
     print "forward_speed is " + round(forward_speed(offset_pitch), 3).
     print "wanted_speed is  " + round(wSpeed,1).
@@ -400,7 +426,7 @@ function tune_pid {
   set the_pid:KD to 0.006 / phys_warp.
 }
 
-steeringmanager:resettodefault(). // just in case a previous run of this script left it screwed up.
+steeringmanager_init(). // just in case a previous run of this script left it screwed up.
 
 global yaw_disable_roll_angle_orig is steeringmanager:RollControlAngleRange.
 
@@ -762,5 +788,21 @@ function stop_and_save {
   if bad {
     print "DYING ON PURPOSE - NEED ATTENTION".
     print 1/0. // deliberate runtime bador.
+  }
+}
+
+// Reset everything in the steering manager.
+function steeringmanager_init {
+  local maxST is steeringmanager:maxstoppingtime.
+  steeringmanager:resettodefault().
+  if is_segway {
+    set steeringmanager:maxstoppingtime to maxST.
+    set steeringmanager:pitchpid:Kp to steeringmanager:pitchpid:Kp * maxST.
+    set steeringmanager:pitchpid:Ki to steeringmanager:pitchpid:Kp * 0.2.
+    set steeringmanager:pitchpid:Kd to steeringmanager:pitchpid:Kp * 0.3.
+
+    set steeringmanager:pitchpid:Kp to steeringmanager:pitchpid:Kp * maxST.
+    set steeringmanager:pitchpid:Ki to steeringmanager:pitchpid:Kp * 0.2.
+    set steeringmanager:rollpid:Kd to steeringmanager:rollpid:Kp * 0.3.
   }
 }

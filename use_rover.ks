@@ -1,4 +1,4 @@
-parameter dest, speed, jump_protect is false, prox is 10, offpitch is 0, save_dist is 5000, ocean_check is "".
+parameter dest, speed, segway is false, jump_protect is false, prox is 10, offpitch is 0, save_dist is 5000, ocean_check is "".
 
 run once "/lib/rover".
 
@@ -15,5 +15,5 @@ if dest:istype("vessel") or dest:istype("waypoint") {
   set do_it to false.
 }
 if do_it {
-  drive_to(point, speed, jump_protect, prox, offpitch, save_dist, ocean_check).
+  drive_to(point, speed, segway, jump_protect, prox, offpitch, save_dist, ocean_check).
 }

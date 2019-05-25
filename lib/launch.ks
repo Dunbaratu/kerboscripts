@@ -239,6 +239,10 @@ function launch {
             set coast_circular to true.
             if not(throttle_was_zero) {
               set min_throt to 0.
+              // Just in case it was locked to 1 elsewhere - set it back to the formula
+              lock throttle to throttle_func(coast_circular, min_throt, dest_spd, dest_pe, maintain_ap_mode).
+              wait 0.
+
               do_fairings().
 
               // Wait 10s, but allow that wait to prematurely stop if near ap:

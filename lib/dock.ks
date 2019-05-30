@@ -18,12 +18,16 @@ function do_dock {
 
   local original_length is ship:parts:length.
 
-  from_part:controlfrom().
   wait 0.
 
   if not from_part:istype("Part") {
     print "Source 'from part' needs to be a part.  Plese fix that.".
     return.
+  }
+  if from_part:istype("DockingPort") {
+    from_part:controlfrom().
+  } else {
+    print "Source 'from part' is not a port.  Using its normal facing.".
   }
 
   // If terminal is too small, enlarge it.  Leave it alone if big enough already:
@@ -71,7 +75,7 @@ function do_dock {
     local topUnit is ship:facing:topvector.
     local starUnit is ship:facing:starvector.
     local now is time:seconds.
-    local angle_from_port is vang(to_part:portfacing:vector, rel_port_pos).
+    local angle_from_port is vang(get_facing(to_part):vector, rel_port_pos).
     // ^^^ All relevant readings have been taken now.  After this point it's safe to have tick interruptions:
 
     local rel_spd_fore is vdot(foreUnit, rel_spd).
@@ -210,15 +214,15 @@ function do_dock {
     }
   }
 
-  print "Port magnetism taking over. Letting go of controls.".
+  print "Docked or near docked. Letting go of controls.".
   unlock steering.
   set ship:control:neutralize to true.
   set RCS to old_rcs_value.
 
   if from_part:ISTYPE("DOCKINGPORT") {
-    until from_part:STATE = "Docked (docker)" or
-    from_part:STATE = "Docked (dockee)" or
-    from_part:STATE = "Docked (same vessel)" {
+    until get_state(from_part) = "Docked (docker)" or
+    get_state(from_part) = "Docked (dockee)" or
+    get_state(from_part) = "Docked (same vessel)" {
       print "Waiting for dock.".
       wait 1.
     }
@@ -248,8 +252,8 @@ function get_state {
 function wanted_approach_speed {
   parameter rel_pos_vector, from_part.
 
-  local dist is abs(vdot(rel_pos_vector, from_part:portfacing:forevector)).
-  local side_dist is vxcl(from_part:portfacing:forevector, rel_pos_vector). // the more side dist there is, the less forward speed we want.
+  local dist is abs(vdot(rel_pos_vector, get_facing(from_part):forevector)).
+  local side_dist is vxcl(get_facing(from_part):forevector, rel_pos_vector). // the more side dist there is, the less forward speed we want.
   set dist to dist / max(1,side_dist:mag). // pretend there's less dist, effectively slowing down.
   set wanted_spd_last_val to min(0.1 + dist*(0.05), 5).
   return wanted_spd_last_val.

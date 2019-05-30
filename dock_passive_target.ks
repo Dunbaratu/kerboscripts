@@ -27,7 +27,7 @@ if tgt:ISTYPE("DOCKINGPORT") {
 local from_parts is ship:partstagged("from here").
 hudtext_until_condition(
   {set from_parts to ship:partstagged("from here"). wait 0.1. return from_parts:length = 1.}, 10, 0.2,
-  "Choose docking port on this vessel to dock from by giving exactly 1 port the name tag 'from here'.",
+  "Choose source docking port or grappling claw on this vessel by giving exactly 1 part the name tag 'from here'.",
   8, 2, 20, yellow, true).
 
 print "DOCKING SCRIPT COMMENCING".

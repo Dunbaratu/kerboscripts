@@ -1,5 +1,6 @@
 run once "/lib/ro".
-run once "/lib/menu".
+if exists("/lib/menu.ks")
+  run once "/lib/menu.ks".
 
 clearscreen.
 

@@ -1,6 +1,8 @@
 // dumb script to try to land on mun with minimal code.
 // dumb vertical landing.
 
+parameter extra is 3. // extra height from core to landing legs
+
 clearscreen.
 print " ".
 print " ".
@@ -21,7 +23,7 @@ wait until vdot(velocity:surface:normalized, ship:facing:vector) > 0.
 lock throttle to 0.
 print "Now falling straight".
 
-until status = "LANDED" {
+until status = "LANDED" or alt:radar <= extra {
   local surf_g is body:mu / (body:radius)^2.
   local engine_a is (0.95*availablethrust) / mass.
   local sum_a is (engine_a - surf_g).
@@ -37,8 +39,8 @@ until status = "LANDED" {
       local stop_time is velocity_buttward / sum_a.
       local stop_dist is 0.5*sum_a*stop_time^2.
       print "Est stop dist = " + round(stop_dist,1) + "m             " at (5,0).
-      print "    Radar Alt = " + round(alt:radar,1) + "m   " at (5,1).
-      if alt:radar <= stop_dist
+      print "    Radar Alt + Extra = " + round(alt:radar+extra,1) + "m   " at (5,1).
+      if (alt:radar + extra) <= stop_dist
 	set done to true.
     }
   }
@@ -46,11 +48,14 @@ until status = "LANDED" {
     break.
   print "Engine ON!" at (5,2).
   lock throttle to 1. 
-  wait until status = "LANDED" or vdot(velocity:surface:normalized, ship:facing:vector) > 0.
+  wait until
+    status = "LANDED" or
+    alt:radar <= extra or
+    vdot(velocity:surface:normalized, ship:facing:vector) > 0.
   lock throttle to 0.
   print "          " at (5,2).
 }
-print "LANDED".
+print status + " With Alt:radar = " + round(alt:radar,1) + ".".
 unlock throttle.
 unlock steering.
 

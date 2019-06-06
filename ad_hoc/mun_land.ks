@@ -39,8 +39,8 @@ until status = "LANDED" or alt:radar <= extra {
       local stop_time is velocity_buttward / sum_a.
       local stop_dist is 0.5*sum_a*stop_time^2.
       print "Est stop dist = " + round(stop_dist,1) + "m             " at (5,0).
-      print "    Radar Alt + Extra = " + round(alt:radar+extra,1) + "m   " at (5,1).
-      if (alt:radar + extra) <= stop_dist
+      print "    Radar Alt - Extra = " + round(alt:radar-extra,1) + "m   " at (5,1).
+      if (alt:radar - extra) <= stop_dist
 	set done to true.
     }
   }

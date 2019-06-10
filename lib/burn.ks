@@ -63,14 +63,19 @@ function do_burn_with_display {
     row, // desired location to print message.
     ullage_time is -999.
 
+  local remember_node is want_dv.
+
   if ullage_time <> -999 
     persist_set("ullage_time", ullage_time).
 
   local engs is 0.
   list engines in engs.
   local want_steer is want_dV.
-  if want_dv:istype("node")
-    local want_steer is want_dv:deltaV.
+  local node_aim_locked is false.
+  if want_dv:istype("node") {
+    set want_steer to want_dv:deltaV.
+    set node_aim_locked to true.
+  } 
   local remember_sas is sas.
   lock steering to lookdirup(want_steer,ship:facing:topvector).
   sas off.
@@ -79,6 +84,11 @@ function do_burn_with_display {
     stager(engs, true).
     local prev_top is ship:facing:topvector.
     local prev_fore is ship:facing:forevector.
+    // If below 100km (Kerbin) ref frame rotates and old
+    // vector becomes wrong, so keep re-querying it:
+    if node_aim_locked {
+      set want_steer to remember_node:deltaV.
+    }
     wait 0.01.
   }.
   local dv_to_go is 9999999.
@@ -106,9 +116,9 @@ function do_burn_with_display {
 
   // If deltaV is a maneuver node, recalc its dV because the
   // rcs burn will have thrown it off a bit:
-  if want_dv:istype("node")
-    local want_dv is want_dv:deltaV.
-
+  if want_dv:istype("node") {
+    set want_dv to want_dv:deltaV.
+  }
   // Start Real burn:
   lock throttle to mythrot.
   set ship:control:fore to 0.
@@ -126,6 +136,7 @@ function do_burn_with_display {
     print round(dV_to_go,1) + "m/s     " at (col+19,row).
     print "dv_burnt: " + round(dv_burnt,2) + "m/s    " at (col+19,row+1).
     print "mythrot: " + round(mythrot,2) + "    " at (col+19,row+2).
+    print "Node Mark Lock? " + node_aim_locked at (col+19,row+3).
     until ship:availablethrustat(0) > 0 {
       set prev_dv_to_go to 99999999.
       set ship:control:fore to 1. RCS on. // RCS push.
@@ -145,6 +156,16 @@ function do_burn_with_display {
     set prev_vel to ship:velocity:orbit.
     wait 0.0.
     set dv_to_go to want_dv:mag - dv_burnt.
+  
+    // If locked to a manuever node, keep adjusting steering
+    // node as the node moves, until < 10% left, then hold still
+    // so it doesn't spin out at the end:
+    if node_aim_locked {
+      set want_steer to remember_node:deltaV.
+      if dv_to_go/want_dv:mag < 0.1 {
+        set node_aim_locked to false.
+      }
+    }
   }
   lock mythrot to 0.
   lock throttle to 0.

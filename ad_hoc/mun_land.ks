@@ -58,6 +58,9 @@ until status = "LANDED" or alt:radar <= extra {
 print status + " With Alt:radar = " + round(alt:radar,1) + ".".
 unlock throttle.
 unlock steering.
+print "Activating action group 10 in 3 seconds...".
+wait 3.
+ag10 on.
 
 function srfretro_or_up {
   if verticalspeed > -5 and alt:radar < 100

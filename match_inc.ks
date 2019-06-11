@@ -1,10 +1,12 @@
-parameter other_thing. // i.e. target, vessel("name"), or body("name").
+parameter
+  other_thing, // i.e. target, vessel("name"), or body("name").
+  soonest is false. // true means use the soonest node, not highest.
 
 run once "/lib/prediction".
 run once "/lib/burn".
 
 
-set burn to inclination_match_burn(ship, other_thing:obt).
+set burn to inclination_match_burn(ship, other_thing:obt, soonest).
 set utime to burn[0].
 set deltaV to burn[1].
 set duration to burn_seconds(deltaV:mag).

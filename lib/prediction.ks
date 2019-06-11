@@ -94,7 +94,8 @@ function find_ascending_node_ta {
 function inclination_match_burn {
   parameter
     vessel_1, // vessel of the object that will execute the burn
-    orbit_2.  // orbit of the object that orbit 1 will match with
+    orbit_2,  // orbit of the object that orbit 1 will match with
+    soonest is false. // TRUE means use the soonest node, not highest.
 
   local normal_1 is orbit_normal(vessel_1:obt).
   local normal_2 is orbit_normal(orbit_2).
@@ -102,10 +103,16 @@ function inclination_match_burn {
   // true anomaly of the ascending node:
   local node_ta is find_ascending_node_ta(vessel_1:obt, orbit_2).
 
-  // Pick whichever node, An or Dn, is higher altitude
-  // (closer to Ap than Pe):
-  if node_ta < 90 or node_ta > 270 {
-    set node_ta to mod(node_ta + 180, 360).
+  if soonest {
+    // Pick whichever node is in front of me sooner:
+    if sin(node_ta - vessel_1:obt:trueanomaly) < 0 {
+      set node_ta to mod(node_ta + 180, 360).
+    }
+  } else {
+    // Pick whichever node, An or Dn, is higher altitude
+    if node_ta < 90 or node_ta > 270 {
+      set node_ta to mod(node_ta + 180, 360).
+    }
   }
 
   // burn's eta, unit vector direction, and magnitude of burn:

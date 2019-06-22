@@ -55,12 +55,23 @@ function burn_seconds {
 
 // Perform a burn of a given deltaV vector at given utime
 // warning: function does not return until burn is done.
+// If you send a want_Pe or want_Ap, it will not stop the burn
+// till that is satisfied even if it thinks it burned enough dV.
+// (use "n/a" if don't care and it should just obey the dV value).
+// *This is to handle cases where the dV is wrong because the game
+// presumes instant burns which you can't do.*
+// Note, want_Ap will be ignored if the starting or ending orbit
+// is hypoerbolic, because the script doesn't have the logic to
+// deal with those negative apoapsis values properly.
 function do_burn_with_display {
   parameter
     uTime, // desired universal time to start burn.
     want_dV,  // desired deltaV (as a vector or maneuver node).
-    col, // desired location to print message.
-    row, // desired location to print message.
+    want_Pe is "n/a",  // desired Pe after burn. "n/a" if not tracking that.
+    want_Ap is "n/a",  // deisred Ap after burn. "n/a" if not tracking that.
+    // Do NOT set both want_Ap and want_Pe - lib ignores want_Pe if want_Ap set.
+    col is 8, // desired location to print message.
+    row is 0, // desired location to print message.
     ullage_time is -999.
 
   local remember_node is want_dv.
@@ -68,6 +79,31 @@ function do_burn_with_display {
   if ullage_time <> -999 
     persist_set("ullage_time", ullage_time).
 
+  // If using want_Ap or want_Pe, need to know if we are expecting to rise or fall
+  // to that value:
+  local seek_obt_sign is 1.
+  local seek_dir is "larger ".
+  local no_pe_ap_reason to "Ap/Pe testing not requested.".
+  // Original value of the 'want' thing we're tracking, before we started burning:
+  local original_pe_ap is 0.
+  if want_AP < 0 or apoapsis < 0 {
+    set want_Ap to "n/a".  // don't have the logic for dealing with hyperbolic orbits here.
+    set no_pe_ap_reason to "Hyperbolic Confuses Me.".
+  } else {
+    if want_Ap:isType("Scalar") {
+      set original_pe_ap to apoapsis.
+      if want_Ap - apoapsis < 0 {
+        set seek_obt_sign to -1.
+        set seek_dir to "smaller".
+      }
+    } else if want_Pe:isType("Scalar") {
+      set original_pe_ap to periapsis.
+      if want_Pe - periapsis < 0 {
+        set seek_obt_sign to -1.
+        set seek_dir to "smaller".
+      }
+    }
+  }
   local engs is 0.
   list engines in engs.
   local want_steer is want_dV.
@@ -92,11 +128,31 @@ function do_burn_with_display {
     wait 0.01.
   }.
   local dv_to_go is 9999999.
+  local base_throt is {return dv_to_go.}.
+  if want_Ap:isType("Scalar") {
+    set base_throt to {
+      // use usual dv_to_go until it is negative, then switch
+      // to using ratio of done-ness by Ap measure:
+      if dv_to_go > 0 {
+        return dv_to_go.
+      }
+      return 10*(want_Ap-apoapsis) / (want_Ap-original_pe_ap).
+    }.
+  } else if want_Pe:isType("Scalar") {
+    set base_throt to {
+      // use usual dv_to_go until it is negative, then switch
+      // to using ratio of done-ness by Pe measure:
+      if dv_to_go > 0 {
+        return dv_to_go.
+      }
+      return 10*(want_Pe-periapsis) / (want_Pe-original_pe_ap).
+    }.
+  }
 
   // Throttle at max most of the way, but start throttling
   // back when it seems like there's about 1.2 seconds left to thust:
   local avail_accel is ship:availablethrust / ship:mass.
-  lock mythrot to min(1, 0.01 + dv_to_go/(1.2*avail_accel)).
+  lock mythrot to min(1, 0.01 + base_throt()/(1.2*avail_accel)).
 
   local dv_burnt is 0.
 
@@ -132,11 +188,21 @@ function do_burn_with_display {
   local dv is 0.
   local dv_grav to 0.
   list engines in engs.
-  until dv_to_go <= 0 or (dv_to_go >= prev_dv_to_go) {
+  local done is false.
+  until done {
     print round(dV_to_go,1) + "m/s     " at (col+19,row).
     print "dv_burnt: " + round(dv_burnt,2) + "m/s    " at (col+19,row+1).
     print "mythrot: " + round(mythrot,2) + "    " at (col+19,row+2).
     print "Node Mark Lock? " + node_aim_locked at (col+19,row+3).
+    if want_Ap:isType("Scalar") {
+      print "Seek " + seek_dir + " Ap " + round(want_Ap) + "m.  " at (col+15, row+4).
+      print "    Current  Ap " + round(apoapsis) + "m.  " at (col+15, row+5).
+    } else if want_Pe:isType("Scalar") {
+      print "Seek " + seek_dir + " Pe " + round(want_Pe) + "m.  " at (col+15, row+4).
+      print "    Current  Pe " + round(periapsis) + "m.  " at (col+15, row+5).
+    } else {
+      print no_pe_ap_reason + " Not testing for Pe/Ap." at (col+0, row+5).
+    }
     until ship:availablethrustat(0) > 0 {
       set prev_dv_to_go to 99999999.
       set ship:control:fore to 1. RCS on. // RCS push.
@@ -164,6 +230,25 @@ function do_burn_with_display {
       set want_steer to remember_node:deltaV.
       if dv_to_go/want_dv:mag < 0.1 {
         set node_aim_locked to false.
+      }
+    }
+    set done to (dv_to_go <= 0 or (dv_to_go >= prev_dv_to_go)).
+
+    // If seeking an Ap or Pe and all expected dV burned, keep
+    // going anyway till Ap or Pe satisfied.
+    if dv_to_go <= 0 {
+      if want_Ap:isType("Scalar") {
+        if seek_obt_sign > 0 {
+          set done to obt:apoapsis >= want_Ap.
+        } else {
+          set done to obt:apoapsis <= want_Ap.
+        }
+      } else if want_Pe:isType("Scalar") {
+        if seek_obt_sign > 0 {
+          set done to obt:periapsis >= want_Pe.
+        } else {
+          set done to obt:periapsis <= want_Pe.
+        }
       }
     }
   }
@@ -234,7 +319,21 @@ function obey_node_mode {
       wait 0.
       local n is nextnode.
       local utime is time:seconds + n:eta - lead_time.
-      do_burn_with_display(utime, n, 5, 15, persist_get("ullage_time")).
+
+      local want_Pe is "n/a".
+      local want_Ap is "n/a".
+      // If burn has a pro or retro component (not just purely normal or radial)
+      // Then check if the node is near the periapsis or apoapsis of the predicted
+      // orbit patch after the burn.  Choose which side to seek based on that:
+      if n:prograde <> 0 {
+        if n:obt:trueanomaly > 90 and n:obt:trueanomaly < 270 {
+          set want_Pe to n:obt:periapsis.
+        } else {
+          set want_Ap to n:obt:apoapsis.
+        }
+      }
+
+      do_burn_with_display(utime, n, want_Pe, want_Ap, 5, 15, persist_get("ullage_time")).
       hudtext("Node done, removing node.", 10, 5, 20, red, false).
       remove(n).
     }

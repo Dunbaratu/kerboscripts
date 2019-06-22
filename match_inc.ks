@@ -38,7 +38,7 @@ when not burn_done then {
   }
 }
 
-do_burn_with_display( uTime - lead_time, deltaV, 5, 10).
+do_burn_with_display( uTime - lead_time, deltaV, "n/a", "n/a", 5, 10).
 
 set burn_done to true.
 

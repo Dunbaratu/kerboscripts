@@ -60,9 +60,6 @@ function burn_seconds {
 // (use "n/a" if don't care and it should just obey the dV value).
 // *This is to handle cases where the dV is wrong because the game
 // presumes instant burns which you can't do.*
-// Note, want_Ap will be ignored if the starting or ending orbit
-// is hypoerbolic, because the script doesn't have the logic to
-// deal with those negative apoapsis values properly.
 function do_burn_with_display {
   parameter
     uTime, // desired universal time to start burn.
@@ -86,22 +83,17 @@ function do_burn_with_display {
   local no_pe_ap_reason to "Ap/Pe testing not requested.".
   // Original value of the 'want' thing we're tracking, before we started burning:
   local original_pe_ap is 0.
-  if want_AP < 0 or apoapsis < 0 {
-    set want_Ap to "n/a".  // don't have the logic for dealing with hyperbolic orbits here.
-    set no_pe_ap_reason to "Hyperbolic Confuses Me.".
-  } else {
-    if want_Ap:isType("Scalar") {
-      set original_pe_ap to apoapsis.
-      if want_Ap - apoapsis < 0 {
-        set seek_obt_sign to -1.
-        set seek_dir to "smaller".
-      }
-    } else if want_Pe:isType("Scalar") {
-      set original_pe_ap to periapsis.
-      if want_Pe - periapsis < 0 {
-        set seek_obt_sign to -1.
-        set seek_dir to "smaller".
-      }
+  if want_Ap:isType("Scalar") {
+    set original_pe_ap to apoapsis.
+    if is_first_ap_higher(apoapsis, want_Ap) {
+      set seek_obt_sign to -1.
+      set seek_dir to "smaller".
+    }
+  } else if want_Pe:isType("Scalar") {
+    set original_pe_ap to periapsis.
+    if want_Pe < periapsis {
+      set seek_obt_sign to -1.
+      set seek_dir to "smaller".
     }
   }
   local engs is 0.
@@ -136,7 +128,7 @@ function do_burn_with_display {
       if dv_to_go > 0 {
         return dv_to_go.
       }
-      return 10*(want_Ap-apoapsis) / (want_Ap-original_pe_ap).
+      return 30*abs((want_Ap-apoapsis)/want_Ap).
     }.
   } else if want_Pe:isType("Scalar") {
     set base_throt to {
@@ -145,7 +137,7 @@ function do_burn_with_display {
       if dv_to_go > 0 {
         return dv_to_go.
       }
-      return 10*(want_Pe-periapsis) / (want_Pe-original_pe_ap).
+      return 30*abs((want_Pe-periapsis)/want_Pe).
     }.
   }
 
@@ -239,9 +231,9 @@ function do_burn_with_display {
     if dv_to_go <= 0 {
       if want_Ap:isType("Scalar") {
         if seek_obt_sign > 0 {
-          set done to obt:apoapsis >= want_Ap.
+          set done to is_first_ap_higher(obt:apoapsis, want_Ap).
         } else {
-          set done to obt:apoapsis <= want_Ap.
+          set done to is_first_ap_higher(want_Ap, obt:apoapsis).
         }
       } else if want_Pe:isType("Scalar") {
         if seek_obt_sign > 0 {
@@ -256,6 +248,19 @@ function do_burn_with_display {
   lock throttle to 0.
   unlock steering.
   set sas to remember_sas.
+}
+
+// True if apoapsis1 is "higher altitude" than apoapsis2, where the
+// hyperbolic Ap's are always treated as "higher" than elliptical ones
+// despite being negative.
+function is_first_ap_higher {
+  parameter ap1, ap2.
+  if (ap1 < 0 and ap2 > 0)
+    return true.
+  else if (ap1 > 0 and ap2 < 0)
+    return false.
+  else
+    return (ap1 > ap2).
 }
 
 // gravity XYZ accel vector at ship location.

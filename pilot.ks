@@ -412,7 +412,7 @@ until user_quit or
     // normal desired bank when things are going well:
     set wantBank to bankPid:Update( time:seconds, angle_off(wantCompass, shipCompass) ).
     // override that with a sanity-seeking flat bank when things aren't going well:
-    if abs(wantClimb-ship:verticalspeed) > 50 {
+    if abs(wantClimb-ship:verticalspeed)/ship:velocity:surface:mag > 0.2 {
       set wantBank to 0.
       if not need_pid_reinit { // first time this happened.
         hudtext( "PANIC MODE - IGNORING COMPASS - JUST LEVELLING", 8, 2, 32, yellow, false).
@@ -422,7 +422,7 @@ until user_quit or
       // When we have been overriding the bank this way, need to reinit the PID
       // controller for it so it doesn't "learn" incorrectly from what was happening
       // in the past while its suggested inputs weren't actually being used:
-      if need_pid_reinit and abs(wantClimb-ship:verticalspeed) < 40 {
+      if need_pid_reinit and abs(wantClimb-ship:verticalspeed)/ship:velocity:surface:mag < 0.05 {
         hudtext( "PANIC MODE OVER - RESUMING NORMAL FLIGHT", 8, 2, 32, white, false).
         set bankPid to init_bank_pid().
         set throtPid to init_throt_pid().

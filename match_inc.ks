@@ -1,6 +1,7 @@
 parameter
   other_thing, // i.e. target, vessel("name"), or body("name").
   soonest is false. // true means use the soonest node, not highest.
+                    // NOTE- This "soonest" is buggy and doesn't seem to work yet.
 
 run once "/lib/prediction".
 run once "/lib/burn".

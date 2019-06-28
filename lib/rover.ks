@@ -58,7 +58,7 @@ function drive_to {
 
   local orig_ship_parts is ship:parts:length.
 
-  local steer_pid is PIDLOOP(0.01, 0.00002, 0.003, -1, 1).
+  local steer_pid is PIDLOOP(0.001, 0.00002, 0.003, -1, 1).
   local throttle_pid is PIDLOOP(0.5, 0.01, 0.2, -1, 1).
   
   local steering_off_timestamp is 0.
@@ -360,6 +360,8 @@ function drive_to {
     if ocean_check and terrain_alt_ahead(1000) < 0 {
       print "=== BELOW SEA LEVEL AHEAD ===".
       stop_and_save(true).
+      steer_pid:reset().
+      throttle_pid:reset().
     }
     if geo_dist(last_save_spot) > save_dist {
       if ship:parts:length < orig_ship_parts {
@@ -372,6 +374,8 @@ function drive_to {
         print "=== gone a ways - saving ===".
 	stop_and_save(false).
 	set last_save_spot to latlng(latitude,longitude).
+        steer_pid:reset(). // don't integral-wind-up due to being frozen in place.
+        throttle_pid:reset().
       }
     }
     wait 0.001.
@@ -421,9 +425,9 @@ function tune_pid {
   if kuniverse:timewarp:mode = "PHYSICS" {
     set phys_warp to kuniverse:timewarp:rate.
   }
-  set the_pid:KP to 0.03 / phys_warp.
-  set the_pid:KI to 0.00002 / phys_warp.
-  set the_pid:KD to 0.006 / phys_warp.
+  set the_pid:KP to 0.01 / phys_warp.
+  set the_pid:KI to 0.0002 / phys_warp.
+  set the_pid:KD to 0.01 / phys_warp.
 }
 
 steeringmanager_init(). // just in case a previous run of this script left it screwed up.

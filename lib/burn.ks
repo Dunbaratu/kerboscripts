@@ -179,6 +179,8 @@ function do_burn_with_display {
   local prev_vel is ship:velocity:orbit.
   local dv is 0.
   local dv_grav to 0.
+  local prev_check_num is -9999.
+  local this_check_num is -9999.
   list engines in engs.
   local done is false.
   until done {
@@ -230,17 +232,37 @@ function do_burn_with_display {
     // going anyway till Ap or Pe satisfied.
     if dv_to_go <= 0 {
       if want_Ap:isType("Scalar") {
+        set this_check_num to obt:apoapsis.
         if seek_obt_sign > 0 {
-          set done to is_first_ap_higher(obt:apoapsis, want_Ap).
+          set done to is_first_ap_higher(this_check_num, want_Ap).
+          if not(done) and prev_check_num <> -9999 and
+             is_first_ap_higher(prev_check_num, this_check_num) {
+            set done to true. // now burning in wrong direction - stop.
+          }
         } else {
-          set done to is_first_ap_higher(want_Ap, obt:apoapsis).
+          set done to is_first_ap_higher(want_Ap, this_check_num).
+          if not(done) and prev_check_num <> -9999 and
+             is_first_ap_higher(this_check_num, prev_check_num) {
+            set done to true. // now burning in wrong direction - stop.
+          }
         }
+        set prev_check_num to this_check_num.
       } else if want_Pe:isType("Scalar") {
+        set this_check_num to obt:periapsis.
         if seek_obt_sign > 0 {
-          set done to obt:periapsis >= want_Pe.
+          set done to this_check_num >= want_Pe.
+          if not(done) and prev_check_num <> -9999 and
+             prev_check_num > this_check_num {
+            set done to true. // now burning in wrong direction - stop.
+          }
         } else {
-          set done to obt:periapsis <= want_Pe.
+          set done to this_check_num <= want_Pe.
+          if not(done) and prev_check_num <> -9999 and
+             this_check_num > prev_check_num {
+            set done to true. // now burning in wrong direction - stop.
+          }
         }
+        set prev_check_num to this_check_num.
       }
     }
   }

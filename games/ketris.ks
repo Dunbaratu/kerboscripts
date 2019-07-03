@@ -100,14 +100,17 @@ set center_offsets to
 // to emulate the piece color concept of Tetris.
 // This list must match indeces with the pieces list.
 set draw_chars to
+  // These are Unicode glyphs that tend to take up
+  // the whole box without being a double-wide glyph.
+  // your font may vary.
   LIST(
     "@",
-    "0",
     "%",
-    "X",
-    "O",
+    "0",
     "&",
-    "#"
+    "#",
+    "Q",
+    "M"
   ).
 
 // Make playfield be a 20x10 array to hold the playing field of chars:

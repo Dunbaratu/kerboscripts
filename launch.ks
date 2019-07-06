@@ -58,6 +58,7 @@ function launch_gui {
 
   local setting_ui is GUI(400).
   set setting_ui:addlabel("  <b>== SCRIPT LAUNCH OPTIONS ==</b>"):style:fontsize to 18.
+  set setting_ui:addlabel("  (" + ship:name + ", " + core:tag + ")"):style:fontsize to 18.
   setting_ui:addspacing(5).
 
   local ignitions_box is setting_ui:addvlayout().

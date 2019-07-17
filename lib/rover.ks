@@ -129,6 +129,7 @@ function drive_to {
   local hill_sideways_mode is false.
   local hill_sideways_sign is 0.
   local recent_steering_dir is north. // dummy to start with - will be overwritten.
+  local reason is "none". //eraseme
 
   until geo_dist(geopos) < proximity_needed {
     tune_pid(steer_pid).
@@ -175,10 +176,12 @@ function drive_to {
           set hill_sideways_mode to true.
         }
       }
-      if timestamp_start_poor_speed > 0 and time:seconds > timestamp_start_poor_speed + 35 {
+      if timestamp_start_poor_speed > 0 and time:seconds > timestamp_start_poor_speed + 90 {
         HUDTEXT("This deflection doesn't work.  Try the other way.",3,2,20,yellow,false).
         getvoice(1):play(list(note(200,0.5))).
         set hill_sideways_sign to -1 * hill_sideways_sign.
+        set timestamp_start_poor_speed to time:seconds.
+        set reason to "eraseme - reason A".
       }
     } else if enable_spd_check and achieved_speed_ratio > 0.5 {
       if timestamp_start_okay_speed < 0 {
@@ -212,6 +215,7 @@ function drive_to {
           set hill_sideways_sign to 1.
         else
           set hill_sideways_sign to -1.
+        set reason to "eraseme reason C".
       }
       set use_bearing to use_bearing + hill_sideways_sign*65.
     }
@@ -257,6 +261,7 @@ function drive_to {
       set hill_sideways_sign to 0.
       all_lasers_toggle(true).
       steeringmanager:resetpids().
+      set reason to "eraseme - reason B".
     }
     
     if is_upsidedown(offset_pitch) {
@@ -290,7 +295,7 @@ function drive_to {
       if abs_collision_eta > 0 and abs_collision_eta < 20 or
          time:seconds < steering_backup_timestamp {
         set steering_off_timestamp to time:seconds + 1.
-        v1:play(slidenote(300,500,0.3,0.1)).
+        v1:play(slidenote(100,300,0.2,0.1)).
         // If really close, then panic and actually try to back up straight.
         if abs_collision_eta > 0 and abs_collision_eta < 0.5 or
            time:seconds < steering_backup_timestamp {
@@ -337,6 +342,7 @@ function drive_to {
     print "wanted_speed is  " + round(wSpeed,1).
     print "geodist to target is " + round(geo_dist(geopos),2).
     print "ocean_check is " + ocean_check.
+    print "eraseme: hill_sideways_sign is " + hill_sideways_sign + " " + reason.
     print "USE Abort Action group to kill program and park.".
     print " -------- obstacle detection: --------  ".
     print "LASERS: left: " + has_left_lasers + ", right: " + has_right_lasers + ", leveler: " + has_leveler_lasers.
@@ -381,7 +387,7 @@ function drive_to {
     wait 0.001.
   }
   all_lasers_toggle(false).
-  set ship:control:wheelthrottle to 0.
+  set ship:control:neutralize to true.
   brakes on.
   enable_yaw().
   roll_reset().
@@ -417,17 +423,23 @@ function all_lasers_toggle {
   }
 }
 
-// Tune the steering pid to dampen it when in phys warp.
+// Tune the steering pid to dampen it by speed and phys warp.
 function tune_pid {
   parameter the_pid.
 
-  local phys_warp is 1.
+  // Make it more gentle the faster the physics warp:
+  local divisor is 1.
   if kuniverse:timewarp:mode = "PHYSICS" {
-    set phys_warp to kuniverse:timewarp:rate.
+    set divisor to kuniverse:timewarp:rate.
   }
-  set the_pid:KP to 0.01 / phys_warp.
-  set the_pid:KI to 0.0002 / phys_warp.
-  set the_pid:KD to 0.01 / phys_warp.
+  // Also factor in driving speed:
+  // (If crawling slowly, go ahead and steer sharp.
+  // If driving fast, only allow gentle turns.)
+  set divisor to divisor + ship:groundspeed.
+
+  set the_pid:KP to 0.05 / divisor.
+  set the_pid:KI to 0.0005 / divisor.
+  set the_pid:KD to 0.05 / divisor.
 }
 
 steeringmanager_init(). // just in case a previous run of this script left it screwed up.

@@ -145,4 +145,26 @@ function chutes_in_state {
   // fit the state criteria, then return it.
   // That part is missing right now.
   return chute_modules. // replace with working logic later.
+}// Get the margin height from root part to bottom of craft.
+
+// Find margin to the bottom of the craft.
+function find_margin {
+  if not(gear) {
+    gear on.
+    print "Waiting a few seconds for gear deployment to measure bottom.".
+    wait 5.
+  }
+  local parts is ship:parts.
+  local ship_fore is ship:facing:forevector. // unit vector nose-ward.
+  local root is parts[0].
+  local root_pos is root:position.
+  local least_fore is 0. // least_fore = most aft (most negative).
+  for p in parts {
+    local bot_world_coord is p:bounds:furthestcorner(-ship_fore).
+    local part_fore is vdot(bot_world_coord - root_pos, ship_fore).
+    if part_fore < least_fore {
+      set least_fore to part_fore.
+    }
+  }
+  return -least_fore.
 }

@@ -9,7 +9,8 @@ run once "/songs/sad".
 run once "/lib/sanity".
 run once "/lib/ro".
 
-parameter margin is 5.
+parameter do_gui is false.
+parameter margin is "FIND".
 parameter ullage is 2. // presumed time to wait for RCS ullage before engine start.
 parameter spool is 1. // presumed spool-up time of engines in seconds.
 parameter minThrot is 0. // min throttle in RO for the landing engine.
@@ -17,10 +18,36 @@ parameter throt_predict_mult is 0.8. // predict landing as if throttle is only t
 parameter land_spot is 0. // set to a geoposition to make it try to aim to land there.
 parameter skycrane is false.
 
+local gui_box is 0.
+if do_gui {
+  run once "/lib/land_it_gui.ks".
+  set gui_box to create_land_it_gui(true, margin, ullage, spool, minThrot, throt_predict_mult).
+  wait until gui_box["COMMIT"]:pressed.
+  set gui_box["COMMIT"]:enabled to false.
+  end_land_it_gui().
+
+  set margin to gui_box["MARGIN"]:text:toscalar().
+  set ullage to gui_box["ULLAGE"]:text:toscalar().
+  set spool to gui_box["SPOOL"]:text:toscalar().
+  set minThrot to gui_box["MINTHROT"]:text:toscalar().
+  set throt_predict_mult to gui_box["PREDICTTHROT"]:text:toscalar().
+}
+
 if land_spot:hassuffix("geoposition") {
   // for any of the types that have a geoposition (vessel, waypoint, etc), use that:
   set land_spot to land_spot:geoposition.
 }
+
+// Did script say "find bottom for me?" if so, use
+// new BOUNDS from kOS 1.1.9.0 to do it.
+if margin:isType("string") or margin = "FIND" {
+  local ver is core:version.
+  if ver:major < 1 or ver:minor < 1 or ver:patch < 9 {
+    HUDTEXT("Needs to be kOS v1.1.9.0 or higher to use 'FIND' parameter.", 15, 2, 20, yellow, false).
+  }
+  set margin to find_margin().
+}
+
 
 if config:ipu < 800 {
   // BIG WARNING:
@@ -297,6 +324,10 @@ sas on.
 print "DONE.".
 for i in range(0,10) { getvoice(i):stop(). }
 
+if do_gui {
+  end_land_it_gui().
+}
+
 // =================== END OF MAIN - START OF FUNCTIONS =============================
 
 function info_block_header {
@@ -439,8 +470,6 @@ function update_steer_offsets {
   set pitch_off to pitch_pid:update(time:seconds, overshoot_dist).
   set yaw_off to yaw_pid:update(time:seconds, right_dist).
 
-  // TODO: Put this in info block:
-  //   print "right="+round(right_dist,2) + " over="+round(overshoot_dist,2) + " p_o=" + round(pitch_off,3) + " y_o=" + round(yaw_off,3).  //eraseme
 }
 
 // Bias the input value on one side of zero more than the other.
@@ -511,3 +540,5 @@ function geopos_later {
 
   return bod:geopositionlatlng(geo_in:lat, newlong).
 }
+
+

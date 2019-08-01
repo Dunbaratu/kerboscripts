@@ -11,26 +11,37 @@ run once "/lib/ro".
 
 parameter do_gui is false.
 parameter margin is "FIND".
-parameter ullage is 2. // presumed time to wait for RCS ullage before engine start.
-parameter spool is 1. // presumed spool-up time of engines in seconds.
+parameter ullage is 0. // presumed time to wait for RCS ullage before engine start.
+parameter spool is 0. // presumed spool-up time of engines in seconds.
 parameter minThrot is 0. // min throttle in RO for the landing engine.
 parameter throt_predict_mult is 0.8. // predict landing as if throttle is only this much, for adjustable margin.
 parameter land_spot is 0. // set to a geoposition to make it try to aim to land there.
 parameter skycrane is false.
 
+local aborting is false.
 local gui_box is 0.
 if do_gui {
-  run once "/lib/land_it_gui.ks".
-  set gui_box to create_land_it_gui(true, margin, ullage, spool, minThrot, throt_predict_mult).
-  wait until gui_box["COMMIT"]:pressed.
-  set gui_box["COMMIT"]:enabled to false.
-  end_land_it_gui().
+  if not(exists("/lib/land_it_gui.ks")) {
+    set do_gui to false.
+  } else {
+    run once "/lib/land_it_gui.ks".
+    set gui_box to create_land_it_gui(
+      true, quit_script@, margin, ullage, spool, minThrot, throt_predict_mult, land_spot
+      ).
+    wait until gui_box["COMMIT"]:pressed or aborting.
+    set gui_box["COMMIT"]:enabled to false.
 
-  set margin to gui_box["MARGIN"]:text:toscalar().
-  set ullage to gui_box["ULLAGE"]:text:toscalar().
-  set spool to gui_box["SPOOL"]:text:toscalar().
-  set minThrot to gui_box["MINTHROT"]:text:toscalar().
-  set throt_predict_mult to gui_box["PREDICTTHROT"]:text:toscalar().
+    set margin to gui_box["MARGIN"]:text:toscalar().
+    set ullage to gui_box["ULLAGE"]:text:toscalar().
+    set spool to gui_box["SPOOL"]:text:toscalar().
+    set minThrot to gui_box["MINTHROT"]:text:toscalar().
+    set throt_predict_mult to gui_box["PREDICTTHROT"]:text:toscalar().
+    if gui_box["GEO_ENABLED"]:pressed {
+      set land_spot to LATLNG(gui_box["LAT"]:text:toscalar(), gui_box["LNG"]:text:toscalar()).
+    } else {
+      set land_spot to 0.
+    }
+  }
 }
 
 if land_spot:hassuffix("geoposition") {
@@ -176,10 +187,13 @@ when verticalspeed > 0 and
   set stop_burn to true.
 }
 
-info_block_header().
+if not(do_gui) {
+  info_block_header().
+}
+
 
 // Main program:
-until stop_burn {
+until stop_burn or aborting {
 
   // Measure how long the loop is taking per iteration in sim time:
   set deltaT to time:seconds - prev_time.
@@ -259,68 +273,83 @@ until stop_burn {
     set timeslice_size to (0.02 + deltaT)*4.
   }
 
-  info_block_update(burn_started, real_throt, throt_pid, bias, dist, margin, throt_predict_mult, timeslice_size).
-}
-lock throttle to 0.
-
-brakes on.
-if skycrane {
-  // stage the skycrane away before cutting throttle.
-  print "SkyCrane Staging Event!".
-  stage.
-  lock throttle to 1.
-  lock steering to up:vector + north:vector*0.2.
-  wait 1.5.
-}
-lock throttle to 0.
-sane_steering().
-lock steering to lookdirup(up:vector,ship:facing:topvector).
-set ship:control:pilotmainthrottle to 0.
-wait 0.
-unlock throttle.
-set vd1 to 0.
-set vd_off to 0.
-//clearscreen.
-print "program cut off at alt:radar = " + round(alt:radar,1) + " (desired margin = " + round(margin,1)+").".
-print "Waiting for landed state.".
-wait until status = "LANDED" or status = "SPLASHED".
-
-local cnt_after is ship:parts:length.
-local played is false.
-if cnt_before <> cnt_after {
-  print "====== Oh Noes!! Something Broke!! ======" at (2, terminal:height/2).
-  playsong(song_sad).
-  set played to true.
-}
-lights on.
-
-
-// Give things time to blow up if they're going to:
-wait 0.5.
-// Count parts to see if any blew up:
-local cnt_after is ship:parts:length.
-
-if cnt_before = cnt_after {
-  print "====== Landed!!  Celebration Music! ======" at (2, terminal:height/2).
-  playsong(song_happy).
-} else if not played {
-  print "====== Oh Noes!! Something Broke!! ======" at (2, terminal:height/2).
-  playsong(song_sad).
+  if do_gui {
+    update_land_it_gui(burn_started, real_throt, throt_pid, bias, dist, margin, throt_predict_mult, timeslice_size).
+  } else {
+    info_block_update(burn_started, real_throt, throt_pid, bias, dist, margin, throt_predict_mult, timeslice_size).
+  }
 }
 
-// consume anything buffered:
-until not(terminal:input:haschar()) {
-  terminal:input:getchar().
+if aborting {
+  unlock throttle.
+  unlock steering.
+} else {
+  lock throttle to 0.
+
+  brakes on.
+  if skycrane {
+    // stage the skycrane away before cutting throttle.
+    print "SkyCrane Staging Event!".
+    stage.
+    lock throttle to 1.
+    lock steering to up:vector + north:vector*0.2.
+    wait 1.5.
+  }
+  lock throttle to 0.
+  sane_steering().
+  lock steering to lookdirup(up:vector,ship:facing:topvector).
+  set ship:control:pilotmainthrottle to 0.
+  wait 0.
+  unlock throttle.
+  set vd1 to 0.
+  set vd_off to 0.
+  //clearscreen.
+  print "program cut off at alt:radar = " + round(alt:radar,1) + " (desired margin = " + round(margin,1)+").".
+  print "Waiting for landed state.".
+  wait until status = "LANDED" or status = "SPLASHED".
+
+  local cnt_after is ship:parts:length.
+  local played is false.
+  if cnt_before <> cnt_after {
+    print "====== Oh Noes!! Something Broke!! ======" at (2, terminal:height/2).
+    playsong(song_sad).
+    set played to true.
+  }
+  lights on.
+
+
+  // Give things time to blow up if they're going to:
+  wait 0.5.
+  // Count parts to see if any blew up:
+  local cnt_after is ship:parts:length.
+
+  if cnt_before = cnt_after {
+    print "====== Landed!!  Celebration Music! ======" at (2, terminal:height/2).
+    playsong(song_happy).
+  } else if not played {
+    print "====== Oh Noes!! Something Broke!! ======" at (2, terminal:height/2).
+    playsong(song_sad).
+  }
+
+  // consume anything buffered:
+  until not(terminal:input:haschar()) {
+    terminal:input:getchar().
+  }
+
+  // wait for any key before letting go:
+  print "PRESS ANY KEY IN TERMINAL TO LET GO STEERING.".
+  lock throttle to 0. // just to prevent user error of throttling up while steering locked.
+  until terminal:input:haschar() or aborting.
+  // consume anything buffered:
+  until not(terminal:input:haschar()) {
+    terminal:input:getchar().
+  }
+  unlock steering.
+  unlock throttle.
+  wait 0.
+  sas on.
 }
 
-// wait for any key before letting go:
-print "PRESS ANY KEY IN TERMINAL TO LET GO STEERING.".
-lock throttle to 0. // just to prevent user error of throttling up while steering locked.
-terminal:input:getchar().
-unlock steering.
-unlock throttle.
-wait 0.
-sas on.
 print "DONE.".
 for i in range(0,10) { getvoice(i):stop(). }
 
@@ -329,6 +358,10 @@ if do_gui {
 }
 
 // =================== END OF MAIN - START OF FUNCTIONS =============================
+
+function quit_script {
+  set aborting to true.
+}
 
 function info_block_header {
   clearscreen.

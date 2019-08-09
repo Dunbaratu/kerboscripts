@@ -1,3 +1,10 @@
+parameter
+  system is "Stock",
+  draw_arg is false,      // true = draw vectors, false = don't.
+  preset is "GUI",  // string: use preset name for known flight mode.
+  reverse is False,
+  final_spd is 80.
+
 print "waiting for remote tech to find itself.".
 wait 3.
 // pilot control.
@@ -10,11 +17,6 @@ if HOMECONNECTION:ISCONNECTED {
 
 run once "lib/navpoint".
 
-parameter
-  draw_arg,      // true = draw vectors, false = don't.
-  preset is "",  // string: use preset name for known flight mode.
-  reverse is False,
-  final_spd is 80.
 
 set yokePull to 0.
 set yokeRoll to 0.

@@ -81,8 +81,8 @@ function displayRoll {
   parameter col,row.
 
   print "Want Bank = " + round(wantBank,1) + "   " at (col,row).
-  print "     Bank = " + round(shipRoll,1) + " m/s   " at (col,row+1).
-  print "yoke Roll = " + round(yokeRoll,3) + "    " at (col,row+2).
+  print "     Bank = " + round(shipRoll,1) + "   " at (col,row+1).
+  print "yoke Roll = " + round(yokeRoll,3) + "   " at (col,row+2).
 }
 
 function displayCompass {

@@ -19,12 +19,17 @@ function stager {
   // simple dumb - check if nothing active,
   // then stage:
   if ship:maxthrust = 0 {
-    set reason to "Staged because maxthrust = 0 when throttle=" + round(throttle,1).
+    set reason to "Staged because maxthrust = 0 when throttle=" + round(throttle,3).
     if zeroThrot lock throttle to 0. wait 0.
     set want_stage to true.
   }
-  if new_engs:istype("scalar")
-     list engines in new_engs.
+  if new_engs:istype("scalar") {
+     local elist is 0.
+     list engines in elist.
+     for eng in elist {
+       new_engs:add(eng).
+     }
+  }
   for stg_eng in new_engs { 
     if stg_eng:name <> "sepMotor1" and stg_eng:tag <> "flameout no stage" {
       if (stg_eng:ignition and stg_eng:flameout) {
@@ -61,3 +66,4 @@ function stager {
   }
   return did_stage.
 }.
+

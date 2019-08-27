@@ -239,6 +239,9 @@ function init_roll_pid {
 function init_bank_pid {
   return PIDLOOP(3, 0.00, 5, -45, 45).
 }
+function init_wheel_pid {
+  return PIDLOOP(0.25, 0.005, 0.05, -1, 1).
+}
 function init_throt_pid {
   return PIDLOOP(0.02, 0.002, 0.05, 0, 1).
 }
@@ -247,6 +250,7 @@ set pitchPid to init_pitch_pid().
 set bankPid to init_bank_pid().
 set rollPid to init_roll_pid().
 set throtPid to init_throt_pid().
+set wheelPid to init_wheel_pid().
 
 
 
@@ -282,6 +286,23 @@ function handle_input_key {
       set nav_list to (gui_edit_course( cur_aim_i, list_change_new_sync_val@)):COPY.
     }
   }
+}
+
+function pid_tune_for_conditions {
+  parameter speed, pitchPID, rollPID.
+
+  // Make sure it has a gentle touch at high speed:
+  local dampener is 200/(4*speed+50).
+
+  // Tighten when close to ground so it will hurry up and flare:
+  local tightener is max(1.0, 0.015*(100 - alt:radar)).
+
+  set pitchPID:Kp to pitch_base_Kp * dampener * tightener.
+  set pitchPID:Ki to pitch_base_Ki * dampener * tightener.
+  set pitchPID:Kd to pitch_base_Kd * dampener * tightener.
+  set rollPID:Kp to roll_base_Kp * dampener * tightener.
+  set rollPID:Ki to roll_base_Ki * dampener * tightener.
+  set rollPID:Kd to roll_base_Kd * dampener * tightener.
 }
 
 // Start one position back from the end of the waypoint list, so there is
@@ -412,7 +433,8 @@ until user_quit or
     set ship:control:pitch to yokePull.
 
     // normal desired bank when things are going well:
-    set wantBank to bankPid:Update( time:seconds, angle_off(wantCompass, shipCompass) ).
+    local aOff is angle_off(wantCompass,shipCompass).
+    set wantBank to bankPid:Update( time:seconds, aOff ).
     // override that with a sanity-seeking flat bank when things aren't going well:
     if abs(wantClimb-ship:verticalspeed)/ship:velocity:surface:mag > 0.2 {
       set wantBank to 0.
@@ -430,11 +452,12 @@ until user_quit or
         set throtPid to init_throt_pid().
         set rollPid to init_roll_pid().
         set pitchPid to init_pitch_pid().
+        set wheelPid to init_wheel_pid().
         set need_pid_reinit to false.
       }
     }
-    // Adjust PID tune according to speed of aircraft:
-    pid_tune_for_speed(shipSpd, pitchPID, rollPID).
+    // Adjust PID tune according to needs.
+    pid_tune_for_conditions(shipSpd, pitchPID, rollPID).
     
     set yokeRoll to rollPID:Update(time:seconds, shipRoll - wantBank ).
     set ship:control:roll to yokeRoll.
@@ -456,6 +479,7 @@ until user_quit or
   }
 }
 
+
 if user_quit {
   sas on.
   print "QUITTING.. USER ABORT".
@@ -467,10 +491,19 @@ if user_quit {
     lock throttle to 0.
   }
   // use SAS instead of steering to keep it from doing a ground spin:
+  set ship:control:neutralize to true.
+  set ship:control:pilotmainthrottle to 0. // TODO - look for reverse throttle availability?
   unlock steering.
-  SAS on.
-  wait until status="LANDED" and groundspeed < 10.
-  SAS off.
+  // keep straight down the runway while slowing down, using wheels,
+  // not rudder:
+  until status="LANDED" and groundspeed < 10 {
+    local aOff is angle_off(wantCompass,shipCompass).
+    // aOff needs to be negative because wheelsteer is backward.
+    set ship:control:wheelsteer to wheelPid:Update(time:seconds, -aOff).
+    wait 0.
+  }
+  set ship:control:neutralize to true.
+  SAS OFF.
 }
 set vd_aimpos to 0.
 set vd_aimline to 0.
@@ -479,14 +512,3 @@ set ship:control:neutralize to true.
 if gui_exists
   gui_close_edit_course().
 
-function pid_tune_for_speed {
-  parameter speed, pitchPID, rollPID.
-
-  local dampener is 200/(4*speed+50).
-  set pitchPID:Kp to pitch_base_Kp * dampener.
-  set pitchPID:Ki to pitch_base_Ki * dampener.
-  set pitchPID:Kd to pitch_base_Kd * dampener.
-  set rollPID:Kp to roll_base_Kp * dampener.
-  set rollPID:Ki to roll_base_Ki * dampener.
-  set rollPID:Kd to roll_base_Kd * dampener.
-}

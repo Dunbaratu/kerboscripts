@@ -32,6 +32,8 @@ function launch {
   parameter second_dest_ap is -1. // second destination apoapsis.
   parameter second_dest_long is -1. // second destination longitude.
   parameter atmo_end is ship:body:atm:height.
+  parameter goto_bod is "".
+  parameter bod_pe is -1.
   parameter ignitions is 2.
 
   if second_dest_ap < 0 { set second_dest_ap to dest_pe. }
@@ -219,7 +221,8 @@ function launch {
         local actives is all_active_engines().
         wait until ullage_status(actives).
         stager(engs, true).
-        set ship:control:fore to 0. lock throttle to throttle_func(coast_circular, min_throt, dest_spd, dest_pe, maintain_ap_mode).
+        set ship:control:fore to 0.
+        lock throttle to throttle_func(coast_circular, min_throt, dest_spd, dest_pe, maintain_ap_mode).
         set RCS to orig_RCS.
       }
       lock throttle to throttle_func(coast_circular, min_throt, dest_spd, dest_pe, maintain_ap_mode).
@@ -285,17 +288,32 @@ function launch {
 
     if coast_circular {
       if periapsis > atmo_end and (ship:obt:trueanomaly < 90 or ship:obt:trueanomaly > 270) {
-        hudtext("Now closer to Pe than Ap, so stopping.", 8, 2, 20, green, true).
-        set done to true.
+        if apoapsis >= second_dest_ap {
+          hudtext("Ap high enough and now closer to Pe than Ap, so stopping.", 8, 2, 20, green, true).
+          set done to true.
+        }
       }
     }
-    else if periapsis > dest_pe {
+    else if periapsis > dest_pe and apoapsis >= second_dest_ap {
       hudtext("Launch Script Over because periapsis > " + dest_pe + ".", 8, 2, 20, green, true).
       set done to true.
-    } else if ignitions = 1 and apoapsis > dest_pe * 1.2 and signed_eta_pe() > -20 and signed_eta_pe() < 20 {
+    } else if ignitions = 1 and apoapsis > dest_pe * 1.2 and signed_eta_pe() > -20 and signed_eta_pe() < 20 and apoapsis >= second_dest_ap {
       hudtext("Launch Script Over we are at Pe and cannot raise it.", 8, 2, 20, yellow, true).
       hudtext("You probably need to correct this orbit.", 10, 2, 20, rgb(1,0.5,0), true).
       set done to true.
+    } else if goto_bod <> "" and orbit:hasnextpatch and orbit:nextpatch:body:name = goto_bod {
+      
+      // Need to loop this part tightly because an unthrottle-able
+      // engine will blow past the sweet spot in like one loop iteration
+      // unless IPU is super high:
+      until orbit:nextpatch:periapsis < bod_pe {
+        print "Encounter with " + goto_bod + "happening - waiting for Pe="+bod_pe.
+        wait 0.
+      }
+      set done to true.
+      set allow_zero to true.
+      print "Done because nextpatch Pe now " + orbit:nextpatch:periapsis.
+      break.
     }
     
     if verticalspeed < -5 and still_must_thrust {
@@ -310,7 +328,8 @@ function launch {
       if not(payload_cut_yet) {
 	local cut_parts_list is ship:partstagged("payload cutoff"). // expensive walk - don't do it too much.
 	if cut_parts_list:length > 0 {
-	  lock throttle to 0. // TODO - this is wrong if ignitions = 1 and we don't want to coast.
+	  if allow_zero
+            lock throttle to 0. 
 	  wait 1.
 	  until cut_parts_list:length = 0 {
 	    hudtext("Pe above " + round(payload_cut_pe) + "m.  Decoupling until payload cutoff parts gone", 6, 2, 20, green, true).
@@ -338,32 +357,32 @@ function launch {
   function info_block {
     parameter coast_circular is false.
     print "=================================================" at (0,0).
-    print "| CURRENT | APO:         m  ETA:      s | Max   |" at (0,1).
-    print "|         | PER:         m              | Voff  |" at (0,2).
-    print "|         | SPD:         m/s            | (V,v) |" at (0,3).
-    print "| --------------------------------------|       |" at (0,4).
-    print "| WANTED  | APO:         m  ETA:      s |       |" at (0,5).
-    print "|         | PER:         m              |       |" at (0,6).
-    print "|         | SPD:         m/s            |       |" at (0,7).
+    print "| CURRENT | APO:          m  ETA:      s | Max   |" at (0,1).
+    print "|         | PER:          m              | Voff  |" at (0,2).
+    print "|         | SPD:          m/s            | (V,v) |" at (0,3).
+    print "| ------------------------------0--------|       |" at (0,4).
+    print "| WANTED  | APO:          m  ETA:      s |       |" at (0,5).
+    print "|         | PER:          m              |       |" at (0,6).
+    print "|         | SPD:          m/s            |       |" at (0,7).
     print "=================================================" at (0,8).
     print "      " at (17,1).
     print round(apoapsis) at (17,1).
     print "      " at (33,1).
-    print round(signed_eta_ap,1) at (33,1).
+    print round(signed_eta_ap,1) at (34,1).
     print "        " at (17,2).
     print round(periapsis) at (17,2).
     print "       " at (17,3).
     print round(which_vel():mag) at (17,3).
     print "      " at (17,5).
     print second_dest_ap at (17,5).
-    print "      " at (33,5).
-    print round(wanted_eta_apo(coast_circular,dest_spd),1) at (33,5).
+    print "      " at (34,5).
+    print round(wanted_eta_apo(coast_circular,dest_spd),1) at (34,5).
     print "      " at (17,6).
     print dest_pe at (17,6).
     print "      " at (17,7).
     print round(dest_spd) at (17,7).
-    print "    " at (42,4).
-    print round(vertoff_allow,2) at (42,4).
+    print "    " at (43,4).
+    print round(vertoff_allow,2) at (43,4).
   }
 
   // Terminal input keys can change some parameters:

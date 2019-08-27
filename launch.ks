@@ -11,9 +11,14 @@ parameter
   second_height is -1,
   second_height_long is -1,
   atmo_end is ship:body:atm:height,
+  goto_bod is "",
+  bod_pe is -1,
   ignitions is 2.
 
 if launch_gui() {
+
+  if second_height = "same"
+    set second_height to -1.
 
   until count = 0 {
     hudtext("T minus " + count + "s", 2, 2, 45, yellow, true).
@@ -42,6 +47,8 @@ if launch_gui() {
     second_height,
     second_height_long,
     atmo_end,
+    goto_bod,
+    bod_pe,
     ignitions).
 
   set steeringmanager:pitchts to old_pitch_ts.
@@ -56,6 +63,9 @@ if launch_gui() {
 function launch_gui {
   local exit_val is -1.
 
+  if second_height < 0 
+    set second_height to "same".
+
   local setting_ui is GUI(400).
   set setting_ui:addlabel("  <b>== SCRIPT LAUNCH OPTIONS ==</b>"):style:fontsize to 18.
   set setting_ui:addlabel("  (" + ship:name + ", " + core:tag + ")"):style:fontsize to 18.
@@ -68,15 +78,44 @@ function launch_gui {
   local ignitions_radio_box is ignitions_box:addhlayout().
   local one_ignition_button is ignitions_radio_box:addradiobutton("One", false).
   local two_ignition_button is ignitions_radio_box:addradiobutton("Two", true).
-
+  
   local end_alt_box is setting_ui:addhlayout().
-  end_alt_box:addlabel("End When Periapais Alt is:").
+  end_alt_box:addlabel("End When Periapais Alt >=").
   local end_alt_field is end_alt_box:addtextfield(end_alt:tostring()).
   set end_alt_field:onconfirm to {
     parameter str.
     // Set to a number then back to a string, to wipe any non-numeric stuff:
     set end_alt_field:text to end_alt_field:text:tonumber(end_alt):tostring().
     set end_alt to end_alt_field:text:tonumber().
+  }.
+
+  end_alt_box:addlabel("And AP >=").
+  local end_ap_field is end_alt_box:addtextfield(second_height:tostring()).
+  set end_ap_field:onconfirm to {
+    parameter str.
+    if str = "same" or str:tonumber(-1) < 0 {
+      set second_height to "same".
+      return.
+    }
+    // Set to a number then back to a string, to wipe any non-numeric stuff:
+    local default is second_height:tonumber(-1).
+    set end_ap_field:text to end_ap_field:text:tonumber(default):tostring().
+    set second_height to end_ap_field:text:tonumber().
+  }.
+
+  local bod_box is setting_ui:addhlayout().
+  bod_box:addlabel("Encounter body:").
+  local goto_bod_field is bod_box:addtextfield(goto_bod:tostring()).
+  set goto_bod_field:onconfirm to {
+    parameter str.
+    set goto_bod to str.
+  }.
+  bod_box:addlabel("at Pe:").
+  local bod_pe_field is bod_box:addtextfield(bod_pe:tostring()).
+  set bod_pe_field:onconfirm to {
+    parameter str.
+    set bod_pe to str:tonumber(-1).
+    set bod_pe_field:text to bod_pe:tostring().
   }.
 
   local compass_box is setting_ui:addhlayout().

@@ -94,6 +94,82 @@ LEXICON(
       "SYSTEM", "RSS")
   ),
 
+  "EARTH WHITE SANDS",
+  LIST(
+    LEXICON (
+      "BODYNAME", "Earth",
+      "LAT", 32.343997,
+      "LNG", -106.394778,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "RSS"),
+    LEXICON (
+      "BODYNAME", "Earth",
+      "LAT", 32.324673,
+      "LNG", -106.40648239,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "RSS")
+  ),
+
+  "EARTH KODIAK",
+  LIST(
+    LEXICON (
+      "BODYNAME", "Earth",
+      "LAT", 57.439745,
+      "LNG", -152.3611177,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "RSS"),
+    LEXICON (
+      "BODYNAME", "Earth",
+      "LAT", 57.439745,
+      "LNG", -152.32065296,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "RSS")
+  ),
+
+  "EARTH Kourou",
+  LIST(
+    LEXICON (
+      "BODYNAME", "Earth",
+      "LAT", 5.243848,
+      "LNG", -52.780252,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "RSS"),
+    LEXICON (
+      "BODYNAME", "Earth",
+      "LAT", 5.243848,
+      "LNG", -52.758152,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "RSS")
+  ),
+
+  "EARTH Woomera",
+  LIST(
+    LEXICON (
+      "BODYNAME", "Earth",
+      "LAT", -30.95428,
+      "LNG", 136.489997,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "RSS"),
+    LEXICON (
+      "BODYNAME", "Earth",
+      "LAT", -30.95428,
+      "LNG", 136.515143,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "RSS")
+  ),
+
   "GPP KSC 'Kerbin=Gael'",
   LIST(
     LEXICON (

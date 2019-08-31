@@ -303,17 +303,18 @@ function launch {
       set done to true.
     } else if goto_bod <> "" and orbit:hasnextpatch and orbit:nextpatch:body:name = goto_bod {
       
-      // Need to loop this part tightly because an unthrottle-able
+      // Need to do this check as a fast trigger because an unthrottle-able
       // engine will blow past the sweet spot in like one loop iteration
       // unless IPU is super high:
-      until orbit:nextpatch:periapsis < bod_pe {
-        print "Encounter with " + goto_bod + "happening - waiting for Pe="+bod_pe.
-        wait 0.
+      print "Encounter with " + goto_bod + "happening - waiting for Pe="+bod_pe.
+      when orbit:nextpatch:periapsis < bod_pe then {
+        print "pe now = "+ orbit:nextpatch:periapsis +" so ending.".
+        lock throttle to 0.
+        wait 0. // force throttle to have an effect right away.
+        set allow_zero to true.
+        set min_throt to 0.
+        set done to true.
       }
-      set done to true.
-      set allow_zero to true.
-      print "Done because nextpatch Pe now " + orbit:nextpatch:periapsis.
-      break.
     }
     
     if verticalspeed < -5 and still_must_thrust {

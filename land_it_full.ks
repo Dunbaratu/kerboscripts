@@ -8,8 +8,8 @@ run once "/songs/sad".
 run once "/lib/sanity".
 run once "/lib/ro".
 
-parameter margin is 5.
-parameter spool is 1. // presumed spool-up time of engines in second in secondss.
+parameter margin is 5. // height (could be replaced with bounds check).
+parameter spool is 1. // presumed spool-up time of engines in seconds.
 parameter skycrane is false.
 // The following two are for fixing it if the
 // probe core isn't oriented right
@@ -28,6 +28,11 @@ if ship:availablethrust <= 0 {
   set vv:loop to true.
   vv:play(LIST(NOTE(0,0.3), SLIDENOTE(600,700,0.3,0.2),SLIDENOTE(600,700,0.3,0.2),SLIDENOTE(600,700,0.3,0.2))).
 
+
+if config:ipu < 800 {
+  print "Setting IPU to min of 800 because this script needs it.".
+  set config:ipu to 800.
+}
 
   clearscreen.
   print "=== NO NO NO NO NO NO, YOU IDIOT ===".
@@ -73,7 +78,7 @@ until landed {
       ship:mass,
       ship:drymass,
       ship:velocity:surface,
-      0.1, // was 0.5
+      0.5, // was 0.5
       false,
       spool).
 
@@ -210,7 +215,7 @@ function has_safe_distance {
   if use_fallback {
     local groundPos is ship:body:geopositionof(pos):position.
     local seaPos is ship:body:geopositionof(pos):altitudeposition(0).
-    set test_dist to (margin+abs(verticalspeed)*deltaT*1.5).
+    set test_dist to (margin+abs(verticalspeed)*deltaT*5).
     set dist_ground to vdot(pos-groundPos,ship:up:vector).
     set dist_sea to vdot(pos-seaPos,ship:up:vector).
     set dist to min(dist_ground, dist_sea).

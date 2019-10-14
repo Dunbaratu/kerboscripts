@@ -1,4 +1,3 @@
-// land_it to use when you have an engine that might not be
 // infinitely restartable but does have the ability to
 // throttle it down.  Can work with engines with min TWR > 1.0.
 

@@ -53,7 +53,14 @@ if land_spot:hassuffix("geoposition") {
 // new BOUNDS from kOS 1.1.9.0 to do it.
 if margin:isType("string") or margin = "FIND" {
   local ver is core:version.
-  if ver:major < 1 or ver:minor < 1 or ver:patch < 9 {
+  local pass is ver:major >= 2.
+  if not(pass) and ver:major >= 1 {
+    set pass to ver:minor >= 2.
+    if not(pass) and ver:minor >= 1 {
+      set pass to ver:patch >= 9.
+    }
+  }
+  if not(pass) {
     HUDTEXT("Needs to be kOS v1.1.9.0 or higher to use 'FIND' parameter.", 15, 2, 20, yellow, false).
   }
   set margin to find_margin().

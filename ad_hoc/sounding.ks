@@ -1,6 +1,7 @@
 createdir("/lib").
 copypath("0:/lib/science.ks","/lib/").
 run once "lib/science".
+set ship:control:pilotmainthrottle to 1.
 lock throttle to 1.
 until maxthrust > 1 { stage. wait 1. }
 lock steering to heading(0, 90 - 90*sqrt(altitude/130_000)).

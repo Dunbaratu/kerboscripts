@@ -10,6 +10,8 @@
 // "SPD", optional, a desired m/s speed to approach this navpoint at.
 // Note if ALT=0, and AGL=True, then this navpoint is meant to be landed.  
 
+parameter system is "Stock". // other values might be "RSS" or "GPP" or "JNSQ"...
+
 // A list of known runways in the universe (stock):
 // A runway definition is 2 points - the endpoints.
 local known_runways is
@@ -22,13 +24,15 @@ LEXICON(
       "LNG", -74.7288,
       "ALT", 0,
       "AGL", True,
-      "SPD", 0 ),
+      "SPD", 0,
+      "SYSTEM", "Stock"),
     LEXICON (
       "BODYNAME", "Kerbin",
       "LAT", -0.0502,
       "LNG", -74.4881,
       "AGL", True,
-      "SPD", 0 )
+      "SPD", 0,
+      "SYSTEM", "Stock")
   ),
 
   "STOCK ISLAND",
@@ -39,14 +43,16 @@ LEXICON(
       "LNG", -71.967756,
       "ALT", 0,
       "AGL", True,
-      "SPD", 0 ),
+      "SPD", 0,
+      "SYSTEM", "Stock"),
     LEXICON (
       "BODYNAME", "Kerbin",
       "LAT", -1.516785,
       "LNG", -71.85207,
       "ALT", 0,
       "AGL", True,
-      "SPD", 0 )
+      "SPD", 0,
+      "SYSTEM", "Stock")
   ),
 
   "STOCK DESSERT",
@@ -57,14 +63,111 @@ LEXICON(
       "LNG", -144.041126862394,
       "ALT", 0,
       "AGL", True,
-      "SPD", 0 ),
+      "SPD", 0,
+      "SYSTEM", "Stock"),
     LEXICON (
       "BODYNAME", "Kerbin",
       "LAT", -6.44608447853134,
       "LNG", -144.038237420846,
       "ALT", 0,
       "AGL", True,
-      "SPD", 0 )
+      "SPD", 0,
+      "SYSTEM", "Stock")
+  ),
+
+  "EARTH KSC CANAVERAL",
+  LIST(
+    LEXICON (
+      "BODYNAME", "Earth",
+      "LAT", 28.6128470369,
+      "LNG", -80.618108108,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "RSS"),
+    LEXICON (
+      "BODYNAME", "Earth",
+      "LAT", 28.6128470369,
+      "LNG", -80.59236999,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "RSS")
+  ),
+
+  "EARTH WHITE SANDS",
+  LIST(
+    LEXICON (
+      "BODYNAME", "Earth",
+      "LAT", 32.343997,
+      "LNG", -106.394778,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "RSS"),
+    LEXICON (
+      "BODYNAME", "Earth",
+      "LAT", 32.324673,
+      "LNG", -106.40648239,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "RSS")
+  ),
+
+  "EARTH KODIAK",
+  LIST(
+    LEXICON (
+      "BODYNAME", "Earth",
+      "LAT", 57.439745,
+      "LNG", -152.3611177,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "RSS"),
+    LEXICON (
+      "BODYNAME", "Earth",
+      "LAT", 57.439745,
+      "LNG", -152.32065296,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "RSS")
+  ),
+
+  "EARTH Kourou",
+  LIST(
+    LEXICON (
+      "BODYNAME", "Earth",
+      "LAT", 5.243848,
+      "LNG", -52.780252,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "RSS"),
+    LEXICON (
+      "BODYNAME", "Earth",
+      "LAT", 5.243848,
+      "LNG", -52.758152,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "RSS")
+  ),
+
+  "EARTH Woomera",
+  LIST(
+    LEXICON (
+      "BODYNAME", "Earth",
+      "LAT", -30.95428,
+      "LNG", 136.489997,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "RSS"),
+    LEXICON (
+      "BODYNAME", "Earth",
+      "LAT", -30.95428,
+      "LNG", 136.515143,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "RSS")
   ),
 
   "GPP KSC 'Kerbin=Gael'",
@@ -75,14 +178,16 @@ LEXICON(
       "LNG", -168.34211,
       "ALT", 0,
       "AGL", True,
-      "SPD", 0 ),
+      "SPD", 0,
+      "SYSTEM", "GPP"),
     LEXICON (
       "BODYNAME", "Kerbin",
       "LAT", 8.68749,
       "LNG", -168.1107,
       "ALT", 0,
       "AGL", True,
-      "SPD", 0 )
+      "SPD", 0,
+      "SYSTEM", "GPP")
   ),
 
   "GPP DomRok 'Kerbin=Gael'",
@@ -93,14 +198,16 @@ LEXICON(
       "LNG", -114.578911,
       "ALT", 0,
       "AGL", True,
-      "SPD", 0 ),
+      "SPD", 0,
+      "SYSTEM", "GPP"),
     LEXICON (
       "BODYNAME", "Kerbin",
       "LAT", -7.353289,
       "LNG", -114.9399995,
       "ALT", 0,
       "AGL", True,
-      "SPD", 0 )
+      "SPD", 0,
+      "SYSTEM", "GPP")
   )
 ).
 
@@ -152,17 +259,22 @@ function gui_edit_course {
   local landing_list is g_land_box_hor:addpopupmenu().
   set landing_list:style:width to 200.
   for r_name in known_runways:KEYS {
-    // Figure runway heading with trig:
-    local lat0 is known_runways[r_name][0]["LAT"]. 
-    local lat1 is known_runways[r_name][1]["LAT"]. 
-    local lng0 is known_runways[r_name][0]["LNG"]. 
-    local lng1 is known_runways[r_name][1]["LNG"]. 
-    local compass is arctan2(lng1-lng0,lat1-lat0).
-    if compass < 5 { set compass to compass + 360. }
-    landing_list:addoption(r_name + "("+round(compass/10)+")").
-    set compass to arctan2(lng0-lng1,lat0-lat1).
-    if compass < 5 { set compass to compass + 360. }
-    landing_list:addoption(r_name + "("+round(compass/10)+")").
+    // Only put runways in the list if they are part of the system
+    // we were called with ("RSS", "Stock", etc):
+    if known_runways[r_name][0]["SYSTEM"] = system {
+
+      // Figure runway heading with trig:
+      local lat0 is known_runways[r_name][0]["LAT"]. 
+      local lat1 is known_runways[r_name][1]["LAT"]. 
+      local lng0 is known_runways[r_name][0]["LNG"]. 
+      local lng1 is known_runways[r_name][1]["LNG"]. 
+      local compass is arctan2(lng1-lng0,lat1-lat0).
+      if compass < 5 { set compass to compass + 360. }
+      landing_list:addoption(r_name + "("+round(compass/10)+")").
+      set compass to arctan2(lng0-lng1,lat0-lat1).
+      if compass < 5 { set compass to compass + 360. }
+      landing_list:addoption(r_name + "("+round(compass/10)+")").
+    }
   }
   local g_land_spd_box is g_land_box_hor:addhbox().
   g_land_spd_box:addlabel("at").

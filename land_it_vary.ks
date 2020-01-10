@@ -16,6 +16,7 @@ parameter minThrot is 0. // min throttle in RO for the landing engine.
 parameter throt_predict_mult is 0.8. // predict landing as if throttle is only this much, for adjustable margin.
 parameter land_spot is 0. // set to a geoposition to make it try to aim to land there.
 parameter skycrane is false.
+parameter upside_down is false.
 
 local aborting is false.
 local gui_box is 0.
@@ -298,13 +299,16 @@ if aborting {
     print "SkyCrane Staging Event!".
     stage.
     lock throttle to 1.
-    lock steering to up:vector + north:vector*0.2.
+    lock steering to (choose -up:vector if upside_down else up:vector) + north:vector*0.2.
     wait 1.5.
   }
   lock throttle to 0.
   sane_steering().
-  lock steering to lookdirup(up:vector,ship:facing:topvector).
+  lock steering to lookdirup(
+    (choose -up:vector if upside_down else up:vector),
+    ship:facing:topvector).
   set ship:control:pilotmainthrottle to 0.
+  lock throttle to 0.
   wait 0.
   unlock throttle.
   set vd1 to 0.
@@ -442,15 +446,15 @@ function pid_tune {
 // near the end of the flight if we'll be not vertical
 // enough and if so then curve it to the ground more.
 function aim_direction {
-  local aim_vec is srfretrograde:vector.
+  local aim_vec is (choose srfprograde:vector if upside_down else srfretrograde:vector).
 
   // Stop aiming srfretro and aim vertical if near the end:
   if burn_started and ship:velocity:surface:mag < 1.5 {
-    set aim_vec to up:vector.
+    set aim_vec to (choose -up:vector if upside_down else up:vector).
   }
   else if burn_started and verticalspeed > -5 {
     // Aim at a vector exactly halfway between true surface retro and straight up:
-    set aim_vec to up:vector:normalized + srfretrograde:vector:normalized.
+    set aim_vec to up:vector:normalized + aim_vec:normalized.
   }
 
   // Offset based on targetted landing site:

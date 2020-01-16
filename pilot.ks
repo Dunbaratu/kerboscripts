@@ -224,9 +224,9 @@ function get_want_climb {
 
 // Made into a separate function calls so that it's possible to re-init them later
 // with the same PID gains - used below in the part called "PANIC MODE".
-local pitch_base_Kp is 0.03.
-local pitch_base_Ki is 0.01.
-local pitch_base_Kd is 0.01.
+local pitch_base_Kp is 0.09.
+local pitch_base_Ki is 0.02.
+local pitch_base_Kd is 0.03.
 function init_pitch_pid {
   return PIDLOOP(pitch_base_Kp, pitch_base_Ki, pitch_base_Kd, -1, 1).
 }

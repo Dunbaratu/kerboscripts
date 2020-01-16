@@ -298,7 +298,8 @@ function obey_node_mode {
     node_edit is "n/a",       // pass in a delegate that will edit precise nodes if called.
     boot_name is "", // pass in a name of a boot script.
     p_ullage_time is -999, // parameter ullage time.
-    p_spool_time is -999.  // parameter spool time.
+    p_spool_time is -999,  // parameter spool time.
+    sun_facing is -1. // which side to face at the sun when parking.
 
   if p_ullage_time <> -999 
     persist_set("ullage_time", p_ullage_time).
@@ -306,18 +307,24 @@ function obey_node_mode {
     persist_set("spool_time", p_spool_time).
   if boot_name <> ""
     set obey_node_boot_name to boot_name.
+  if sun_facing = -1
+    set sun_facing to 0.
+  else
+    persist_set("sun_facing", sun_facing).
 
   get_stopping().
 
   until quit_condition:call() {
-    lock steering to sun:position.
+    set sun_facing to persist_get("sun_facing").
+    lock steering to parked_steering(sun_facing).
+
     lock throttle to 0.
     draw_menu().
     if not hasnode {
       hudtext("Waiting for a node to exist...", 10, 2, 30, red, false).
       until hasnode or quit_condition:call() {
         wait 0.
-        just_obey_p_check(node_edit, do_engine_edit@, do_max_stopping_edit@, obey_node_boot_name).
+        just_obey_p_check(node_edit, do_engine_edit@, do_max_stopping_edit@, do_sun_facing_edit@, obey_node_boot_name).
       }
     }
     hudtext("I See a Node.  Waiting until just before it's supposed to burn.", 5, 2, 30, red, false).
@@ -337,7 +344,7 @@ function obey_node_mode {
       set full_burn_length to burn_seconds(dv_mag).
       set lead_time to half_burn_length + persist_get("ullage_time") + persist_get("spool_time").
       draw_block(dv_mag, full_burn_length, half_burn_length, persist_get("ullage_time"), persist_get("spool_time"), lead_time).
-      just_obey_p_check(node_edit, do_engine_edit@, do_max_stopping_edit@, obey_node_boot_name).
+      just_obey_p_check(node_edit, do_engine_edit@, do_max_stopping_edit@, do_sun_facing_edit@, obey_node_boot_name).
       wait 0.2. // Don't re-calculate burn_seconds() more often than needed.
     }
     if hasnode { // just in case the user deleted the node - don't want to crash.
@@ -364,8 +371,24 @@ function obey_node_mode {
       hudtext("Node done, removing node.", 10, 5, 20, red, false).
       remove(n).
     }
-    just_obey_p_check(node_edit, do_engine_edit@, do_max_stopping_edit@, obey_node_boot_name).
+    just_obey_p_check(node_edit, do_engine_edit@, do_max_stopping_edit@, do_sun_facing_edit@, obey_node_boot_name).
   }
+}
+
+function parked_steering {
+  parameter sun_facing.
+
+  if sun_facing = 1 // away from sun
+    return -sun:position.
+  else if sun_facing = 2 { // solar north.
+    local north_or_south is vcrs(solarprimevector, sun:position).
+    if vdot(north_or_south, V(0,1,0)) > 0
+      return north_or_south.
+    else
+      return - north_or_south.
+  }
+  else // at sun, the default
+    return sun:position.
 }
 
 function draw_menu {
@@ -373,19 +396,20 @@ function draw_menu {
   print "Type 'B' for bootfilename on? Currently "+(core:bootfilename = obey_node_boot_name).
   print "Type 'P' for precise node editor.".
   print "Type 'E' for Engine stats change.".
+  print "Type 'F' for Sun parking change (solar panels).".
   print "Type 'S' for Max Stopping Time Change.".
 }
 
 function draw_block {
   parameter dv_mag, full_burn_length, half_burn_length, ullage_time, spool_time, lead_time.
 
-  print "Dv: " + round(dv_mag,2) + " m/s  " at (0,6).
-  print "Est Full Dv Burn: " + round(full_burn_length,1) + " s  " at (0,7).
-  print "  Est Half Dv Burn: " + round(half_burn_length,1) + " s  " at (0,9).
-  print "+  Est Ullage time: " + round(ullage_time,1) + " s  " at (0,10).
-  print "+   Est Spool time: " + round(spool_time,1) + " s  " at (0,11).
-  print "---------------------------------------" at (0,12).
-  print "   Total lead time: " + round(lead_time,1) + " s " at (0,13).
+  print "Dv: " + round(dv_mag,2) + " m/s  " at (0,7).
+  print "Est Full Dv Burn: " + round(full_burn_length,1) + " s  " at (0,8).
+  print "  Est Half Dv Burn: " + round(half_burn_length,1) + " s  " at (0,10).
+  print "+  Est Ullage time: " + round(ullage_time,1) + " s  " at (0,11).
+  print "+   Est Spool time: " + round(spool_time,1) + " s  " at (0,12).
+  print "---------------------------------------" at (0,13).
+  print "   Total lead time: " + round(lead_time,1) + " s " at (0,14).
 }
 
 function just_obey_p_check {
@@ -393,6 +417,7 @@ function just_obey_p_check {
     node_edit, // a delegate to call when P is hit.
     eng_edit, // a delegate to call when E is hit.
     mxstop_edit, // a delegate to call when S is hit.
+    sunface_edit, // a delegate to call when F is hit.
     obey_node_boot_name. // filename to boot to on powerup.
 
   if node_edit:istype("Delegate") {
@@ -407,6 +432,9 @@ function just_obey_p_check {
       }
       if ch = "s" {
         mxstop_edit:call().
+      }
+      if ch = "f" {
+        sunface_edit:call().
       }
       if ch = "b" {
         if core:bootfilename = obey_node_boot_name {
@@ -464,6 +492,32 @@ function get_stopping {
     persist_set("maxstoptime", steeringmanager:maxstoppingtime).
   }
   return steeringmanager:maxstoppingtime.
+}
+
+function do_sun_facing_edit {
+  local facing_names is LIST("At Sun", "Away from Sun", "Solar North").
+  local sun_facing is persist_get("sun_facing").
+
+  local sun_facing_menu is make_menu(
+    30, 7, 18, 8, "Sun Facing",
+    LIST(
+      LIST( facing_names[0], { set_sun_facing(0). }),
+      LIST( facing_names[1], { set_sun_facing(1). }),
+      LIST( facing_names[2], { set_sun_facing(2). })
+    )
+  ).
+
+  if sun_facing > 0 {
+    set sun_facing_menu:pick to sun_facing.
+    set sun_facing_menu:oldpick to sun_facing.
+  }
+  sun_facing_menu["start"]().
+}
+
+function set_sun_facing {
+  parameter new_val.
+  persist_set("sun_facing", new_val).
+  lock steering to parked_steering(new_val).
 }
 
 function do_engine_edit {

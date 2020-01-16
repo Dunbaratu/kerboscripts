@@ -495,7 +495,7 @@ function get_stopping {
 }
 
 function do_sun_facing_edit {
-  local facing_names is LIST("At Sun", "Away from Sun", "Solar North").
+  local facing_names is LIST("At Sun", "Away from Sun", "Perp to Sun").
   local sun_facing is persist_get("sun_facing").
 
   local sun_facing_menu is make_menu(

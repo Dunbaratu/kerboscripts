@@ -396,7 +396,7 @@ function draw_menu {
   print "Type 'B' for bootfilename on? Currently "+(core:bootfilename = obey_node_boot_name).
   print "Type 'P' for precise node editor.".
   print "Type 'E' for Engine stats change.".
-  print "Type 'F' for Sun parking change (solar panels).".
+  print "Type 'F' for Facing when parked (solar panels).".
   print "Type 'S' for Max Stopping Time Change.".
 }
 

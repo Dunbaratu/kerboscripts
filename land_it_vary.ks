@@ -20,6 +20,7 @@ parameter upside_down is false.
 
 local aborting is false.
 local gui_box is 0.
+clearscreen.
 if do_gui {
   if not(exists("/lib/land_it_gui.ks")) {
     set do_gui to false.

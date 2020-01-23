@@ -14,15 +14,25 @@ if tgt:ISTYPE("VESSEL") {
   set tgt to tgt:parts[0].
 }
 
+local grab_butt is false. // true if we want to grab the rear of the target not the nose.
+
 // If the part being targetted is a docking port, then lock to its port facing,
 // else lock to its normal facing if it's any other kind of part:
 if tgt:ISTYPE("DOCKINGPORT") {
   print "Target is a docking port.".
   lock steering to lookdirup(- tgt:portfacing:forevector, tgt:portfacing:topvector).
 } else {
-  print "Target is NOT a docking port.".
-  lock steering to lookdirup(- tgt:facing:vector, tgt:facing:topvector).
-} 
+  if (tgt:ISTYPE("VESSEL") and tgt:parts:length = 1) or 
+     (tgt:ISTYPE("PART") and tgt:ship:parts:length = 1) {
+    print "Target is an entire Vessel with only 1 part.".
+    print "Selecting forward orientation for grabbing".
+    lock steering to tgt:facing.
+    set grab_butt to true.
+  } else {
+    print "Target is a NON docking port part.".
+    lock stetering to lookdirup(- tgt:facing:vector, tgt:facing:topvector).
+  }
+}
 
 local from_parts is ship:partstagged("from here").
 hudtext_until_condition(
@@ -31,7 +41,7 @@ hudtext_until_condition(
   8, 2, 20, yellow, true).
 
 print "DOCKING SCRIPT COMMENCING".
-do_dock(from_parts[0], tgt).
+do_dock(from_parts[0], tgt, grab_butt).
 
 
 // Display a hudtext and a sound if a condition is false, and keep checking the

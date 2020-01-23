@@ -9,14 +9,19 @@ local mode is "Evade".
 
 local wanted_spd_last_val is 0.
 
+local grab_butt is false. // If true then "dock" with the butt of the part, not the nose.
+
 // This handles only the docking translation, and assumes
 // you've already done a LOCK STEERING to the right direction
 // to align to the target:
 function do_dock {
-  parameter from_part, to_part.
+  parameter from_part, to_part, grab_butt_in is false.
+
   local from_part_module is 0.
 
   local original_length is ship:parts:length.
+
+  set grab_butt to grab_butt_in.
 
   wait 0.
 
@@ -234,10 +239,19 @@ function do_dock {
 function get_facing {
   parameter a_part.
 
-  if a_part:istype("DOCKINGPORT")
-    return a_part:portfacing.
-  else
-    return a_part:facing.
+  if a_part:istype("DOCKINGPORT") {
+    if grab_butt {
+      return lookdirup(- a_part:portfacing:forevector, a_part:portfacing:topvector).
+    } else {
+      return a_part:portfacing.
+    }
+  } else {
+    if grab_butt {
+      return lookdirup(- a_part:facing:forevector, a_part:facing:topvector).
+    } else {
+      return a_part:facing.
+    }
+  }
 }
 
 function get_state {

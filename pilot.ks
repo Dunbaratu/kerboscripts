@@ -224,8 +224,8 @@ function get_want_climb {
 
 // Made into a separate function calls so that it's possible to re-init them later
 // with the same PID gains - used below in the part called "PANIC MODE".
-local pitch_base_Kp is 0.09.
-local pitch_base_Ki is 0.02.
+local pitch_base_Kp is 0.03.
+local pitch_base_Ki is 0.01.
 local pitch_base_Kd is 0.03.
 function init_pitch_pid {
   return PIDLOOP(pitch_base_Kp, pitch_base_Ki, pitch_base_Kd, -1, 1).
@@ -292,7 +292,7 @@ function pid_tune_for_conditions {
   parameter speed, pitchPID, rollPID.
 
   // Make sure it has a gentle touch at high speed:
-  local dampener is 200/(4*speed+50).
+  local dampener is 200/(8*speed+50).
 
   // Tighten when close to ground so it will hurry up and flare:
   local tightener is max(1.0, 0.015*(100 - alt:radar)).

@@ -150,7 +150,7 @@ function drive_to {
       set ship:control:wheelthrottle to 0.
     }
     local forSpeed is forward_speed(offset_pitch).
-    local wSpeed is wanted_speed(geopos, cruise_spd, offset_pitch, battery_panic, jump_detect).
+    local wSpeed is wanted_speed(geopos, cruise_spd, offset_pitch, battery_panic, jump_detect, proximity_needed).
     if hill_sideways_mode {
       set wSpeed to wSpeed*2. // speed will be in "wrong" direction, don't dampen as much as that usually does.
     }
@@ -161,7 +161,7 @@ function drive_to {
     }
     local achieved_speed_ratio is forSpeed/max(wSpeed,0.1).
     local use_wheelthrottle is throttle_pid:update(time:seconds, speed_diff).
-    if not(battery_panic) and (speed_diff > 5 or forSpeed < -4) { brakes on.  } else { brakes off. }
+    if not(battery_panic) and (speed_diff > 2 or forSpeed < -2) { brakes on.  } else { brakes off. }
 
     if enable_spd_check and achieved_speed_ratio < 0.3 {
       if timestamp_start_poor_speed < 0 {
@@ -753,6 +753,7 @@ function wanted_speed {
   parameter offset_pitch.
   parameter battery_panic.
   parameter jump_detecting.
+  parameter prox.
 
   if battery_panic { return 0. }
   brakes off.
@@ -765,7 +766,7 @@ function wanted_speed {
   // Amount to suppress speed to when facing wrong way varies by gravity because it's an anti-flipover measure.
   local grav is ship:body:mu / ship:body:radius^2. 
 
-  set return_val to min( 0.5 + spot:distance / 10, cruise_spd).
+  set return_val to min( 0.5 + max(0, spot:distance - prox) / 10, cruise_spd).
   set return_val to min( return_val*abs((grav*2.5)/bear), return_val).
 
   // If there is an obstacle detector laser, use it.

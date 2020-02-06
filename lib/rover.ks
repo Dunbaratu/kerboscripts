@@ -130,6 +130,8 @@ function drive_to {
   local hill_sideways_sign is 0.
   local recent_steering_dir is north. // dummy to start with - will be overwritten.
   local reason is "none". //eraseme
+  local forSpeed is 0.
+  local prevForSpeed is 0.
 
   until geo_dist(geopos) < proximity_needed {
     tune_pid(steer_pid).
@@ -149,7 +151,8 @@ function drive_to {
       set ship:control:wheelsteer to 0.
       set ship:control:wheelthrottle to 0.
     }
-    local forSpeed is forward_speed(offset_pitch).
+    set prevForSpeed to forSpeed.
+    set forSpeed to forward_speed(offset_pitch).
     local wSpeed is wanted_speed(geopos, cruise_spd, offset_pitch, battery_panic, jump_detect, proximity_needed).
     if hill_sideways_mode {
       set wSpeed to wSpeed*2. // speed will be in "wrong" direction, don't dampen as much as that usually does.
@@ -160,10 +163,11 @@ function drive_to {
       set enable_spd_check to false. // Don't start watching for "too slow" till we have had time to get going.
     }
     local achieved_speed_ratio is forSpeed/max(wSpeed,0.1).
+    local increasing is forSpeed - prevForSpeed > 0.
     local use_wheelthrottle is throttle_pid:update(time:seconds, speed_diff).
     if not(battery_panic) and (speed_diff > 2 or forSpeed < -2) { brakes on.  } else { brakes off. }
 
-    if enable_spd_check and achieved_speed_ratio < 0.3 {
+    if enable_spd_check and achieved_speed_ratio < 0.3 and not( increasing ){
       if timestamp_start_poor_speed < 0 {
         set timestamp_start_poor_speed to time:seconds.
         set timestamp_start_okay_speed to -1.

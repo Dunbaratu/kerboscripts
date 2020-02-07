@@ -48,6 +48,7 @@ on abort {
 }
 
 LOCAL is_segway is true. 
+LOCAL pid_tightness is 1.0.
 
 // Given a location, drive there.
 // stop when you get there.
@@ -348,6 +349,7 @@ function drive_to {
     print "ocean_check is " + ocean_check.
     print "eraseme: hill_sideways_sign is " + hill_sideways_sign + " " + reason.
     print "USE Abort Action group to kill program and park.".
+    print "PID TIGHTNESS. Adjust with '(' and ')' keys: " + pid_tightness.
     print " -------- obstacle detection: --------  ".
     print "LASERS: left: " + has_left_lasers + ", right: " + has_right_lasers + ", leveler: " + has_leveler_lasers.
     if has_left_lasers and has_right_lasers {
@@ -386,6 +388,14 @@ function drive_to {
 	set last_save_spot to latlng(latitude,longitude).
         steer_pid:reset(). // don't integral-wind-up due to being frozen in place.
         throttle_pid:reset().
+      }
+    }
+    if terminal:input:haschar() {
+      local ch is terminal:input:getchar().
+      if ch = "(" {
+        set pid_tightness to max(0, pid_tightness - 0.1).
+      } else if ch = ")" {
+        set pid_tightness to min(5, pid_tightness + 0.1).
       }
     }
     wait 0.001.
@@ -441,8 +451,8 @@ function tune_pid {
   // If driving fast, only allow gentle turns.)
   set divisor to divisor + ship:groundspeed.
 
-  set the_pid:KP to 0.05 / divisor.
-  set the_pid:KI to 0.0005 / divisor.
+  set the_pid:KP to pid_tightness * 0.05 / divisor.
+  set the_pid:KI to pid_tightness * 0.0005 / divisor.
   set the_pid:KD to 0.05 / divisor.
 }
 

@@ -30,7 +30,7 @@ if tgt:ISTYPE("DOCKINGPORT") {
     set grab_butt to true.
   } else {
     print "Target is a NON docking port part.".
-    lock stetering to lookdirup(- tgt:facing:vector, tgt:facing:topvector).
+    lock steering to lookdirup(- tgt:facing:vector, tgt:facing:topvector).
   }
 }
 

@@ -120,15 +120,15 @@ until done {
     set cur_pitch to 30.
   } else if altitude > 20_000 {
     set cur_pitch to 35.
-  } else if altitude > 15_000 {
+  } else if altitude > 13_000 {
     set cur_pitch to 40.
-  } else if altitude > 10_000 {
+  } else if altitude > 8_000 {
     set cur_pitch to 45.
-  } else if altitude > 5_000 {
+  } else if altitude > 4_000 {
     set cur_pitch to 60.
-  } else if altitude > 3_000 {
+  } else if altitude > 2_000 {
     set cur_pitch to 70.
-  } else if altitude > 1_000 {
+  } else if altitude > 200 {
     set cur_pitch to 80.
   }
 

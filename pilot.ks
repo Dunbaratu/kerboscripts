@@ -496,10 +496,10 @@ if user_quit {
     print "BRAKES ON.".
     lock throttle to 0.
   }
-  // use SAS instead of steering to keep it from doing a ground spin:
   set ship:control:neutralize to true.
   set ship:control:pilotmainthrottle to 0. // TODO - look for reverse throttle availability?
-  unlock steering.
+  set touch_facing to ship:facing.
+  lock steering to touch_facing.
   // keep straight down the runway while slowing down, using wheels,
   // not rudder:
   until status="LANDED" and groundspeed < 10 {
@@ -508,6 +508,7 @@ if user_quit {
     set ship:control:wheelsteer to wheelPid:Update(time:seconds, -aOff).
     wait 0.
   }
+  unlock steering.
   set ship:control:neutralize to true.
   SAS OFF.
 }

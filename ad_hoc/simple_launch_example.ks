@@ -53,6 +53,7 @@ function stage_if_needed {
       msg("An engine flamed out, so staging.").
       wait until stage:ready.
       stage.
+      wait 0.
       break.
     } else if eng:ignition {
       set num_act to num_act + 1.

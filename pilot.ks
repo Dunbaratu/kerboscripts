@@ -448,10 +448,16 @@ until user_quit or
       // in the past while its suggested inputs weren't actually being used:
       if need_pid_reinit and abs(wantClimb-ship:verticalspeed)/ship:velocity:surface:mag < 0.05 {
         hudtext( "PANIC MODE OVER - RESUMING NORMAL FLIGHT", 8, 2, 32, white, false).
+
+        // (comment out pitch reset):
+        //  set pitchPid to init_pitch_pid().
+        //  ^ Disabled because resetting pitchPID can make it nose dive again if
+        //    the plane design needs constant up-elevator to fly level.  (It needs
+        //    the "integral windup" to remain for it to keep pulling the elevator up.)
+
         set bankPid to init_bank_pid().
         set throtPid to init_throt_pid().
         set rollPid to init_roll_pid().
-        set pitchPid to init_pitch_pid().
         set wheelPid to init_wheel_pid().
         set need_pid_reinit to false.
       }

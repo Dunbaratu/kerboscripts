@@ -23,6 +23,8 @@ print "Toggle action group 10 to quit.".
 
 push_steering_mgr_config(2, 1, 0.02, 0.25).
 
+sas off.
+
 obey_node_mode(should_quit@, do_precise_node@, "just_obey_nodes").
 
 pop_steering_mgr_config().

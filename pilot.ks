@@ -393,11 +393,12 @@ until user_quit or
     // Change the cur_aim_geo to a point partway between point i+1 and i,
     // a fraction of the distance from ship to point i, along the line backward from
     // point i to point i+1.  This aims at the line between i+1 and i.
-    local dist_to_aim is (cur_aim_line_pos - ship:position):mag.
+    local up_at_aim is (cur_aim_line_pos - body:position):normalized. // up vector at the aim point.
+    local flat_dist_to_aim is vxcl(up_at_aim, (cur_aim_line_pos - ship:position)):mag. // ignores alt diff.
     local unit_vec_backward is (prev_aim_pos - cur_aim_line_pos):normalized.
     local offset_angle is vang(cur_aim_line_pos-ship:position, -1*unit_vec_backward). // the more off it is, the less to move it.
     local fraction is 0.2+offset_angle/35. // the more off it is, the less to move it.
-    set cur_aim_pos to cur_aim_line_pos + fraction*dist_to_aim*unit_vec_backward.
+    set cur_aim_pos to cur_aim_line_pos + fraction*flat_dist_to_aim*unit_vec_backward.
     set cur_aim_geo to ship:body:geopositionof(cur_aim_pos).
 
     set vd_aimline:start to prev_aim_pos.

@@ -231,7 +231,7 @@ function init_pitch_pid {
   return PIDLOOP(pitch_base_Kp, pitch_base_Ki, pitch_base_Kd, -1, 1).
 }
 local roll_base_Kp is 0.005.
-local roll_base_Ki is 0.00005.
+local roll_base_Ki is 0.0001.
 local roll_base_Kd is 0.003.
 function init_roll_pid {
   return PIDLOOP(roll_base_Kp, roll_base_Ki, roll_base_Kd, -1, 1).
@@ -295,7 +295,7 @@ function pid_tune_for_conditions {
   local dampener is 200/(8*speed+50).
 
   // Tighten when close to ground so it will hurry up and flare:
-  local tightener is max(1.0, 0.015*(100 - alt:radar)).
+  local tightener is max(1.0, 0.03*(100 - alt:radar)).
 
   set pitchPID:Kp to pitch_base_Kp * dampener * tightener.
   set pitchPID:Ki to pitch_base_Ki * dampener * tightener.

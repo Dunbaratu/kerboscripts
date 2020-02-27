@@ -48,9 +48,5 @@ if ship:periapsis < 100 and (status = "LANDED" or status = "PRELAUNCH") {
     hudtext("WARNING: DEPLOYING SOLAR PANELS DISABLED.  DEPLOY MANUALLY.", 10, 2, 25, yellow, true).  getvoice(0):play(list(slidenote(300,350,0.5),note(0,0.5),slidenote(300,350,0.5))).
     lights on.
     print "launch done.".
-    set core:bootfilename to "just_obey_nodes".
-    print "Rebooting into just obey nodes mode.".
-    wait 1.
-    reboot.
   }
 }

@@ -13,7 +13,8 @@ parameter
   atmo_end is ship:body:atm:height,
   goto_bod is "",
   bod_pe is -1,
-  ignitions is 2.
+  ignitions is 2,
+  afterlaunch is "".
 
 if launch_gui() {
 
@@ -60,6 +61,18 @@ if launch_gui() {
   set global_scrubbed to true.
 }
 
+if not(global_scrubbed) {
+  if afterlaunch <> "" {
+    PRINT "TRYING TO COPY "+CHAR(34)+afterlaunch+CHAR(34)+" FROM ARCHIVE TO LOCAL.".
+    copypath("0:"+afterlaunch, "1:"+afterlaunch).
+    PRINT "SETTING BOOTFILE TO " + afterlaunch.
+    set core:bootfilename to afterlaunch.
+    wait 1.
+    PRINT "REBOOTING.".
+    reboot.
+  }
+}
+
 function launch_gui {
   local exit_val is -1.
 
@@ -72,12 +85,31 @@ function launch_gui {
   setting_ui:addspacing(5).
 
   local ignitions_box is setting_ui:addvlayout().
+  set ignitions_box:style:hstretch to false.
   ignitions_box:addlabel("Circularization ignitions allowed:").
   ignitions_box:addlabel(" 1 = continuous burn, don't care if circular.").
   ignitions_box:addlabel(" 2 = coast to AP and burn again (try to be circular).").
   local ignitions_radio_box is ignitions_box:addhlayout().
   local one_ignition_button is ignitions_radio_box:addradiobutton("One", false).
   local two_ignition_button is ignitions_radio_box:addradiobutton("Two", true).
+  
+  local afterlaunch_box is setting_ui:addhlayout().
+  set afterlaunch_box:style:hstretch to false.
+  set afterlaunch_box_label to afterlaunch_box:addlabel("After Launching, run ").
+  set afterlaunch_box_label:style:align to "right".
+  local afterlaunch_menu is afterlaunch_box:addpopupmenu().
+  set afterlaunch_menu:options to LIST("nothing", "obey nodes", "rendezvous").
+  set afterlaunch_menu:index to 0.
+  set afterlaunch_menu:onchange to {
+    parameter choice. 
+    if choice = "obey nodes" {
+      set afterlaunch to "/boot/obey_nodes.ks".
+    } else if choice = "rendezvous" {
+      set afterlaunch to "/boot/rendezvous.ks".
+    } else {
+      set afterlaunch to "".
+    }
+  }.  
   
   local end_alt_box is setting_ui:addhlayout().
   end_alt_box:addlabel("End When Periapais Alt >=").

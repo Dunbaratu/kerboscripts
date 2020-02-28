@@ -283,7 +283,7 @@ function launch {
     // ignitions:
     if throttle_was_zero and throttle > 0 {
       if kuniverse:timewarp:mode = "RAILS" set warp to 0. // come off rails to let the engine work:
-      set min_throt to 0.001.
+      set min_throt to 0.1. // perfectly circular isn't important, so still keep at least 10% to prevent boredom waiting for circularizing.
     }
 
     if coast_circular {

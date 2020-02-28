@@ -15,6 +15,13 @@ function stager {
   local new_engs is stg_eList.
   local unused_engs_exist is false.
   local reason is "".
+  
+  // Maxthrust falsely reads zero sometimes when on rails, making
+  // this check stage unnecesarily. Skip check if on rails:
+  if (kuniverse:timewarp:mode = "RAILS" and kuniverse:timewarp:warp > 0) or
+     not(ship:unpacked) {
+    return false.
+  }
 
   // simple dumb - check if nothing active,
   // then stage:

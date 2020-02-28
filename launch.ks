@@ -16,6 +16,10 @@ parameter
   ignitions is 2,
   afterlaunch is "".
 
+if not(defined(global_scrubbed)) {
+  set global_scrubbed to false.
+}
+
 if launch_gui() {
 
   if second_height = "same"

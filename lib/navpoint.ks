@@ -30,6 +30,7 @@ LEXICON(
       "BODYNAME", "Kerbin",
       "LAT", -0.0502,
       "LNG", -74.4881,
+      "ALT", 0,
       "AGL", True,
       "SPD", 0,
       "SYSTEM", "Stock")

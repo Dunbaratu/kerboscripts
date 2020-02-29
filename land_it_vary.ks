@@ -165,6 +165,7 @@ local pitch_off is 0. // The output of pitch_pid
 local yaw_off is 0. // The output of yaw_pid
 local bias is -2. // The bias factor in the PID making negative errors more severe than positive ones.
 local stop_deflecting is false. // set to true when giving up on deflecting landing site.
+local started_descending is false. // True once it passes Apoapsis and started going down.
 
 pid_tune(999999). // 999999 = dummy start value until the predictions start being calculated.
 
@@ -183,15 +184,6 @@ local burn_started is false.
 lock steering to aim_direction().
 
 when status = "LANDED" or status = "SPLASHED" then {
-  set stop_burn to true.
-}
-// A second stop condition is if we start going up when we were
-// going down a moment before:  (The check for sign change prevents
-// this from triggering if we are just coasting to Ap before the
-// initial drop.)
-when verticalspeed > 0 and
-     prev_vspeed * verticalspeed < 0 // true IFF +/- sign changed
-     then {
   set stop_burn to true.
 }
 
@@ -279,6 +271,16 @@ until stop_burn or aborting {
   // for the prediction.  If each iteration is going fast, use a tighter timeslice:
   if deltaT > 0 { // skip the first time when we haven't measured a proper deltaT yet.
     set timeslice_size to (0.02 + deltaT)*4.
+  }
+
+  // A second stop condition is if we are about to start going up when we were
+  // going down a moment before: (stop at a negative speed just shy of 0, so the
+  // steering doesn't try to follow srfretorgrade as it swings quickly around.)
+  if not(started_descending) and verticalspeed < -0.25 {
+    set started_descending to true.
+  }
+  if started_descending and verticalspeed > -0.25  {
+    set stop_burn to true.
   }
 
   if do_gui {

@@ -102,7 +102,7 @@ function do_dock {
       set mode to "Approach".
     } else if angle_from_port < 135 and leftright_dist > 50{
       set mode to "Advance".
-    } else {
+    } else if rel_port_pos:mag > 2 { // not near port and ahead of port
       set mode to "Evade".
     }
 

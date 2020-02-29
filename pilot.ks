@@ -22,13 +22,16 @@ set yokePull to 0.
 set yokeRoll to 0.
 set shipRoll to 0.
 set shipCompass to 0.
+local user_pid_adjust is 1.
 
 clearscreen.
-print "Terminal Keys:".
+print "Arrows= Smooth <_______________> Tight. (PIDs)".
 print "  -/+ = raise/lower current speed:".
 print "   V  = toggle hide/show aim vectors.".
 print "   G  = toggle gui editing panel.".
 print "Action Group Abort = quit, give player control".
+print " ".
+display_user_pid_adjust().
 sas off.
 brakes off.
 
@@ -284,9 +287,21 @@ function handle_input_key {
       set vd_aimpos:show to not vd_aimpos:show.
     } else if ch = "g" {
       set nav_list to (gui_edit_course( cur_aim_i, list_change_new_sync_val@)):COPY.
+    } else if ch = TERMINAL:INPUT:LEFTCURSORONE {
+      set user_pid_adjust to max(-7, user_pid_adjust - 1).
+      display_user_pid_adjust().
+    } else if ch = TERMINAL:INPUT:RIGHTCURSORONE {
+      set user_pid_adjust to min(7, user_pid_adjust + 1).
+      display_user_pid_adjust().
     }
   }
 }
+
+function display_user_pid_adjust {
+  print "_______________" at (16,0).
+  print "|" at (23 + user_pid_adjust, 0).
+}
+
 
 function pid_tune_for_conditions {
   parameter speed, pitchPID, rollPID.
@@ -297,12 +312,14 @@ function pid_tune_for_conditions {
   // Tighten when close to ground so it will hurry up and flare:
   local tightener is max(1.0, 0.03*(100 - alt:radar)).
 
-  set pitchPID:Kp to pitch_base_Kp * dampener * tightener.
-  set pitchPID:Ki to pitch_base_Ki * dampener * tightener.
-  set pitchPID:Kd to pitch_base_Kd * dampener * tightener.
-  set rollPID:Kp to roll_base_Kp * dampener * tightener.
-  set rollPID:Ki to roll_base_Ki * dampener * tightener.
-  set rollPID:Kd to roll_base_Kd * dampener * tightener.
+  local user_pid_coef is 1.5^user_pid_adjust.
+  set pitchPID:Kp to pitch_base_Kp * dampener * tightener * user_pid_coef.
+  set pitchPID:Ki to pitch_base_Ki * dampener * tightener * user_pid_coef.
+  set pitchPID:Kd to pitch_base_Kd * dampener * tightener * user_pid_coef.
+
+  set rollPID:Kp to roll_base_Kp * dampener * tightener * user_pid_coef.
+  set rollPID:Ki to roll_base_Ki * dampener * tightener. // NOT ^ user_pid_coef
+  set rollPID:Kd to roll_base_Kd * dampener * tightener * user_pid_coef.
 }
 
 // Start one position back from the end of the waypoint list, so there is

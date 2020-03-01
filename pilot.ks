@@ -22,7 +22,7 @@ set yokePull to 0.
 set yokeRoll to 0.
 set shipRoll to 0.
 set shipCompass to 0.
-local user_pid_adjust is 1.
+local user_pid_adjust is 0.
 
 clearscreen.
 print "Arrows= Smooth <_______________> Tight. (PIDs)".

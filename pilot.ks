@@ -417,7 +417,9 @@ until user_quit or
     local fraction is 0.2+offset_angle/35. // the more off it is, the less to move it.
     set cur_aim_pos to cur_aim_line_pos + fraction*flat_dist_to_aim*unit_vec_backward.
     set cur_aim_geo to ship:body:geopositionof(cur_aim_pos).
-    set cur_aim_pos_alt to ship:body:altitudeof(cur_aim_pos).
+    // calculate altitude of the yellow aim point. Can't use vector position
+    // because it can be underground if flying across the world:
+    set cur_aim_pos_alt to cur_aim_alt - fraction*(cur_aim_alt - prev_aim_alt).
 
     set vd_aimline:start to prev_aim_pos.
     set vd_aimline:vec to cur_aim_line_pos - prev_aim_pos.

@@ -414,12 +414,13 @@ until user_quit or
     local flat_dist_to_aim is vxcl(up_at_aim, (cur_aim_line_pos - ship:position)):mag. // ignores alt diff.
     local unit_vec_backward is (prev_aim_pos - cur_aim_line_pos):normalized.
     local offset_angle is vang(cur_aim_line_pos-ship:position, -1*unit_vec_backward). // the more off it is, the less to move it.
-    local fraction is 0.2+offset_angle/35. // the more off it is, the less to move it.
+    local fraction is min(1.0, 0.2+offset_angle/35). // the more off it is, the less to move it.
     set cur_aim_pos to cur_aim_line_pos + fraction*flat_dist_to_aim*unit_vec_backward.
     set cur_aim_geo to ship:body:geopositionof(cur_aim_pos).
     // calculate altitude of the yellow aim point. Can't use vector position
     // because it can be underground if flying across the world:
-    set cur_aim_pos_alt to cur_aim_alt - fraction*(cur_aim_alt - prev_aim_alt).
+    local ratio_to_go is flat_dist_to_aim / (cur_aim_line_pos - prev_aim_pos):mag.
+    set cur_aim_pos_alt to cur_aim_alt - fraction*ratio_to_go*(cur_aim_alt - prev_aim_alt).
 
     set vd_aimline:start to prev_aim_pos.
     set vd_aimline:vec to cur_aim_line_pos - prev_aim_pos.

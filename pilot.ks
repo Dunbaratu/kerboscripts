@@ -243,7 +243,7 @@ function init_bank_pid {
   return PIDLOOP(3, 0.00, 5, -45, 45).
 }
 function init_wheel_pid {
-  return PIDLOOP(0.25, 0.005, 0.05, -1, 1).
+  return PIDLOOP(0.02, 0.005, 0.01, -1, 1).
 }
 function init_throt_pid {
   return PIDLOOP(0.02, 0.002, 0.05, 0, 1).
@@ -310,7 +310,7 @@ function pid_tune_for_conditions {
   local dampener is 200/(8*speed+50).
 
   // Tighten when close to ground so it will hurry up and flare:
-  local tightener is max(1.0, 0.03*(100 - alt:radar)).
+  local tightener is max(1.0, 0.03*(200 - alt:radar)).
 
   local user_pid_coef is 1.5^user_pid_adjust.
   set pitchPID:Kp to pitch_base_Kp * dampener * tightener * user_pid_coef.
@@ -516,14 +516,14 @@ if user_quit {
   }
   set ship:control:neutralize to true.
   set ship:control:pilotmainthrottle to 0. // TODO - look for reverse throttle availability?
-  set touch_facing to ship:facing.
-  lock steering to touch_facing.
   // keep straight down the runway while slowing down, using wheels,
   // not rudder:
+  set rollPID:Kp to 0.05.  set rollPID:Ki to 0.001.  set rollPID:Kd to 0.02. // temp. on ground.
   until status="LANDED" and groundspeed < 10 {
-    local aOff is angle_off(wantCompass,shipCompass).
+    local aOff is angle_off(wantCompass,compass_for(ship,2)).
     // aOff needs to be negative because wheelsteer is backward.
     set ship:control:wheelsteer to wheelPid:Update(time:seconds, -aOff).
+    set ship:control:roll to rollPID:Update(time:seconds, roll_for(ship) - 0 ).
     wait 0.
   }
   unlock steering.

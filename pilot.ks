@@ -417,6 +417,7 @@ until user_quit or
     local fraction is 0.2+offset_angle/35. // the more off it is, the less to move it.
     set cur_aim_pos to cur_aim_line_pos + fraction*flat_dist_to_aim*unit_vec_backward.
     set cur_aim_geo to ship:body:geopositionof(cur_aim_pos).
+    set cur_aim_pos_alt to ship:body:altitudeof(cur_aim_pos).
 
     set vd_aimline:start to prev_aim_pos.
     set vd_aimline:vec to cur_aim_line_pos - prev_aim_pos.
@@ -426,7 +427,7 @@ until user_quit or
     set wantCompass to compass_between_latlngs(ship:geoposition, cur_aim_geo).
     set wantSpeed to cur_spd_want.
 
-    set wantClimb to get_want_climb(ship, cur_aim_geo, cur_aim_alt).
+    set wantClimb to get_want_climb(ship, cur_aim_geo, cur_aim_pos_alt).
 
     // Let the user change the course index from gui if they did:
     if gui_exists {

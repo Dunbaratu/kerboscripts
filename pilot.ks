@@ -243,7 +243,7 @@ function init_bank_pid {
   return PIDLOOP(3, 0.00, 5, -45, 45).
 }
 function init_wheel_pid {
-  return PIDLOOP(0.02, 0.005, 0.01, -1, 1).
+  return PIDLOOP(0.01, 0.005, 0.01, -1, 1).
 }
 function init_throt_pid {
   return PIDLOOP(0.02, 0.002, 0.05, 0, 1).

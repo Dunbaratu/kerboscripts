@@ -38,20 +38,22 @@ function stager {
      }
   }
   for stg_eng in new_engs { 
-    if stg_eng:name <> "sepMotor1" and stg_eng:tag <> "flameout no stage" {
-      if (stg_eng:ignition and stg_eng:flameout) {
-	set reason to "Staged because engine '" + stg_eng:title + "' flamed out when throttle=" + throttle.
-	wait 0.
-	// If NO engines, kill throttle while transitioning.
-	// If *some* thrust (i.e. we staged a side booster but the core is still going), don't 
-	// zero throttle as that would kill the still working engine:
-	if zeroThrot and ship:maxthrust = 0 { 
-	  lock throttle to 0.
-	  wait 0.
-	}
-	set want_stage to true.
-      } else { // At least 1 engine exists that is either still running or hasn't been started:
-	set unused_engs_exist to true.
+    if stg_eng:ship = ship { // skip parts in the list no longer attached, if there are any
+      if stg_eng:name <> "sepMotor1" and stg_eng:tag <> "flameout no stage" {
+        if (stg_eng:ignition and stg_eng:flameout) {
+          set reason to "Staged because engine '" + stg_eng:title + "' flamed out when throttle=" + throttle.
+          wait 0.
+          // If NO engines, kill throttle while transitioning.
+          // If *some* thrust (i.e. we staged a side booster but the core is still going), don't 
+          // zero throttle as that would kill the still working engine:
+          if zeroThrot and ship:maxthrust = 0 { 
+            lock throttle to 0.
+            wait 0.
+          }
+          set want_stage to true.
+        } else { // At least 1 engine exists that is either still running or hasn't been started:
+          set unused_engs_exist to true.
+        }
       }
     }
   }
@@ -60,6 +62,7 @@ function stager {
     wait until stage:ready.
     stage.
     print reason.
+    wait 0. // make decoupled engines go away before making list again.
     list engines in new_engs.
     set did_stage to true.
   }

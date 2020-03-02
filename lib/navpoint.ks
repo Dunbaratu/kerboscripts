@@ -633,7 +633,7 @@ function make_landing_points {
   // seed more waypoints on the way down:
   until i >= 4 {
     local aim_alt is runway_alt+result[2]["ALT"]+4+expon*150.
-    local aim_pos is near_geo:altitudeposition(aim_alt) - (220 + 1500*expon)*runway_vect().
+    local aim_pos is near_geo:altitudeposition(aim_alt) - (50 + 1500*expon)*runway_vect().
     local aim_geo is ship:body:geopositionof(aim_pos).
     local aim_spd is 0. // to be overridden below.
     if i = 0 { 

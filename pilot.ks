@@ -523,7 +523,7 @@ if user_quit {
   // keep straight down the runway while slowing down, using wheels,
   // not rudder:
   set rollPID:Kp to 0.05.  set rollPID:Ki to 0.001.  set rollPID:Kd to 0.02. // temp. on ground.
-  until status="LANDED" and groundspeed < 10 {
+  until status="LANDED" and groundspeed < 2 {
     local aOff is angle_off(wantCompass,compass_for(ship,2)).
     // aOff needs to be negative because wheelsteer is backward.
     set ship:control:wheelsteer to wheelPid:Update(time:seconds, -aOff).

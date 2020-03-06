@@ -453,7 +453,7 @@ function gui_edit_course {
     parameter idx.
 
     course:remove(idx).
-    if course_index > course:length-1
+    if course_index > course:length-1 or course_index > idx
       set course_index to course:length-1.
     list_changed().
   }

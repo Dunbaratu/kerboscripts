@@ -246,7 +246,7 @@ function init_wheel_pid {
   return PIDLOOP(0.005, 0.002, 0.005, -1, 1).
 }
 function init_throt_pid {
-  return PIDLOOP(0.02, 0.002, 0.05, 0, 1).
+  return PIDLOOP(0.02, 0.002, 0.05, -0.5, 0.5).
 }
 
 set pitchPid to init_pitch_pid().
@@ -445,7 +445,7 @@ until user_quit or
     }
       
     set shipSpd to ship:airspeed.
-    set scriptThrottle to throtPid:Update(time:seconds, shipSpd - wantSpeed).
+    set scriptThrottle to 0.5 + throtPid:Update(time:seconds, shipSpd - wantSpeed).
     set ship:control:pilotmainthrottle to scriptThrottle. // DLC rotors ignore lock throttle.
 
     set shipRoll to roll_for(ship).

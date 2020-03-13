@@ -616,7 +616,7 @@ function make_landing_points {
       "GEO", ship:body:geopositionof(halfway_point),
       "ALT", 0,
       "AGL", True,
-      "SPD", 0,
+      "SPD", spd*0.8,
       "RADIUS", 100
     )
   ).

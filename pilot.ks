@@ -446,7 +446,7 @@ until user_quit or
       
     set shipSpd to ship:airspeed.
     set scriptThrottle to throtPid:Update(time:seconds, shipSpd - wantSpeed).
-    lock throttle to scriptThrottle.
+    set ship:control:pilotmainthrottle to scriptThrottle. // DLC rotors ignore lock throttle.
 
     set shipRoll to roll_for(ship).
     set shipCompass to compass_for(ship,2). // srf vel mode

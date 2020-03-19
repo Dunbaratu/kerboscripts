@@ -310,7 +310,7 @@ function pid_tune_for_conditions {
   local dampener is 200/(8*speed+50).
 
   // Tighten when close to ground so it will hurry up and flare:
-  local tightener is max(1.0, 0.03*(200 - alt:radar)).
+  local tightener is max(1.0, 0.01*(200 - alt:radar)).
 
   local user_pid_coef is 1.5^user_pid_adjust.
   set pitchPID:Kp to pitch_base_Kp * dampener * tightener * user_pid_coef.

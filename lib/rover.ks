@@ -349,7 +349,7 @@ function drive_to {
     print "ocean_check is " + ocean_check.
     print "eraseme: hill_sideways_sign is " + hill_sideways_sign + " " + reason.
     print "USE Abort Action group to kill program and park.".
-    print "PID TIGHTNESS. Adjust with '(' and ')' keys: " + pid_tightness.
+    print "PID TIGHTNESS. Use arrow left/right keys: " + pid_tightness.
     print " -------- obstacle detection: --------  ".
     print "LASERS: left: " + has_left_lasers + ", right: " + has_right_lasers + ", leveler: " + has_leveler_lasers.
     if has_left_lasers and has_right_lasers {
@@ -392,9 +392,9 @@ function drive_to {
     }
     if terminal:input:haschar() {
       local ch is terminal:input:getchar().
-      if ch = "(" {
+      if ch = TERMINAL:INPUT:LEFTCURSORONE {
         set pid_tightness to max(0, pid_tightness - 0.1).
-      } else if ch = ")" {
+      } else if ch = TERMINAL:INPUT:RIGHTCURSORONE {
         set pid_tightness to min(5, pid_tightness + 0.1).
       }
     }

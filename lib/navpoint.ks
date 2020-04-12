@@ -574,6 +574,15 @@ function geo_from_lex {
   return bod:GEOPOSITIONLATLNG(the_lex["LAT"], the_lex["LNG"]).
 }
 
+function asl_from_agl {
+  parameter geo, agl.
+  local a is agl + geo:terrainheight.
+  if a < 0 and geo:body:hasocean {
+     set a to 0.
+  }
+  return a.
+}
+
 // Return a list of navpoints for aircraft landing between two flags marking a runway:
 function make_landing_points {
   parameter which_runway, reverse, spd, landed_alt is 10.
@@ -592,10 +601,7 @@ function make_landing_points {
 
   local halfway_point to (far_geo:position + near_geo:position) / 2.
   // Altitude of runway at the starting touchdown:
-  local runway_alt to near_geo:terrainheight.
-  if runway_alt < 0 and near_geo:body:hasocean {
-    set runway_alt to 0.
-  }
+  local runway_alt is asl_from_agl(near_geo,0).
 
   // Make a list of aiming navpoints:
   local result is list().

@@ -29,6 +29,7 @@ print "Arrows= Smooth <_______________> Tight. (PIDs)".
 print "  -/+ = raise/lower current speed:".
 print "   V  = toggle hide/show aim vectors.".
 print "   G  = toggle gui editing panel.".
+print "   S  = sea mode (no gear).".
 print "Action Group Abort = quit, give player control".
 print " ".
 display_user_pid_adjust().
@@ -40,6 +41,7 @@ local gui_exists is false.
 local cur_aim_i is -1.
 local sync_new_cur_aim_i is cur_aim_i.
 local sync_new_nav_list is nav_list.
+local sea_mode is false.
 
 // A callback delegate the gui will use to tell us it changed the
 // course list or course index in some way:
@@ -113,13 +115,14 @@ function displayOffset {
 }
 
 function displayProgress {
-  parameter index, geo, alti, radius, col,row.
+  parameter index, geo, alti, radius, sea_mode, col,row.
 
   print "Aiming at nav_list["+index+"]" at (col,row).
   print "Aiming at LAT=" + round(geo:lat,2) + " LNG=" + round(geo:lng,2) + ", ALT " + round(alti,0) + "m" at (col,row+1).
   local d is geo:altitudeposition(alti):mag.
   print "Dist to aim point " + round(d,0) + "m (radius=" +radius+"m) " at (col,row+2).
   print "          Cur ALT " + round(ship:altitude,0) + "m" at (col,row+3).
+  print "SEA MODE: " + sea_mode + "  " at (col,row+4).
 }
 
 function roll_for {
@@ -287,6 +290,8 @@ function handle_input_key {
       set vd_aimpos:show to not vd_aimpos:show.
     } else if ch = "g" {
       set nav_list to (gui_edit_course( cur_aim_i, list_change_new_sync_val@)):COPY.
+    } else if ch = "s" {
+      set sea_mode to not sea_mode.
     } else if ch = TERMINAL:INPUT:LEFTCURSORONE {
       set user_pid_adjust to max(-7, user_pid_adjust - 1).
       display_user_pid_adjust().
@@ -335,15 +340,19 @@ set need_pid_reinit to false.
 on abort set user_quit to true.
 
 when alt:radar < 200 then {
-  if not gear {
+  if not gear and not sea_mode {
     gear on.
-    set warp to 0.
-    hudtext( "GEAR DOWN AND WARP 1x", 8, 2, 32, WHITE, false).
+    hudtext( "GEAR DOWN", 8, 2, 32, WHITE, false).
   }
   preserve.
 }
+when alt:radar < 200 and warp > 0 then {
+  set warp to 0.
+  hudtext( "WARP to 1x when near ground.", 8, 2, 32, WHITE, false).
+  preserve.
+}
 when alt:radar > 200 then {
-  if gear {
+  if gear and not sea_mode {
     gear off.
     hudtext( "GEAR UP", 8, 2, 32, WHITE, false).
   }
@@ -352,7 +361,7 @@ when alt:radar > 200 then {
 local has_been_airborne is false.
 
 until user_quit or 
-      (status="LANDED" and has_been_airborne) {
+      ((status="LANDED" or status="SPLASHED") and has_been_airborne) {
 
   wait 0.
 
@@ -364,10 +373,10 @@ until user_quit or
   }
 
   if cur_aim_i < 0 {
-    print "WAITING for NAVPOINT." at (10,5).
+    print "WAITING for NAVPOINT." at (10,6).
     // Let the user change the course index from gui if they did:
   } else {
-    print "                     " at (10,5).
+    print "                     " at (10,6).
 
     local cur_way_geo is nav_list[cur_aim_i]["GEO"].
     local cur_spd_want is nav_list[cur_aim_i]["SPD"].
@@ -377,7 +386,7 @@ until user_quit or
     local cur_aim_radius is nav_list[cur_aim_i]["RADIUS"].
     // transform AGL to ASL:
     if cur_aim_AGL {
-      set cur_aim_alt to cur_aim_alt + cur_way_geo:terrainheight.
+      set cur_aim_alt to asl_from_agl(cur_aim_geo, cur_aim_alt).
       set nav_list[cur_aim_i]["AGL"] to False.
       set nav_list[cur_aim_i]["ALT"] to cur_aim_alt.
     }
@@ -393,7 +402,7 @@ until user_quit or
       set prev_aim_AGL to nav_list[cur_aim_i+1]["AGL"].
       set prev_aim_radius to nav_list[cur_aim_i+1]["RADIUS"].
       if prev_aim_AGL {
-        set prev_aim_alt to prev_aim_alt + prev_aim_geo:terrainheight.
+        set prev_aim_alt to asl_from_agl(prev_aim_geo, prev_aim_alt).
         set nav_list[cur_aim_i+1]["AGL"] to False.
         set nav_list[cur_aim_i+1]["ALT"] to prev_aim_alt.
       }
@@ -495,11 +504,11 @@ until user_quit or
     displayPitch(5,16).
     displaySpeed(5,20).
     displayOffset(5,24,offset_angle).
-    displayProgress(cur_aim_i, cur_way_geo, cur_aim_alt, cur_aim_radius, 3,27).
+    displayProgress(cur_aim_i, cur_way_geo, cur_aim_alt, cur_aim_radius, sea_mode, 3,27).
     print round(cur_aim_spd,0) + " m/s " at (39,1).
 
     if (not has_been_airborne) and
-       ship:status <> "LANDED" and 
+       not(ship:status = "LANDED" or ship:status = "SPLASHED") and 
        ship:status <> "PRELAUNCH" {
 
        set has_been_airborne to true.
@@ -523,7 +532,7 @@ if user_quit {
   // keep straight down the runway while slowing down, using wheels,
   // not rudder:
   set rollPID:Kp to 0.05.  set rollPID:Ki to 0.001.  set rollPID:Kd to 0.02. // temp. on ground.
-  until status="LANDED" and groundspeed < 2 {
+  until (status="LANDED" or status="SPLASHED") and groundspeed < 2 {
     local aOff is angle_off(wantCompass,compass_for(ship,2)).
     // aOff needs to be negative because wheelsteer is backward.
     set ship:control:wheelsteer to wheelPid:Update(time:seconds, -aOff).

@@ -350,6 +350,7 @@ function drive_to {
     print "eraseme: hill_sideways_sign is " + hill_sideways_sign + " " + reason.
     print "USE Abort Action group to kill program and park.".
     print "PID TIGHTNESS. Use arrow left/right keys: " + pid_tightness.
+    print "User Cruise speed. Use up/down arrows: " + round(cruise_spd).
     print " -------- obstacle detection: --------  ".
     print "LASERS: left: " + has_left_lasers + ", right: " + has_right_lasers + ", leveler: " + has_leveler_lasers.
     if has_left_lasers and has_right_lasers {
@@ -390,12 +391,17 @@ function drive_to {
         throttle_pid:reset().
       }
     }
-    if terminal:input:haschar() {
-      local ch is terminal:input:getchar().
-      if ch = TERMINAL:INPUT:LEFTCURSORONE {
+    local termin is terminal:input.
+    if termin:haschar() {
+      local ch is termin:getchar().
+      if ch = termin:LEFTCURSORONE {
         set pid_tightness to max(0, pid_tightness - 0.1).
-      } else if ch = TERMINAL:INPUT:RIGHTCURSORONE {
+      } else if ch = termin:RIGHTCURSORONE {
         set pid_tightness to min(5, pid_tightness + 0.1).
+      } else if ch = termin:UPCURSORONE {
+        set cruise_spd to min(35, cruise_spd + 1).
+      } else if ch = termin:DOWNCURSORONE {
+        set cruise_spd to max(1, cruise_spd - 1).
       }
     }
     wait 0.001.

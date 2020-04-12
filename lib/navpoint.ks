@@ -593,6 +593,9 @@ function make_landing_points {
   local halfway_point to (far_geo:position + near_geo:position) / 2.
   // Altitude of runway at the starting touchdown:
   local runway_alt to near_geo:terrainheight.
+  if runway_alt < 0 and near_geo:body:hasocean {
+    set runway_alt to 0.
+  }
 
   // Make a list of aiming navpoints:
   local result is list().

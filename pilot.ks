@@ -252,11 +252,11 @@ function init_throt_pid {
   return PIDLOOP(0.02, 0.002, 0.05, -0.5, 0.5).
 }
 
-set pitchPid to init_pitch_pid().
-set bankPid to init_bank_pid().
-set rollPid to init_roll_pid().
-set throtPid to init_throt_pid().
-set wheelPid to init_wheel_pid().
+set pitchPID to init_pitch_pid().
+set bankPID to init_bank_pid().
+set rollPID to init_roll_pid().
+set throtPID to init_throt_pid().
+set wheelPID to init_wheel_pid().
 
 
 
@@ -454,18 +454,21 @@ until user_quit or
     }
       
     set shipSpd to ship:airspeed.
-    set scriptThrottle to 0.5 + throtPid:Update(time:seconds, shipSpd - wantSpeed).
+    set scriptThrottle to 0.5 + throtPID:UPDATE(time:seconds, shipSpd - wantSpeed).
     set ship:control:pilotmainthrottle to scriptThrottle. // DLC rotors ignore lock throttle.
 
     set shipRoll to roll_for(ship).
     set shipCompass to compass_for(ship,2). // srf vel mode
 
-    set yokePull to pitchPID:Update( time:seconds, ship:verticalspeed - wantClimb ).
+    // Using :SETPOINT instead of calc error myself makes it transition smoother
+    // when setpoint changes - thanks nuggreat for suggesting:
+    set pitchPID:SETPOINT to wantClimb.
+    set yokePull to pitchPID:UPDATE( time:seconds, ship:verticalspeed ).
     set ship:control:pitch to yokePull.
 
     // normal desired bank when things are going well:
     local aOff is angle_off(wantCompass,shipCompass).
-    set wantBank to bankPid:Update( time:seconds, aOff ).
+    set wantBank to bankPID:Update( time:seconds, aOff ).
     // override that with a sanity-seeking flat bank when things aren't going well:
     if abs(wantClimb-ship:verticalspeed)/ship:velocity:surface:mag > 0.2 {
       set wantBank to 0.
@@ -481,15 +484,15 @@ until user_quit or
         hudtext( "PANIC MODE OVER - RESUMING NORMAL FLIGHT", 8, 2, 32, white, false).
 
         // (comment out pitch reset):
-        //  set pitchPid to init_pitch_pid().
+        //  set pitchPID to init_pitch_pid().
         //  ^ Disabled because resetting pitchPID can make it nose dive again if
         //    the plane design needs constant up-elevator to fly level.  (It needs
         //    the "integral windup" to remain for it to keep pulling the elevator up.)
 
-        set bankPid to init_bank_pid().
-        set throtPid to init_throt_pid().
-        set rollPid to init_roll_pid().
-        set wheelPid to init_wheel_pid().
+        set bankPID to init_bank_pid().
+        set throtPID to init_throt_pid().
+        set rollPID to init_roll_pid().
+        set wheelPID to init_wheel_pid().
         set need_pid_reinit to false.
       }
     }
@@ -535,7 +538,7 @@ if user_quit {
   until (status="LANDED" or status="SPLASHED") and groundspeed < 2 {
     local aOff is angle_off(wantCompass,compass_for(ship,2)).
     // aOff needs to be negative because wheelsteer is backward.
-    set ship:control:wheelsteer to wheelPid:Update(time:seconds, -aOff).
+    set ship:control:wheelsteer to wheelPID:Update(time:seconds, -aOff).
     set ship:control:roll to rollPID:Update(time:seconds, roll_for(ship) - 0 ).
     wait 0.
   }

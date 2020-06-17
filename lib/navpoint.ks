@@ -16,7 +16,7 @@ parameter system is "RSS". // other values might be "RSS" or "GPP" or "JNSQ"...
 // A runway definition is 2 points - the endpoints.
 local known_runways is
 LEXICON(
-  "STOCK KSC",
+  "KSC",
   LIST(
     LEXICON (
       "BODYNAME", "Kerbin",
@@ -36,7 +36,7 @@ LEXICON(
       "SYSTEM", "Stock")
   ),
 
-  "STOCK ISLAND",
+  "ISLAND",
   LIST(
     LEXICON (
       "BODYNAME", "Kerbin",
@@ -56,7 +56,7 @@ LEXICON(
       "SYSTEM", "Stock")
   ),
 
-  "STOCK DESSERT",
+  "DESSERT",
   LIST(
     LEXICON (
       "BODYNAME", "Kerbin",
@@ -76,7 +76,7 @@ LEXICON(
       "SYSTEM", "Stock")
   ),
 
-  "EARTH KSC CANAVERAL",
+  "CANAVERAL",
   LIST(
     LEXICON (
       "BODYNAME", "Earth",
@@ -95,7 +95,7 @@ LEXICON(
       "SYSTEM", "RSS")
   ),
 
-  "EARTH WHITE SANDS",
+  "WHITE SANDS",
   LIST(
     LEXICON (
       "BODYNAME", "Earth",
@@ -114,7 +114,7 @@ LEXICON(
       "SYSTEM", "RSS")
   ),
 
-  "EARTH KODIAK",
+  "KODIAK",
   LIST(
     LEXICON (
       "BODYNAME", "Earth",
@@ -133,7 +133,7 @@ LEXICON(
       "SYSTEM", "RSS")
   ),
 
-  "EARTH Kourou",
+  "Kourou",
   LIST(
     LEXICON (
       "BODYNAME", "Earth",
@@ -152,7 +152,7 @@ LEXICON(
       "SYSTEM", "RSS")
   ),
 
-  "EARTH Woomera",
+  "Woomera",
   LIST(
     LEXICON (
       "BODYNAME", "Earth",
@@ -171,7 +171,26 @@ LEXICON(
       "SYSTEM", "RSS")
   ),
 
-  "GPP KSC 'Kerbin=Gael'",
+  "Vandenberg",
+  LIST(
+    LEXICON (
+      "BODYNAME", "Earth",
+      "LAT", 34.58576965,
+      "LNG", -120.64112854,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "RSS"),
+    LEXICON (
+      "BODYNAME", "Earth",
+      "LAT", 34.5857582,
+      "LNG", -120.616584778,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "RSS")
+  ),
+
+  "KSC 'Kerbin=Gael'",
   LIST(
     LEXICON (
       "BODYNAME", "Kerbin",
@@ -191,7 +210,7 @@ LEXICON(
       "SYSTEM", "GPP")
   ),
 
-  "GPP DomRok 'Kerbin=Gael'",
+  "DomRok 'Kerbin=Gael'",
   LIST(
     LEXICON (
       "BODYNAME", "Kerbin",

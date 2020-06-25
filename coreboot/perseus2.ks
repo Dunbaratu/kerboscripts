@@ -11,7 +11,8 @@ function signalNextCore {
 }
 
 clearscreen.
-HUDTEXT("Perseus1 script Starting.", 6, 4, 24, yellow, true).
+HUDTEXT("Perseus2 script Starting.", 6, 4, 24, yellow, true).
+print "Persesu2 is for launching geostationary equatorial payloads.".
 
 function which_prograde {
   if altitude < 100_000
@@ -44,8 +45,9 @@ if checkEngines:LENGTH = 0 {
 
 set ship:control:pilotmainthrottle to 1.
 lock throttle to 1.
+lock steerpitch to max(4, 89 - 45*(sqrt(ship:velocity:surface:mag/1000))).
 print "Starting steering algorithm".
-lock steering to HEADING(which_comp(), max(0, 89 - 45*(sqrt(ship:velocity:surface:mag/1000)))).
+lock steering to HEADING(which_comp(), steerpitch).
 print "Starting engine.".
 stage.
 local tPercent is 0.
@@ -61,15 +63,15 @@ until tPercent > 70 {
 }
 print "Declamping.".
 stage.
-wait 0.
-local sidestages is 2.
-for sidestage in range(1,sidestages+1) {
+wait 2.
+local side_stages is 2. // how many separately ditchable side stages?
+for stg in range(1,side_stages+1) {
   wait 5.
-  print "Measuring thrust on sidestage " + sidestage.
   local maxWithBoost is maxthrust.
+  print "Booster set " + stg.
   print "Waiting for drop in Booster thrust.".
   wait until maxthrust < 0.9*maxWithBoost.
-  print "Thrust suddenly dropped. Assuming that's the Side Boosters.".
+  print "Thrust suddenly dropped. Assuming Boosters over.".
   print "Decoupling Side booster set.".
   stage.
 }
@@ -79,15 +81,45 @@ when altitude > 120_000 then {AG3 on. wait 0. AG4 on. AG1 on. print "Fairing Sep
 print "Waiting for engine to die.".
 wait 3.
 wait until maxthrust = 0.
+print "Ditching lower stage.".
+lock throttle to 1. stage. wait 1. wait until stage:ready.
+lock throttle to 1. stage. wait 1. wait until stage:ready.
+lock throttle to 1. stage. wait 1. wait until stage:ready.
+print "Changing steering algorithm based on trueanomaly.".
+// WARNING THIS Assumes we launch from north hemisphere!!!
+// The more complex checks for south hemisphere launch are missing:
+lock lngCrossEq to mod(360 + 180 + obt:lan - body:rotationangle, 360).
+lock lngShy to lngCrossEq - longitude.
+lock steerpitch to min(20,max(5,(ship:obt:trueanomaly-(180-lngShy)))). // point up to keep AP on the equator
+print "Waiting for engine to die.".
+local prev_lngShy is lngShy.
+until maxthrust = 0 {
+  print "TA = "+round(ship:obt:trueanomaly,1)+"deg" at (terminal:width-10, 0).
+  print "lngShy = "+round(lngShy,1)+"deg" at (terminal:width-14, 1).
+  wait 0.
+}
+stage.
+local shy is 70.
+print "Waiting till "+shy+"s shy of APO before starting next stage.".
+wait until eta:apoapsis < shy.
 print "Starting next stage with solid seps.".
 lock throttle to 1. stage. wait 1. wait until stage:ready.
 lock throttle to 1. stage. wait 1. wait until stage:ready.
-lock throttle to 1. stage. wait 1. wait until stage:ready.
-
+print "Changing steering algorithm based on trueanomaly.".
+lock steerpitch to (ship:obt:trueanomaly-180). // point up or down to stay at Ap.
 print "Waiting 3 seconds before checking maxthrust (maxthrust now = " + maxthrust +").".
+rcs off.
 wait 3.
-print "Waiting for engine to die. (maxthrust now =" + maxthrust+").".
-wait until maxthrust = 0.
-print "Perseus 1's Job is over.  Staging payload.".
-signalNextCore(nextCore).
-stage.
+print "Waiting for circularization or engine to die. (maxthrust now =" + maxthrust+").".
+until maxthrust = 0 or (obt:trueanomaly < 90 or obt:trueanomaly > 270){
+  if periapsis > 30_000 {
+    lock steerpitch to 0. // now it's okay to be not at AP.
+  }
+  print "TA = "+round(ship:obt:trueanomaly,1)+"deg" at (terminal:width-10, 0).
+  wait 0.
+}
+print "Perseus 2's Job is over.  Not Staging payload.".
+lock throttle to 0.
+set ship:control:pilotmainthrottle to 1.
+wait 2.
+

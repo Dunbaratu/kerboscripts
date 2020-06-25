@@ -47,7 +47,7 @@ function findBootableParent {
     set me to me:parent.
     if me:hasmodule("kOSProcessor") {
       local mod is me:getmodule("kOSProcessor").
-      if mod:bootfilename <> "" {
+      if mod:bootfilename <> "" and mod:bootfilename <> "None" {
         return mod.
       }
     }

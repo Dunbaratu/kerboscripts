@@ -11,6 +11,7 @@ function signalNextCore {
   }
 }
 clearscreen.
+set ship:control:pilotmainthrottle to 0.
 HUDTEXT("Aragorm TLI script Starting.", 6, 4, 24, yellow, true).
 // Hermes1 - mercury low orbit analog.
 // Assumes a launch vehicle has done most of the work and I just have to circularize.
@@ -40,12 +41,12 @@ print "Staging TLI engine.".
 lock throttle to 1.
 wait 1.5. stage.
 print "Waiting until Lunar bypass.".
-wait until obt:hasnextpatch and obt:nextpath:periapsis < 100_000.
+wait until obt:hasnextpatch and obt:nextpatch:periapsis < 100_000.
 lock throttle to 0.
 set ship:control:pilotmainthrottle to 0.
 wait 1.
 unlock throttle.
 unlock steering.
-signalNextCore(nextCore)
+signalNextCore(nextCore).
 print "script done.".
 stage.

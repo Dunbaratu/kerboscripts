@@ -1,13 +1,6 @@
 // land_it script to use when you have infinitely restartable,
 // yet still throttle locked at 100%, engines.
 //
-run once "/lib/land".
-run once "/lib/song".
-run once "/songs/happy".
-run once "/songs/sad".
-run once "/lib/sanity".
-run once "/lib/ro".
-
 parameter margin is 5. // height (could be replaced with bounds check).
 parameter spool is 1. // presumed spool-up time of engines in seconds.
 parameter skycrane is false.
@@ -15,6 +8,15 @@ parameter skycrane is false.
 // probe core isn't oriented right
 parameter off_pitch is 0.
 parameter off_yaw is 0.
+parameter lib_vol is 1. //which volume has the lib dir?
+parameter songs_vol is 1. //which volume has the songs dir?
+
+runoncepath(lib_vol+":/lib/land").
+runoncepath(lib_vol+":/lib/song").
+runoncepath(songs_vol+":/songs/happy").
+runoncepath(songs_vol+":/songs/sad").
+runoncepath(lib_vol+":/lib/sanity").
+runoncepath(lib_vol+":/lib/ro").
 
 if ship:availablethrust <= 0 {
   // BIG WARNING:
@@ -58,9 +60,13 @@ gear on.
 local hasLas is false.
 
 local prev_time is time:seconds.
-local deltaT is 0.1.
+local deltaT is 2.
+local simSlice is 3.
 local landed is false.
+local slicePid is PIDLOOP(-0.2, -0.05, -0.05, 0, 5).
+set slicePid:SETPOINT to 0.5. 
 until landed {
+  slicePid:reset().
   local burn_now is false.
   local calced_isp is isp_calc(0). // WARNING: by pre-calcing, this is wrong for atmo situations where it changes.
   local mu is ship:body:mu.
@@ -78,7 +84,7 @@ until landed {
       ship:mass,
       ship:drymass,
       ship:velocity:surface,
-      0.5, // was 0.5
+      simSlice,
       false,
       spool).
 
@@ -105,6 +111,7 @@ until landed {
   lock throttle to 0.
 
   set margin to margin/4. // try again from here, with a smaller margin.
+  set simSlice to simSlice/2.
 }
 brakes on.
 unlock steering.
@@ -114,6 +121,7 @@ if skycrane {
   stage.
   wait 0.1.
 }
+set ship:control:pilotmainthrottle to 0.
 unlock throttle.
 SAS on.
 set vd1 to 0.

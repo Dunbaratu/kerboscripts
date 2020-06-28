@@ -62,7 +62,7 @@ if checkEngines:LENGTH = 0 {
 
 set ship:control:pilotmainthrottle to 1.
 lock throttle to 1.
-lock steerpitch to max(4, 89 - 45*(sqrt(ship:velocity:surface:mag/1000))).
+lock steerpitch to max(4, 90 - 45*(sqrt(ship:velocity:surface:mag/1000))).
 print "Starting steering algorithm".
 lock steering to HEADING(which_comp(), steerpitch).
 print "Starting engine.".

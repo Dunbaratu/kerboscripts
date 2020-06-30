@@ -14,6 +14,7 @@ parameter
   goto_bod is "",
   bod_pe is -1,
   ignitions is 2,
+  use_ag1 is false.
   afterlaunch is "".
 
 if not(defined(global_scrubbed)) {
@@ -54,7 +55,8 @@ if launch_gui() {
     atmo_end,
     goto_bod,
     bod_pe,
-    ignitions).
+    ignitions,
+    use_ag1).
 
   set steeringmanager:pitchts to old_pitch_ts.
   set steeringmanager:yawts to old_yaw_ts.
@@ -87,6 +89,15 @@ function launch_gui {
   set setting_ui:addlabel("  <b>== SCRIPT LAUNCH OPTIONS ==</b>"):style:fontsize to 18.
   set setting_ui:addlabel("  (" + ship:name + ", " + core:tag + ")"):style:fontsize to 18.
   setting_ui:addspacing(5).
+
+  local ag_box is setting_ui:addhlayout().
+  set ag_box:style:hstretch to false.
+  ignitions_box:addlabel("Hit AG1 with fairings?").
+  local ag1_button is ignitions_box:addbutton(ag1_button_name()).
+  set ag1_button:onclick to {
+    set use_ag1 to not(use_ag1).
+    set Ag1:button:label to ag1_button_name().
+  }
 
   local ignitions_box is setting_ui:addvlayout().
   set ignitions_box:style:hstretch to false.
@@ -241,4 +252,8 @@ function launch_gui {
   set solid_thrust to solids_field:text:tonumber().
   set steering_ts to ts_field:value.
   return exit_val.
+}
+
+function ag1_button_name {
+  return CHOOSE "Yes" if use_ag1 else "No".
 }

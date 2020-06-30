@@ -35,6 +35,7 @@ function launch {
   parameter goto_bod is "".
   parameter bod_pe is -1.
   parameter ignitions is 2.
+  parameter use_ag1 is false.
 
   if second_dest_ap < 0 { set second_dest_ap to dest_pe. }
 
@@ -232,7 +233,6 @@ function launch {
       set throttle_was_zero to true.
     }
 
-    // TODO - DEBUG THIS FOR MUN lanch (no atmo) - it doesn't seem to be working right:
     if still_must_thrust {
       if apoapsis > dest_pe or apoapsis < 0 {
         if altitude > atmo_end {
@@ -256,6 +256,7 @@ function launch {
           } 
         } else {
           set maintain_ap_mode to true.
+          do_fairings().
         }
       } else if altitude > atmo_end { // out of atmo on an atmo world, yet apoapsis still not high enough.
         if atmo_end > 0 and apoapsis < 0.8*dest_pe  and min_throt < 0.5 {
@@ -580,6 +581,7 @@ function srf_pitch_for_vel {
 
 // Deploy all fairings in ths list of partmodules given.
 function do_fairings {
+  parameter use_ag1 is false.
 
   // Get all the fairings on the ship except ones tagged "manual":
   local all_fairings is ship:modulesnamed("ModuleProceduralFairing").
@@ -609,6 +611,11 @@ function do_fairings {
       }
     }
     f_list:clear(). // so it won't trigger again.
+  }
+
+  if use_ag1 {
+    wait 0. //It complains about deploying stuff in fairing unless time passes after separation.
+    toggle AG1.
   }
 }
 

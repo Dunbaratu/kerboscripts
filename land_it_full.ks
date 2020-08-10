@@ -107,11 +107,13 @@ until landed {
   local initial_twr is athrust / (ship:mass * mu / (ship:body:radius+ship:altitude)^2).
   lock throttle to 1.
   set cnt_before to ship:parts:length.
-  wait until verticalspeed > -3.0.
+  wait until verticalspeed > -3.0 or status = "LANDED" or status = "SPLASHED".
   lock throttle to 0.
+  set ship:control:pilotmainthrottle to 0.
 
   set margin to margin/4. // try again from here, with a smaller margin.
   set simSlice to simSlice/2.
+  wait 0.5. // give it time to notice the landed state.
 }
 brakes on.
 unlock steering.
@@ -121,7 +123,6 @@ if skycrane {
   stage.
   wait 0.1.
 }
-set ship:control:pilotmainthrottle to 0.
 unlock throttle.
 SAS on.
 set vd1 to 0.

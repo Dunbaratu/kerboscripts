@@ -14,7 +14,7 @@ parameter
   goto_bod is "",
   bod_pe is -1,
   ignitions is 2,
-  use_ag1 is false.
+  use_ag1 is false,
   afterlaunch is "".
 
 if not(defined(global_scrubbed)) {
@@ -92,12 +92,11 @@ function launch_gui {
 
   local ag_box is setting_ui:addhlayout().
   set ag_box:style:hstretch to false.
-  ignitions_box:addlabel("Hit AG1 with fairings?").
-  local ag1_button is ignitions_box:addbutton(ag1_button_name()).
+  local ag1_button is ag_box:addbutton(ag1_button_name()).
   set ag1_button:onclick to {
     set use_ag1 to not(use_ag1).
-    set Ag1:button:label to ag1_button_name().
-  }
+    set ag1_button:text to ag1_button_name().
+  }.
 
   local ignitions_box is setting_ui:addvlayout().
   set ignitions_box:style:hstretch to false.
@@ -255,5 +254,5 @@ function launch_gui {
 }
 
 function ag1_button_name {
-  return CHOOSE "Yes" if use_ag1 else "No".
+  return (CHOOSE "Will" if use_ag1 else "Won't") + " toggle AG1 on fairing sep.".
 }

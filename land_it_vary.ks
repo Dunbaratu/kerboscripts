@@ -488,14 +488,14 @@ function update_steer_offsets {
     set vd_off to vecdraw(v(0,0,0), v(0,0,0), blue, "Landing Site Error " + round(xyz_off:mag,1)+"m", 1, true, 0.3).
   }
   
-  // If just a few seconds from touch down, and offset is big enough that it's
-  // clear we won't be able to hit the mark, then give up on deflecting
-  // and just finish vertically so we don't tip over from lateral momentum.
-  if eta_end < 10 and xyz_off:mag > 25 {
+  // Conditions to make it stop deflecting:
+  // - very close to touchdown, or
+  // - bypassed the landing and it's behind us.
+  if (eta_end < 10 and xyz_off:mag > 25) or (vdot(target_spot, ship:facing:vector) > 0) {
     set pitch_off to 0.
     set yaw_off to 0.
     set stop_deflecting to true.
-    print "Too close to landing to keep deflecting - just landing straight.".
+    print "Deflecting disabled - just landing straight.".
     return.
   }
 

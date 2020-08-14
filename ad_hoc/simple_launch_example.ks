@@ -112,30 +112,11 @@ local fairingModName is "ModuleProceduralFairing".
 until done {
   stage_if_needed().
 
-  if altitude > 50_000 {
-  } else if altitude > 40_000 {
-    set cur_pitch to 12.
-  } else if altitude > 30_000 {
-    set cur_pitch to 20.
-  } else if altitude > 25_000 {
-    set cur_pitch to 30.
-  } else if altitude > 20_000 {
-    set cur_pitch to 35.
-  } else if altitude > 13_000 {
-    set cur_pitch to 40.
-  } else if altitude > 8_000 {
-    set cur_pitch to 45.
-  } else if altitude > 4_000 {
-    set cur_pitch to 60.
-  } else if altitude > 2_000 {
-    set cur_pitch to 70.
-  } else if altitude > 200 {
-    set cur_pitch to 80.
-  }
+  set cur_pitch to 85 - 85*(min(70_000,altitude)/70_000)^0.4.
 
   // Only print message when pitch just changed:
   if cur_pitch <> prev_pitch {
-    msg("Pitching to " + cur_pitch).
+    print "Pitching to "+round(cur_pitch,1)+"deg  " at (terminal:width-25, terminal:height-1).
     set prev_pitch to cur_pitch.
   }
 

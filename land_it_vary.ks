@@ -491,11 +491,11 @@ function update_steer_offsets {
   // If just a few seconds from touch down, and offset is big enough that it's
   // clear we won't be able to hit the mark, then give up on deflecting
   // and just finish vertically so we don't tip over from lateral momentum.
-  if eta_end < 5 and xyz_off:mag > 25 {
+  if eta_end < 10 and xyz_off:mag > 25 {
     set pitch_off to 0.
     set yaw_off to 0.
     set stop_deflecting to true.
-    print "Giving up on deflecting - just landing straight.".
+    print "Too close to landing to keep deflecting - just landing straight.".
     return.
   }
 

@@ -209,6 +209,7 @@ function launch {
   local throttle_was_zero is false.
   local msg1_happened is false.
   local msg2_happened is false.
+  local msg3_happened is false.
   lock throttle to throttle_func(coast_circular,min_throt,dest_spd, dest_pe, maintain_ap_mode).
 
   until done {
@@ -256,6 +257,7 @@ function launch {
           } 
         } else {
           set maintain_ap_mode to true.
+          set min_throt to 0.001.
           do_fairings().
         }
       } else if altitude > atmo_end { // out of atmo on an atmo world, yet apoapsis still not high enough.
@@ -274,6 +276,12 @@ function launch {
             hudtext("Aiming horizontally so keeping throt low for ETA is dumb, forcing throttle up.", 8, 2, 20, green, true).
             set msg1_happened to true.
           }
+        }
+      } else if periapsis > 0 and apoapsis < atmo_end {
+        set min_throt to max(min_throt,0.2).
+        if not(msg3_happened) {
+          hudtext("Trying to circularize inside atmospere.  Forcing throttle up.", 8, 2, 20, green, true).
+          set msg3_happened to true.
         }
       }
     }

@@ -387,6 +387,12 @@ function parked_steering {
     else
       return - north_or_south.
   }
+  else if sun_facing = 3 { // at next node if it exists, sun otherwise
+    if hasnode
+      return nextnode:deltav:normalized.
+    else
+      return -sun:position.
+  }
   else // at sun, the default
     return sun:position.
 }
@@ -495,15 +501,16 @@ function get_stopping {
 }
 
 function do_sun_facing_edit {
-  local facing_names is LIST("At Sun", "Away from Sun", "Perp to Sun").
+  local facing_names is LIST("At Sun", "Away from Sun", "Perp to Sun", "Next Node else Sun").
   local sun_facing is persist_get("sun_facing").
 
   local sun_facing_menu is make_menu(
-    30, 7, 18, 8, "Sun Facing",
+    25, 7, 23, 8, "Sun Facing",
     LIST(
       LIST( facing_names[0], { set_sun_facing(0). }),
       LIST( facing_names[1], { set_sun_facing(1). }),
-      LIST( facing_names[2], { set_sun_facing(2). })
+      LIST( facing_names[2], { set_sun_facing(2). }),
+      LIST( facing_names[3], { set_sun_facing(3). })
     )
   ).
 

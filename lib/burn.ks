@@ -379,7 +379,7 @@ function parked_steering {
   parameter sun_facing.
 
   if sun_facing = 1 // away from sun
-    return -sun:position.
+    return -sun:position:normalized.
   else if sun_facing = 2 { // solar north.
     local north_or_south is vcrs(solarprimevector, sun:position).
     if vdot(north_or_south, V(0,1,0)) > 0
@@ -391,7 +391,7 @@ function parked_steering {
     if hasnode
       return nextnode:deltav:normalized.
     else
-      return -sun:position.
+      return sun:position:normalized.
   }
   else // at sun, the default
     return sun:position.

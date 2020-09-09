@@ -15,13 +15,18 @@ local grab_butt is false. // If true then "dock" with the butt of the part, not 
 // you've already done a LOCK STEERING to the right direction
 // to align to the target:
 function do_dock {
-  parameter from_part, to_part, grab_butt_in is false.
+  parameter from_part, to_part, grab_butt_in is false, roll_offset is 0.
 
   local from_part_module is 0.
 
   local original_length is ship:parts:length.
 
   set grab_butt to grab_butt_in.
+
+  function want_facing {
+    return lookdirup( -get_facing(to_part):vector, get_facing(to_part):topvector)
+               * R(0,0,roll_offset).
+  }
 
   wait 0.
 
@@ -62,7 +67,7 @@ function do_dock {
   local null_deficit_top is 0.
   local null_deficit_starboard is 0.
 
-  lock steering to lookdirup( -get_facing(to_part):vector, get_facing(to_part):topvector).
+  lock steering to want_facing().
   local steering_locked is true.
 
   // Track when the part count goes up: if it goes up that must mean the two ships
@@ -214,7 +219,7 @@ function do_dock {
       starboard_want_speed_pid:RESET().
       starboard_control_pid:RESET().
     } else if (not steering_locked) and get_state(from_part) = "Ready" {
-      lock steering to lookdirup(- get_facing(to_part):vector, get_facing(to_part):topvector).
+      lock steering to want_facing().
       set steering_locked to true.
     }
   }

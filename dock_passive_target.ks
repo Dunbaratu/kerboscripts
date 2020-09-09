@@ -1,5 +1,6 @@
 run once "lib/dock".
 
+parameter roll_offset is 0.
 
 CLEARSCREEN.
 
@@ -41,7 +42,7 @@ hudtext_until_condition(
   8, 2, 20, yellow, true).
 
 print "DOCKING SCRIPT COMMENCING".
-do_dock(from_parts[0], tgt, grab_butt).
+do_dock(from_parts[0], tgt, grab_butt, roll_offset).
 
 
 // Display a hudtext and a sound if a condition is false, and keep checking the

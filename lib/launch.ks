@@ -235,7 +235,7 @@ function launch {
     }
 
     if still_must_thrust {
-      if apoapsis > dest_pe or apoapsis < 0 {
+      if apoapsis > second_dest_ap or apoapsis < 0 {
         if altitude > atmo_end {
           set maintain_ap_mode to false.
           set still_must_thrust to false.
@@ -261,7 +261,7 @@ function launch {
           do_fairings().
         }
       } else if altitude > atmo_end { // out of atmo on an atmo world, yet apoapsis still not high enough.
-        if atmo_end > 0 and apoapsis < 0.8*dest_pe  and min_throt < 0.5 {
+        if atmo_end > 0 and apoapsis < 0.8*second_dest_ap and min_throt < 0.5 {
           set min_throt to 0.5. // force it to keep thrusting a lot.
           if not(msg2_happened) {
             hudtext("Escaped Atmo but Ap still way too low - upping throttle.",8,2,20, green, true).
@@ -296,7 +296,11 @@ function launch {
     }
 
     if coast_circular {
-      if periapsis > atmo_end and (ship:obt:trueanomaly < 90 or ship:obt:trueanomaly > 270) {
+      if periapsis >= dest_pe {
+        hudtext("Pe above requested, so done now.", 8, 2, 20, green, true).
+        set done to true.
+      }
+      else if periapsis > atmo_end and (ship:obt:trueanomaly < 90 or ship:obt:trueanomaly > 270) {
         if apoapsis >= second_dest_ap {
           hudtext("Ap high enough and now closer to Pe than Ap, so stopping.", 8, 2, 20, green, true).
           set done to true.

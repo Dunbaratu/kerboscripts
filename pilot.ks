@@ -464,7 +464,7 @@ until user_quit or
     // when setpoint changes - thanks nuggreat for suggesting:
     set pitchPID:SETPOINT to wantClimb.
     set yokePull to pitchPID:UPDATE( time:seconds, ship:verticalspeed ).
-    set ship:control:pitch to yokePull.
+    set ship:control:pilotpitchtrim to yokePull.
 
     // normal desired bank when things are going well:
     local aOff is angle_off(wantCompass,shipCompass).
@@ -500,7 +500,7 @@ until user_quit or
     pid_tune_for_conditions(shipSpd, pitchPID, rollPID).
     
     set yokeRoll to rollPID:Update(time:seconds, shipRoll - wantBank ).
-    set ship:control:roll to yokeRoll.
+    set ship:control:pilotrolltrim to yokeRoll.
 
     displayCompass(5,8).
     displayRoll(5,12).
@@ -530,7 +530,7 @@ if user_quit {
     print "BRAKES ON.".
     lock throttle to 0.
   }
-  set ship:control:neutralize to true.
+  center_control().
   set ship:control:pilotmainthrottle to 0. // TODO - look for reverse throttle availability?
   // keep straight down the runway while slowing down, using wheels,
   // not rudder:
@@ -543,13 +543,20 @@ if user_quit {
     wait 0.
   }
   unlock steering.
-  set ship:control:neutralize to true.
+  center_control().
   SAS OFF.
 }
 set vd_aimpos to 0.
 set vd_aimline to 0.
 set ship:control:pilotmainthrottle to 0.
-set ship:control:neutralize to true.
+center_control().
 if gui_exists
   gui_close_edit_course().
 
+function center_control {
+  local cont is ship:control.
+  set cont:neutralize to true.
+  set cont:pilotpitchtrim to 0.
+  set cont:pilotrolltrim to 0.
+  set cont:pilotyawtrim to 0.
+}

@@ -144,7 +144,8 @@ function launch_gui {
       return.
     }
     // Set to a number then back to a string, to wipe any non-numeric stuff:
-    local default is second_height:tonumber(-1).
+    local default is choose
+      second_height if second_height:istype("Scalar") else second_height:tonumber(-1).
     set end_ap_field:text to end_ap_field:text:tonumber(default):tostring().
     set second_height to end_ap_field:text:tonumber().
   }.

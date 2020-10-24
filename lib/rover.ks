@@ -49,6 +49,7 @@ on abort {
 
 LOCAL is_segway is true. 
 LOCAL pid_tightness is 1.0.
+LOCAL wheelie_angle is 0.
 
 // Given a location, drive there.
 // stop when you get there.
@@ -350,6 +351,7 @@ function drive_to {
     print "eraseme: hill_sideways_sign is " + hill_sideways_sign + " " + reason.
     print "USE Abort Action group to kill program and park.".
     print "PID TIGHTNESS. Use arrow left/right keys: " + pid_tightness.
+    print "USE +/- keys to adjust wheelie angle: " + wheelie_angle.
     print "User Cruise speed. Use up/down arrows: " + round(cruise_spd).
     print " -------- obstacle detection: --------  ".
     print "LASERS: left: " + has_left_lasers + ", right: " + has_right_lasers + ", leveler: " + has_leveler_lasers.
@@ -402,6 +404,10 @@ function drive_to {
         set cruise_spd to min(35, cruise_spd + 1).
       } else if ch = termin:DOWNCURSORONE {
         set cruise_spd to max(1, cruise_spd - 1).
+      } else if ch = "+" {
+        set wheelie_angle to wheelie_angle + 1.
+      } else if ch = "-" {
+        set wheelie_angle to wheelie_angle - 1.
       }
     }
     wait 0.001.
@@ -514,7 +520,7 @@ function level_orientation {
   } else {
     set aim to rotated_forevector(offset_pitch).
   }
-  return lookdirup(vxcl(norm,aim), norm).
+  return lookdirup(angleaxis(wheelie_angle, ship:facing:starvector)*vxcl(norm,aim), norm).
 }
 
 // Use forward facing collision lasers to detect the slope ahead of us.  If it's

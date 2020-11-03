@@ -77,7 +77,7 @@ function launch {
   print "SAS TURNED OFF. kOS is steering.".
 
   print "Waiting for engine TWR > " + TWR_for_launch.
-  lock throttle to throttle_func(coast_circular,min_throt,dest_spd, dest_pe, maintain_ap_mode).
+  lock_throt_for_launch().
   local g is body:mu / (body:radius+altitude)^2.
   local twr_measured is 0.
   until twr_measured > TWR_for_launch {
@@ -210,7 +210,7 @@ function launch {
   local msg1_happened is false.
   local msg2_happened is false.
   local msg3_happened is false.
-  lock throttle to throttle_func(coast_circular,min_throt,dest_spd, dest_pe, maintain_ap_mode).
+  lock_throt_for_launch().
 
   until done {
 
@@ -224,10 +224,10 @@ function launch {
         wait until ullage_status(actives).
         stager(engs, true).
         set ship:control:fore to 0.
-        lock throttle to throttle_func(coast_circular, min_throt, dest_spd, dest_pe, maintain_ap_mode).
+        lock_throt_for_launch().
         set RCS to orig_RCS.
       }
-      lock throttle to throttle_func(coast_circular, min_throt, dest_spd, dest_pe, maintain_ap_mode).
+      lock_throt_for_launch().
     }
 
     if throttle = 0 {
@@ -343,7 +343,7 @@ function launch {
 	local cut_parts_list is ship:partstagged("payload cutoff"). // expensive walk - don't do it too much.
 	if cut_parts_list:length > 0 {
 	  if allow_zero
-            lock throttle to 0. 
+            lock throttle to 0. // suppress while staging parts.
 	  wait 1.
 	  until cut_parts_list:length = 0 {
 	    hudtext("Pe above " + round(payload_cut_pe) + "m.  Decoupling until payload cutoff parts gone", 6, 2, 20, green, true).
@@ -351,6 +351,8 @@ function launch {
 	    stage.
 	    set cut_parts_list to ship:partstagged("payload cutoff"). // expensive walk - don't do it too much.
 	  }
+          if allow_zero // put it back now that staging is done.
+            lock_throt_for_launch().
 	}
 	set payload_cut_yet to true.
       }
@@ -366,6 +368,12 @@ function launch {
 
   deploy_launch_done_code().
   print "DONE".
+
+  // This command gets re-run every time we temporarily suppressed
+  // throttle then need to set it back again:
+  function lock_throt_for_launch {
+      lock throttle to throttle_func(coast_circular, min_throt, dest_spd, dest_pe, maintain_ap_mode).
+  }
 
   // Print some useful info in a block during this function:
   function info_block {

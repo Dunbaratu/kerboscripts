@@ -27,7 +27,7 @@ if do_gui {
   } else {
     run once "/lib/land_it_gui.ks".
     set gui_box to create_land_it_gui(
-      true, quit_script@, margin, ullage, spool, minThrot, throt_predict_mult, land_spot
+      true, quit_script@, margin, ullage, spool, minThrot, throt_predict_mult, land_spot, skycrane
       ).
     wait until gui_box["COMMIT"]:pressed or aborting.
     set gui_box["COMMIT"]:enabled to false.
@@ -37,6 +37,7 @@ if do_gui {
     set spool to gui_box["SPOOL"]:text:toscalar().
     set minThrot to gui_box["MINTHROT"]:text:toscalar().
     set throt_predict_mult to gui_box["PREDICTTHROT"]:text:toscalar().
+    set skycrane to gui_box["skycrane"]:pressed.
     if gui_box["GEO_ENABLED"]:pressed {
       set land_spot to LATLNG(gui_box["LAT"]:text:toscalar(), gui_box["LNG"]:text:toscalar()).
     } else {

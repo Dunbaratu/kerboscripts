@@ -15,7 +15,7 @@ local land_it_gui is LEX().
 function create_land_it_gui {
   parameter show_now.
   parameter quit_delegate.
-  parameter init_margin, init_ullage, init_spool, init_minthrot, init_predict, land_spot.
+  parameter init_margin, init_ullage, init_spool, init_minthrot, init_predict, land_spot, skycrane.
 
   local window is GUI(400).
   set land_it_gui["GUI"] to window.
@@ -161,7 +161,13 @@ function create_land_it_gui {
     pick_vessel:onchange:call(land_spot:name).
   }
 
-  local commit is contents:addbutton("Commit (no takebacks)").
+  local buttonbox is contents:addhbox().
+
+  local skycranebut is buttonbox:addcheckbox("Skycrane",skycrane).
+  set skycranebut:tooltip to "Hit next-stage after landing to remove skycrane?".
+  set land_it_gui["skycrane"] to skycranebut.
+
+  local commit is buttonbox:addbutton("Commit (no takebacks)").
   set commit:tooltip to 
     "Lock in these values and begin the landing script. " +
     "NOTE: The vessel needs to have a sub-orbital path already " +

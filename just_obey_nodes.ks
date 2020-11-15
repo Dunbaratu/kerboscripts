@@ -21,7 +21,7 @@ local prev_ag10 is ag10.
 
 print "Toggle action group 10 to quit.".
 
-push_steering_mgr_config(2, 1, 0.02, 0.25).
+push_steering_mgr_config(2, 1, 0.005, 0.1).
 
 sas off.
 

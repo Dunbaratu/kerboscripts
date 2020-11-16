@@ -732,7 +732,6 @@ local prev_collision_eta is 0.
 
 function rotated_bearing {
   parameter spot, pitch_rot, cruise_spd is 30, collision_eta is 0.
-
   // This logic is here to force it to keep turning a little while
   // longer after the obstacle isn't detected anymore, so it won't
   // just immediately turn back into the corner of it again:
@@ -746,10 +745,11 @@ function rotated_bearing {
   }
 
   local project_myFore is vxcl(ship:up:vector, rotated_forevector(pitch_rot)).
+  local project_myStar is vxcl(ship:up:vector, ship:facing:starvector).
   local project_spotVec is vxcl(ship:up:vector, spot:position).
 
   local abs_angle is vang(project_myFore, project_spotVec).
-  if vdot( project_spotVec, ship:facing:starvector ) < 0 
+  if vdot( project_spotVec, project_myStar) < 0 
      set abs_angle to -abs_angle.
   if collision_eta <> 0 {
     // Desire steering more off to the side - more severe the longer we've been detecting collision,

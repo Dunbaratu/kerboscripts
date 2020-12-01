@@ -73,6 +73,9 @@ function do_burn_with_display {
 
   local remember_node is want_dv.
 
+  local ap_rate is 0.0001. // to avoid a div by zero on first pass.
+  local pe_rate is 0.0001. // to avoid a div by zero on first pass.
+
   if ullage_time <> -999 
     persist_set("ullage_time", ullage_time).
 
@@ -128,7 +131,8 @@ function do_burn_with_display {
       if dv_to_go > 0 {
         return dv_to_go.
       }
-      return 30*abs((want_Ap-apoapsis)/want_Ap).
+      // full throttle until just before being done, then back off:
+      return abs(want_Ap-apoapsis) / (10*ap_rate).
     }.
   } else if want_Pe:isType("Scalar") {
     set base_throt to {
@@ -137,7 +141,8 @@ function do_burn_with_display {
       if dv_to_go > 0 {
         return dv_to_go.
       }
-      return 30*abs((want_Pe-periapsis)/want_Pe).
+      // full throttle until just before being done, then back off:
+      return abs(want_Pe-periapsis) / (10*pe_rate).
     }.
   }
 
@@ -175,6 +180,7 @@ function do_burn_with_display {
   print  "Burn dV remaining:         m/s" at (col,row).
   local prev_dv_to_go is dv_to_go + 1.
   local prev_sec is time:seconds.
+  wait 0. // force time to pass after prev_sec measured to avoid div by zero when dT=0.
   local sec is 0.
   local prev_vel is ship:velocity:orbit.
   local dv is 0.
@@ -183,6 +189,8 @@ function do_burn_with_display {
   local this_check_num is -9999.
   list engines in engs.
   local done is false.
+  local prev_ap is apoapsis.
+  local prev_pe is periapsis.
   until done {
     print round(dV_to_go,1) + "m/s     " at (col+19,row).
     print "dv_burnt: " + round(dv_burnt,2) + "m/s    " at (col+19,row+1).
@@ -212,6 +220,10 @@ function do_burn_with_display {
     set dv to ship:velocity:orbit - prev_vel.
     set dv_grav to (sec-prev_sec)*g_here().
     set dv_burnt to dv_burnt + (dv-dv_grav):mag.
+    set ap_rate to min(0.0001, abs(apoapsis - prev_ap)/(sec-prev_sec)).
+    set pe_rate to min(0.0001, abs(periapsis - prev_pe)/(sec-prev_sec)).
+    set prev_ap to apoapsis.
+    set prev_pe to periapsis.
     set prev_sec to sec.
     set prev_vel to ship:velocity:orbit.
     wait 0.0.

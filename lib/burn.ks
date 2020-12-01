@@ -73,8 +73,8 @@ function do_burn_with_display {
 
   local remember_node is want_dv.
 
-  local ap_rate is 0.0001. // to avoid a div by zero on first pass.
-  local pe_rate is 0.0001. // to avoid a div by zero on first pass.
+  local full_ap_rate is 0.0001. // to avoid a div by zero on first pass.
+  local full_pe_rate is 0.0001. // to avoid a div by zero on first pass.
 
   if ullage_time <> -999 
     persist_set("ullage_time", ullage_time).
@@ -132,7 +132,7 @@ function do_burn_with_display {
         return dv_to_go.
       }
       // full throttle until just before being done, then back off:
-      return abs(want_Ap-apoapsis) / (10*ap_rate).
+      return 2* abs(want_Ap-apoapsis) /full_ap_rate.
     }.
   } else if want_Pe:isType("Scalar") {
     set base_throt to {
@@ -142,7 +142,7 @@ function do_burn_with_display {
         return dv_to_go.
       }
       // full throttle until just before being done, then back off:
-      return abs(want_Pe-periapsis) / (10*pe_rate).
+      return 2* abs(want_Pe-periapsis) /full_pe_rate.
     }.
   }
 
@@ -220,8 +220,14 @@ function do_burn_with_display {
     set dv to ship:velocity:orbit - prev_vel.
     set dv_grav to (sec-prev_sec)*g_here().
     set dv_burnt to dv_burnt + (dv-dv_grav):mag.
-    set ap_rate to min(0.0001, abs(apoapsis - prev_ap)/(sec-prev_sec)).
-    set pe_rate to min(0.0001, abs(periapsis - prev_pe)/(sec-prev_sec)).
+
+    // Measure what the rate of AP and PE changes was back when the throttle
+    // was last at full.  Once we start backing off the throttle toward the end,
+    // this will be used as a heuristic for how fast to back off the throttle:
+    if (throttle >= 1) {
+      set full_ap_rate to max(0.0001, abs(apoapsis - prev_ap)/(sec-prev_sec)).
+      set full_pe_rate to max(0.0001, abs(periapsis - prev_pe)/(sec-prev_sec)).
+    }
     set prev_ap to apoapsis.
     set prev_pe to periapsis.
     set prev_sec to sec.

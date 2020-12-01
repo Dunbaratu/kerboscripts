@@ -743,13 +743,16 @@ function rotated_bearing {
     set collision_cooldown_timestamp to time:seconds + 1.
     set prev_collision_eta to collision_eta.
   }
+  // Project the target position into my rover's orientation plane,
+  // so it matches my rover's notion of left and right, not the horizon's.
+  // (matters when rover is aimed up or down a hill):
+  local my_top is rotated_topvector(pitch_rot).
+  local my_fore is rotated_forevector(pitch_rot).
+  local my_star is ship:facing:starvector.
+  local project_spotVec is vxcl(my_top, spot:position).
 
-  local project_myFore is vxcl(ship:up:vector, rotated_forevector(pitch_rot)).
-  local project_myStar is vxcl(ship:up:vector, ship:facing:starvector).
-  local project_spotVec is vxcl(ship:up:vector, spot:position).
-
-  local abs_angle is vang(project_myFore, project_spotVec).
-  if vdot( project_spotVec, project_myStar) < 0 
+  local abs_angle is vang(my_fore, project_spotVec).
+  if vdot( project_spotVec, my_star) < 0 
      set abs_angle to -abs_angle.
   if collision_eta <> 0 {
     // Desire steering more off to the side - more severe the longer we've been detecting collision,

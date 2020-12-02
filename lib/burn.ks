@@ -152,6 +152,14 @@ function do_burn_with_display {
   lock mythrot to min(1, 0.01 + base_throt()/(1.2*avail_accel)).
 
   local dv_burnt is 0.
+  
+  // This list of prev throttle settings is here
+  // to smooth out throttle variations to get a
+  // measure of average throttle over the last few
+  // iterations:
+  local prev_throttles is LIST(0,0,0,0,0).
+  local throt_i is 0.
+  local smoothed_throttle is 0.
 
   // ullage RCS push, accounting for dv burnt during it:
   print  "Ullage RCS push            "  at (col,row).
@@ -221,12 +229,20 @@ function do_burn_with_display {
     set dv_grav to (sec-prev_sec)*g_here().
     set dv_burnt to dv_burnt + (dv-dv_grav):mag.
 
-    // Measure what the rate of AP and PE changes was back when the throttle
-    // was last at full.  Once we start backing off the throttle toward the end,
-    // this will be used as a heuristic for how fast to back off the throttle:
-    if (throttle >= 1) {
-      set full_ap_rate to max(0.0001, abs(apoapsis - prev_ap)/(sec-prev_sec)).
-      set full_pe_rate to max(0.0001, abs(periapsis - prev_pe)/(sec-prev_sec)).
+    // Sample the throttle from the last few iterations to get a smoothed running average:
+    set prev_throttles[throt_i] to throttle.
+    set throt_i to mod(throt_i + 1, prev_throttles:length).
+    set smoothed_throttle to 0.
+    for t in prev_throttles {
+      set smoothed_throttle to smoothed_throttle + t.
+    }
+    set smoothed_throttle to smoothed_throttle / prev_throttles:length.
+
+    // A heuristic guess what the rate of change of pe and ap would be if
+    // we were at full throttle right now:
+    if smoothed_throttle > 0 { // avoid updating it when updating would div by zero
+      set full_ap_rate to max(0.0001, abs(apoapsis - prev_ap)/(sec-prev_sec)) / smoothed_throttle.
+      set full_pe_rate to max(0.0001, abs(periapsis - prev_pe)/(sec-prev_sec)) / smoothed_throttle.
     }
     set prev_ap to apoapsis.
     set prev_pe to periapsis.

@@ -796,7 +796,7 @@ function wanted_speed {
   local grav is ship:body:mu / ship:body:radius^2. 
 
   set return_val to min( 0.5 + max(0, spot:distance - prox) / 10, cruise_spd).
-  set return_val to min( return_val*abs((grav*2.5)/bear), return_val).
+  set return_val to min( return_val*abs((grav*6)/bear), return_val).
 
   // If there is an obstacle detector laser, use it.
   if has_left_lasers and jump_detecting {

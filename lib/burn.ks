@@ -132,7 +132,7 @@ function do_burn_with_display {
         return dv_to_go.
       }
       // full throttle until just before being done, then back off:
-      return 2* abs(want_Ap-apoapsis) /full_ap_rate.
+      return abs(want_Ap-apoapsis) /full_ap_rate.
     }.
   } else if want_Pe:isType("Scalar") {
     set base_throt to {
@@ -142,7 +142,7 @@ function do_burn_with_display {
         return dv_to_go.
       }
       // full throttle until just before being done, then back off:
-      return 2* abs(want_Pe-periapsis) /full_pe_rate.
+      return abs(want_Pe-periapsis) /full_pe_rate.
     }.
   }
 

@@ -17,7 +17,7 @@ function countdown {
 
 local target_eta_spd is 0.
 local target_eta_apo is 0.
-local vertoff_allow is 0.15.
+local vertoff_allow is CHOOSE 0.15 if body:atm:exists else 0.3.
 local payload_cut_pe is 0.
 local payload_cut_yet is false.
 
@@ -58,9 +58,9 @@ function launch {
   set target_eta_spd to eta_spd.
   local circ_speed is sqrt(ship:body:mu / (dest_pe+ship:body:radius)).
   local kick_speed is circ_speed / 25.
-  if not(ship:body:atm:exists) {
-    set kick_speed to 0. // no need to go straight up when launching without air.
-  }
+  // if not(ship:body:atm:exists) {
+  //   set kick_speed to kick_speed/2. // need to go a up bit first not *as* important in vacuum.
+  // }
 
   sane_upward().
 
@@ -107,7 +107,7 @@ function launch {
 
   print "We are now moving.".
   local TWR_avail is AVAILABLETHRUST/(MASS*g).
-  set kick_speed to kick_speed / (1.5*TWR_avail).
+  set kick_speed to kick_speed / (1.2*TWR_avail).
   lock steering to lookdirup(heading(dest_compass, 89.9):forevector, -ship:up:vector).
   print "Waiting for speed over " + round(kick_speed,1) + " m/s to start kick.".
   until ship:velocity:surface:mag > kick_speed {
@@ -123,7 +123,7 @@ function launch {
   until slow_kick_amount = 10 {
     set TWR_avail to AVAILABLETHRUST/(MASS*g).
     lock clamp_pitch_down to min(50, max(0.5, slow_kick_amount*TWR_avail)).
-    lock steering to lookdirup(heading(dest_compass, 90-clamp_pitch_down):forevector, -ship:up:vector).
+    lock steering to lookdirup(heading(dest_compass, 85-clamp_pitch_down):forevector, -ship:up:vector).
     // kick over more slowly when there's atmosphere:
     if atmo_end = 0 
       wait 0.1.
@@ -162,8 +162,8 @@ function launch {
     // Next line will aim a bit left or right of desired heading if it starts off
     // really far off - which only happens when launching on low grav moons from a
     // badly tllted terrain angle:
-    // clamped to +/-60 deg so it doesn't circle round the compass to the wrong way.
-    set dest_compass to remember_compass - max(-90,min(90,2*heading_err)).
+    // clamped to +/-45 deg so it doesn't circle round the compass to the wrong way.
+    set dest_compass to remember_compass - max(-45,min(45,2*heading_err)).
 
     // Prevent throttle from being too weak while we're trying to force heading to change:
     local g is body:mu / (body:radius+altitude)^2.

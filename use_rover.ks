@@ -15,5 +15,24 @@ if dest:istype("vessel") or dest:istype("waypoint") {
   set do_it to false.
 }
 if do_it {
+  geopos_sanity(point).
   drive_to(point, speed, segway, jump_protect, prox, offpitch, save_dist, ocean_check).
+}
+
+function geopos_sanity {
+  parameter pos.
+
+  if pos:body <> ship:body {
+    getvoice(0):play(list(slidenote(200,350,0.75),slidenote(200,350,0.75))).
+    wait until not(getvoice(0):isplaying).
+    local is_planet is (pos:body:body = Sun).
+    print " ".
+    print " ".
+    print "HEY I CAN'T DRIVE TO ANOTHER " +
+      (choose "PLANET" if is_planet else "MOON") + ", DUMMY!.".
+    print " ".
+    print "Bombing out on purpose.".
+    print " ".
+    print 1/0.
+  }
 }

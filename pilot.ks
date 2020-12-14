@@ -360,6 +360,7 @@ when alt:radar > 200 then {
 }
 local has_been_airborne is false.
 
+unlock steering.
 until user_quit or 
       ((status="LANDED" or status="SPLASHED") and has_been_airborne) {
 

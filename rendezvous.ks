@@ -200,7 +200,10 @@ if skips <= 3 {
     lock mysteerpoint to other:position+(40*ship:north:vector).
     sas off.
     lock steering to mysteerpoint.
-    wait until vang(mysteerpoint, ship:facing:forevector) < 2.
+    wait until 
+        vang(mysteerpoint, ship:facing:forevector) < 2
+      and
+        abs(steeringmanager:angleerror) < 1.5. 
     lock throttle to 1/(0.01*maxAccel).
     wait until vdot(rel_vel,mysteerpoint:normalized) > 4+min(30,(mysteerpoint:mag/200)).
     sas off.
@@ -217,7 +220,10 @@ if skips <= 3 {
     lock throttle to rel_vel:mag/(0.05+maxAccel).
     print "... Killing relative speed to zero.".
 
-    wait until vdot(mysteer, rel_vel:normalized) > -0.1.
+    wait until
+        vdot(mysteer, rel_vel:normalized) > -0.1
+      and
+        abs(steeringmanager:angleerror) < 1.5. 
     lock throttle to 0.
 
     // Repeat the above step until close enough.

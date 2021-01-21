@@ -17,6 +17,8 @@
 //           script will stage until all the "payload_cutoff" parts have been
 //           detached.  (i.e. tag the decoupler just under the payload with this name).
 
+parameter launch_compass is 90.
+
 local the_voice is getvoice(0).
 
 // You can ignore this if you dont care about
@@ -89,11 +91,12 @@ msg("LIFTOFF").
 local cur_pitch is 90.
 
 // This lock steering will stay active for most of the launch.
-// It locks steering to a compass heading of 90 (east), pitched
+// It locks steering to a compass heading the parameter
+// in the RUN command gave (default 90 if omitted), pitched
 // up to whatever the variable cur_pitch is (which starts at 90,
 // meaning straight up, but that will change as the launch
 // progresses):
-lock steering to heading(90,cur_pitch).
+lock steering to heading(launch_compass,cur_pitch).
 
 lock throttle to 1.
 local done is false.

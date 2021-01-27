@@ -24,13 +24,13 @@ lock throttle to 0.
 print "Now falling straight".
 
 until status = "LANDED" or alt:radar <= extra {
-  local surf_g is body:mu / (body:radius)^2.
-  local engine_a is (0.95*availablethrust) / mass.
-  local sum_a is (engine_a - surf_g).
-  print "Sum Accel upward I can do is: " + round(sum_a,2) +" m/(s^2)." at (5,3).
   local done is false.
   until done or status = "LANDED" {
     wait 0.
+    local surf_g is body:mu / (body:radius)^2.
+    local engine_a is (0.95*availablethrust) / mass.
+    local sum_a is (engine_a - surf_g).
+    print "Sum Accel upward I can do is: " + round(sum_a,2) +" m/(s^2)." at (5,3).
     // dist = (1/2)*a*t^2
     local velocity_buttward is vdot(velocity:surface, -ship:facing:vector).
     if velocity_buttward < 0 {
@@ -39,8 +39,8 @@ until status = "LANDED" or alt:radar <= extra {
       local stop_time is velocity_buttward / sum_a.
       local stop_dist is 0.5*sum_a*stop_time^2.
       print "Est stop dist = " + round(stop_dist,1) + "m             " at (5,0).
-      print "    Radar Alt - Extra = " + round(alt:radar-extra,1) + "m   " at (5,1).
-      if (alt:radar - extra) <= stop_dist
+      print "    Radar Alt + Extra = " + round(alt:radar+extra,1) + "m   " at (5,1).
+      if (alt:radar + extra) <= stop_dist
 	set done to true.
     }
   }

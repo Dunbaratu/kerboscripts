@@ -157,7 +157,7 @@ function drive_to {
     set forSpeed to forward_speed(offset_pitch).
     local wSpeed is wanted_speed(geopos, cruise_spd, offset_pitch, battery_panic, jump_detect, proximity_needed).
     if hill_sideways_mode {
-      set wSpeed to wSpeed*2. // speed will be in "wrong" direction, don't dampen as much as that usually does.
+      set wSpeed to wSpeed*0.666. // speed will be in "wrong" direction, don't dampen as much as that usually does.
     }
     local speed_diff is forSpeed - wSpeed.
     local enable_spd_check is true.
@@ -239,6 +239,8 @@ function drive_to {
         set twarp:warp to 0.
         wait until groundspeed < 0.4.
       }
+      wait until ship:velocity:surface:mag < 1.
+      panels on.
       set twarp:mode to "RAILS".
       set twarp:WARP to 5.
     }
@@ -261,6 +263,8 @@ function drive_to {
       set battery_panic to false. 
       set twarp:WARP to 0.
       wait until twarp:issettled.
+      wait 1. // 1 more second to be sure it's really settled.
+      panels off.
       set twarp:mode to "PHYSICS".
       set twarp:WARP to 1.
       set hill_sideways_mode to false.

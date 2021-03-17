@@ -54,7 +54,7 @@ LOCAL wheelie_angle is 0.
 // Given a location, drive there.
 // stop when you get there.
 function drive_to {
-  parameter geopos, cruise_spd, segway is false, jump_detect is false, proximity_needed is 10, offset_pitch is 0, save_dist is 5000, ocean_check is "".
+  parameter geopos, cruise_spd, segway is false, jump_detect is false, proximity_needed is 10, offset_pitch is 0, save_dist is 5000, ocean_check is "", cheat_terrain is false.
 
   set is_segway to segway.
 
@@ -114,7 +114,7 @@ function drive_to {
   // Only use the yaw disabler feature when there are leveler lazers AND
   // this is NOT segway mode.  (In segway mode we want to torque the
   // yaw since two-wheeled vehicles cannot steer by wheelsteering alone.)
-  if has_leveler_lasers { 
+  if has_leveler_lasers or cheat_terrain { 
 
     // If we are going to use locked steering to muck about
     // with telling it to level itself, then make sure that
@@ -283,10 +283,10 @@ function drive_to {
       steer_pid:reset().
       throttle_pid:reset().
     }
-    if has_leveler_lasers and not battery_panic {
+    if (has_leveler_lasers or cheat_terrain) and not battery_panic {
       if not(steering_is_locked) {
-        set recent_steering_dir to level_orientation(offset_pitch, leveler_lasers).
-        lock steering to level_orientation(offset_pitch, leveler_lasers).
+        set recent_steering_dir to level_orientation(offset_pitch, leveler_lasers, cheat_terrain).
+        lock steering to level_orientation(offset_pitch, leveler_lasers, cheat_terrain).
         set steering_is_locked to true.
         HUDTEXT("STEERING IS LOCKED",3,2,15,yellow,false).
       }
@@ -359,6 +359,7 @@ function drive_to {
     print "User Cruise speed. Use up/down arrows: " + round(cruise_spd).
     print " -------- obstacle detection: --------  ".
     print "LASERS: left: " + has_left_lasers + ", right: " + has_right_lasers + ", leveler: " + has_leveler_lasers.
+    print "Cheat Terrain = " + cheat_terrain.
     if has_left_lasers and has_right_lasers {
       print "  Dist: " + round(g_dist,2)+ "m, L slope: " + round(g_left_slope,2) + ", R slope: " + round(g_right_slope,2).
       print "  Collision ETA: " + round(collision_eta,1) + "s".
@@ -514,8 +515,8 @@ function roll_reset {
 }
 
 function level_orientation {
-  parameter offset_pitch, leveler_lasers.
-  local norm is get_laser_normal(leveler_lasers).
+  parameter offset_pitch, leveler_lasers, cheat_terrain.
+  local norm is get_laser_normal(leveler_lasers, cheat_terrain).
 
   local aim is 0.
   // Aim either at facing (if landed) or at velocity (if in a jump):

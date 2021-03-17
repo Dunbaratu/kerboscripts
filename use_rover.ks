@@ -1,4 +1,4 @@
-parameter dest, speed, segway is false, jump_protect is false, prox is 10, offpitch is 0, save_dist is 5000, ocean_check is "".
+parameter dest, speed, segway is false, jump_protect is false, prox is 10, offpitch is 0, save_dist is 5000, ocean_check is "", cheat_terrain is false.
 
 run once "/lib/rover".
 
@@ -16,7 +16,7 @@ if dest:istype("vessel") or dest:istype("waypoint") {
 }
 if do_it {
   geopos_sanity(point).
-  drive_to(point, speed, segway, jump_protect, prox, offpitch, save_dist, ocean_check).
+  drive_to(point, speed, segway, jump_protect, prox, offpitch, save_dist, ocean_check, cheat_terrain).
 }
 
 function geopos_sanity {

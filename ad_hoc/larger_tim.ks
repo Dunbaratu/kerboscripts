@@ -26,13 +26,18 @@ until twr > 1.1 {
 print "Declamping.".
 stage.
 wait 1.
-print "Waiting for liquid stage to end.".
-wait until maxthrust = 0.
+
+print "Waiting for liquid stage to end or AP > 200_000.".
+wait until maxthrust = 0 or apoapsis > 200_000.
+print "Killing throttle.".
+set ship:control:pilotmainthrottle to 0.
+lock throttle to 0.
+wait 2.
+print "Decoupling lifter.".
+stage.
 print "Waiting for top of trajectory.".
 wait until verticalspeed < 0.
-print "Decoupling from booster.".
-stage.
 print "Waiting until safe for opening chutes.".
-wait until alt:radar < 2_000 and verticalspeed < 250 .
+wait until alt:radar < 2_000 and verticalspeed < 350 .
 stage.
 print "Script over.".

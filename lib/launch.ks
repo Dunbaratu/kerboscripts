@@ -20,6 +20,7 @@ local target_eta_apo is 0.
 local vertoff_allow is CHOOSE 0.15 if body:atm:exists else 0.3.
 local payload_cut_pe is 0.
 local payload_cut_yet is false.
+local ignore_roll is false.
 
 function launch {
   parameter dest_compass. // not exactly right when not 90.
@@ -36,6 +37,7 @@ function launch {
   parameter bod_pe is -1.
   parameter ignitions is 2.
   parameter use_ag1 is false.
+  parameter roll_ign is false.
 
   if second_dest_ap < 0 { set second_dest_ap to dest_pe. }
 
@@ -45,6 +47,8 @@ function launch {
     set payload_cut_pe to 0.
   }
   set payload_cut_yet to false.
+
+  set ignore_roll to roll_ign.
 
   local dest_sma is (body:radius*2 + dest_pe + second_dest_ap)/2.
   local dest_rad is ship:body:radius + dest_pe.
@@ -108,7 +112,7 @@ function launch {
   print "We are now moving.".
   local TWR_avail is AVAILABLETHRUST/(MASS*g).
   set kick_speed to kick_speed / (1.2*TWR_avail).
-  lock steering to lookdirup(heading(dest_compass, 89.9):forevector, -ship:up:vector).
+  lock steering to lookdirup(heading(dest_compass, 89.9):forevector, roll_vector()).
   print "Waiting for speed over " + round(kick_speed,1) + " m/s to start kick.".
   until ship:velocity:surface:mag > kick_speed {
     info_block().
@@ -123,7 +127,7 @@ function launch {
   until slow_kick_amount = 10 {
     set TWR_avail to AVAILABLETHRUST/(MASS*g).
     lock clamp_pitch_down to min(50, max(0.5, slow_kick_amount*TWR_avail)).
-    lock steering to lookdirup(heading(dest_compass, 85-clamp_pitch_down):forevector, -ship:up:vector).
+    lock steering to lookdirup(heading(dest_compass, 85-clamp_pitch_down):forevector, roll_vector()).
     // kick over more slowly when there's atmosphere:
     if atmo_end = 0 
       wait 0.1.
@@ -183,7 +187,7 @@ function launch {
 
   print "Letting heading go where it wants.  Adjusting only pitch and throttle by ETA Apoapsis.".
   local want_pitch_off is 0.
-  lock steering to lookdirup(which_vel():normalized + clamp_abs((wanted_eta_apo(coast_circular,dest_spd)-signed_eta_ap())*0.5/wanted_eta_apo(coast_circular,dest_spd),vertoff_allow)*ship:up:vector, -ship:up:vector).
+  lock steering to lookdirup(which_vel():normalized + clamp_abs((wanted_eta_apo(coast_circular,dest_spd)-signed_eta_ap())*0.5/wanted_eta_apo(coast_circular,dest_spd),vertoff_allow)*ship:up:vector, roll_vector()).
 
   // This was the old steering logic: need something new:
   // local alt_divisor is atmo_end*(6.0/7.0).
@@ -232,6 +236,7 @@ function launch {
 
     if throttle = 0 {
       set throttle_was_zero to true.
+      print "DEBUG! THROTTLE HIT ZERO JUST NOW!!!".
     }
 
     if still_must_thrust {
@@ -373,6 +378,10 @@ function launch {
   // throttle then need to set it back again:
   function lock_throt_for_launch {
       lock throttle to throttle_func(coast_circular, min_throt, dest_spd, dest_pe, maintain_ap_mode).
+  }
+
+  function roll_vector {
+    return (choose ship:facing:topvector if ignore_roll else -ship:up:vector).
   }
 
   // Print some useful info in a block during this function:

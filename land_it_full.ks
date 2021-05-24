@@ -63,10 +63,7 @@ local prev_time is time:seconds.
 local deltaT is 2.
 local simSlice is 3.
 local landed is false.
-local slicePid is PIDLOOP(-0.2, -0.05, -0.05, 0, 5).
-set slicePid:SETPOINT to 0.5. 
 until landed {
-  slicePid:reset().
   local burn_now is false.
   local calced_isp is isp_calc(0). // WARNING: by pre-calcing, this is wrong for atmo situations where it changes.
   local mu is ship:body:mu.
@@ -104,7 +101,6 @@ until landed {
   }
 
   print "Now in suicide burn.".
-  local initial_twr is athrust / (ship:mass * mu / (ship:body:radius+ship:altitude)^2).
   lock throttle to 1.
   set cnt_before to ship:parts:length.
   wait until verticalspeed > -3.0 or status = "LANDED" or status = "SPLASHED".
@@ -155,39 +151,6 @@ if cnt_before = cnt_after {
 wait 10.
 SAS off.
 // =================== END OF MAIN - START OF FUNCTIONS =============================
-
-function descentSpeed {
-
-  local sweight is (ship:mass * ship:body:mu / (ship:body:radius+ship:altitude)^2).
-  // Bonus Thrust beyond what is needed to fight gravity:
-  local bonusThrust is ship:availablethrust - sweight.
-  // max amount we can deccelerate by:
-  local accel is bonusThrust / ship:mass.
-
-  // This formula is supposed to be:
-  //    "What speed could I have in which I would be able to stop
-  //    in the available distance?" (with a fudge factor of pretending
-  //    the engine is only 70% as strong as it really is:).
-  local rVal is sqrt( (max(0, 0.7*(alt_radar_or_sea() - 2*margin) ))*(2*accel) ).
-  local rVal is max(1.5, rVal).
-  print "Desired Spd: " + round(rVal,1) + " m/s   " at (5,terminal:height/2-3).
-  print "Current Spd: " + round(abs(verticalspeed),1) + " m/s   " at (5,terminal:height/2-2).
-  return rVal. // force it to be sane.
-}
-
-// Return retrograde or up vectors depending on
-// whether we're going so slowly that retrograde
-// might flip upside down soon:
-function retro_or_up {
-  if ship:verticalspeed > -0.2
-    return lookdirup(ship:up:vector, ship:facing:topVector).
-  else if ship:verticalspeed > -10
-    // Aim at a vector exactly halfway between true surface retro and straight up:
-    return lookdirup(ship:up:vector:normalized + srfretrograde:vector:normalized, ship:facing:topVector).
-  else
-    return lookdirup(srfretrograde:vector, ship:facing:topvector).
-}
-
 // Rotates a given steering direction to
 // compensate for a poorly mounted probe core.
 function rot_core {
@@ -224,7 +187,7 @@ function has_safe_distance {
   if use_fallback {
     local groundPos is ship:body:geopositionof(pos):position.
     local seaPos is ship:body:geopositionof(pos):altitudeposition(0).
-    set test_dist to (margin+abs(verticalspeed)*deltaT*5).
+    set test_dist to (margin+abs(verticalspeed)*deltaT*2).
     set dist_ground to vdot(pos-groundPos,ship:up:vector).
     set dist_sea to vdot(pos-seaPos,ship:up:vector).
     set dist to min(dist_ground, dist_sea).

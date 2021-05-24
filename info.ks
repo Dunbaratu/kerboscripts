@@ -4,7 +4,7 @@ print " ". print " ". print " ". print " ". print " ". print " ".
 parameter tgt.
 local did_fairings to false.
 until false or (terminal:input:haschar and terminal:input:getchar() = "c") {
-  if tgt:istype("Body") {
+  if tgt:istype("Orbitable") {
     set myNorm to -1 * VCRS(ship:velocity:orbit,body:position).
     set tNorm to -1 * VCRS(tgt:velocity:orbit,body:position-tgt:position).
     set inc to vang(myNorm,tNorm).

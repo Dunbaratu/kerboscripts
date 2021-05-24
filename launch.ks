@@ -57,7 +57,7 @@ if launch_gui() {
     bod_pe,
     ignitions,
     use_ag1,
-    ignore_roll).
+    set_roll).
 
   set steeringmanager:pitchts to old_pitch_ts.
   set steeringmanager:yawts to old_yaw_ts.
@@ -109,9 +109,11 @@ function launch_gui {
   local two_ignition_button is ignitions_radio_box:addradiobutton("Two", true).
 
   local roll_box is setting_ui:addhlayout().
-  local roll_box_label is roll_box:addlabel("Roll axis?").
+  local roll_box_label is roll_box:addlabel("Roll pref?").
   set roll_box_label:style:align to "RIGHT".
-  local roll_force_button is roll_box:addradiobutton("onto back", true).
+  local roll_180_button is roll_box:addradiobutton("back", true).
+  local roll_90_button is roll_box:addradiobutton("side", false).
+  local roll_0_button is roll_box:addradiobutton("top", false).
   local roll_ignore_button is roll_box:addradiobutton("whatever", false).
   
   local afterlaunch_box is setting_ui:addhlayout().
@@ -251,8 +253,10 @@ function launch_gui {
   wait until exit_val:istype("Boolean"). // will not return until a cancel or launch is clicked.
   if one_ignition_button:pressed { set ignitions to 1. }
   if two_ignition_button:pressed { set ignitions to 2. }
-  if roll_ignore_button:pressed {set ignore_roll to true. }
-  if roll_force_button:pressed {set ignore_roll to false. }
+  if roll_ignore_button:pressed {set set_roll to -999. }
+  if roll_180_button:pressed {set set_roll to 180. }
+  if roll_90_button:pressed {set set_roll to 90. }
+  if roll_0_button:pressed {set set_roll to 0. }
   set end_alt to end_alt_field:text:tonumber().
   set compass to compass_field:text:tonumber().
   set eta_apo to eta_apo_field:text:tonumber().

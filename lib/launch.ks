@@ -20,7 +20,7 @@ local target_eta_apo is 0.
 local vertoff_allow is CHOOSE 0.15 if body:atm:exists else 0.3.
 local payload_cut_pe is 0.
 local payload_cut_yet is false.
-local ignore_roll is false.
+local roll_angle is 180.
 
 function launch {
   parameter dest_compass. // not exactly right when not 90.
@@ -37,7 +37,7 @@ function launch {
   parameter bod_pe is -1.
   parameter ignitions is 2.
   parameter use_ag1 is false.
-  parameter roll_ign is false.
+  parameter set_roll is false.
 
   if second_dest_ap < 0 { set second_dest_ap to dest_pe. }
 
@@ -48,7 +48,7 @@ function launch {
   }
   set payload_cut_yet to false.
 
-  set ignore_roll to roll_ign.
+  set roll_angle to set_roll.
 
   local dest_sma is (body:radius*2 + dest_pe + second_dest_ap)/2.
   local dest_rad is ship:body:radius + dest_pe.
@@ -111,7 +111,7 @@ function launch {
 
   print "We are now moving.".
   local TWR_avail is AVAILABLETHRUST/(MASS*g).
-  set kick_speed to kick_speed / (1.2*TWR_avail).
+  set kick_speed to kick_speed / (1.5*TWR_avail).
   lock steering to lookdirup(heading(dest_compass, 89.9):forevector, roll_vector()).
   print "Waiting for speed over " + round(kick_speed,1) + " m/s to start kick.".
   until ship:velocity:surface:mag > kick_speed {
@@ -378,16 +378,24 @@ function launch {
   // throttle then need to set it back again:
   function lock_throt_for_launch {
       lock throttle to throttle_func(coast_circular, min_throt, dest_spd, dest_pe, maintain_ap_mode).
+      // RP-1's avionics throttle lockout rule locks out autopilot ignition when
+      // it should be only locking throttle variation.  This gets around it by using
+      // user throttle instead of autopilot throttle to igninte engines:
+      set ship:control:pilotmainthrottle to throttle.
   }
 
   function roll_vector {
-    return (choose ship:facing:topvector if ignore_roll else -ship:up:vector).
+    return 
+      choose up:vector if (roll_angle = 0) else
+        choose north:vector if (roll_angle = 90) else
+          choose -up:vector if (roll_angle = 0) else
+            facing:topvector. // dont-care.
   }
 
   // Print some useful info in a block during this function:
   function info_block {
     parameter coast_circular is false.
-    print "=================================================" at (0,0).
+    print " ================================================" at (0,0).
     print "| CURRENT | APO:          m  ETA:      s | Max   |" at (0,1).
     print "|         | PER:          m              | Voff  |" at (0,2).
     print "|         | SPD:          m/s            | (V,v) |" at (0,3).
@@ -395,7 +403,7 @@ function launch {
     print "| WANTED  | APO:          m  ETA:      s |       |" at (0,5).
     print "|         | PER:          m              |       |" at (0,6).
     print "|         | SPD:          m/s            |       |" at (0,7).
-    print "=================================================" at (0,8).
+    print " ================================================" at (0,8).
     print "      " at (17,1).
     print round(apoapsis) at (17,1).
     print "      " at (33,1).

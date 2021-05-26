@@ -111,7 +111,7 @@ function launch {
 
   print "We are now moving.".
   local TWR_avail is AVAILABLETHRUST/(MASS*g).
-  set kick_speed to kick_speed / (1.5*TWR_avail).
+  set kick_speed to kick_speed / (2*TWR_avail).
   lock steering to lookdirup(heading(dest_compass, 89.9):forevector, roll_vector()).
   print "Waiting for speed over " + round(kick_speed,1) + " m/s to start kick.".
   until ship:velocity:surface:mag > kick_speed {
@@ -220,13 +220,13 @@ function launch {
 
     // Stager logic - if no thrust, stage until there is:
     
-    if stager(engs, true) {
+    if stager(engs, false) {
       until ship:availablethrustat(0) > 0 {
         local orig_RCS is RCS.
         set ship:control:fore to 1. RCS on. // RCS push if needed.  If not needed then no biggie.
         local actives is all_active_engines().
         wait until ullage_status(actives).
-        stager(engs, true).
+        stager(engs, false).
         set ship:control:fore to 0.
         lock_throt_for_launch().
         set RCS to orig_RCS.

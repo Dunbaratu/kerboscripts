@@ -10,9 +10,9 @@ run once "/lib/ro".
 
 parameter do_gui is false.
 parameter margin is "FIND".
-parameter ullage is 0. // presumed time to wait for RCS ullage before engine start.
+parameter ullage is engine_ullage_secs(). // presumed time to wait for RCS ullage before engine start.
 parameter spool is 0. // presumed spool-up time of engines in seconds.
-parameter minThrot is 0. // min throttle in RO for the landing engine.
+parameter minThrot is engine_minthrot(). // min throttle in RO for the landing engine.
 parameter throt_predict_mult is 0.8. // predict landing as if throttle is only this much, for adjustable margin.
 parameter land_spot is 0. // set to a geoposition to make it try to aim to land there.
 parameter skycrane is false.
@@ -193,6 +193,9 @@ if not(do_gui) {
 }
 
 
+local throt_is_locked is false.
+local real_throt is 0.
+
 // Main program:
 until stop_burn or aborting {
 
@@ -237,7 +240,7 @@ until stop_burn or aborting {
     update_steer_offsets().
   }
 
-  local real_throt is throt_predict_mult + throt_pid:update(time:seconds, signbias(dist-margin,bias)). 
+  set real_throt to throt_predict_mult + throt_pid:update(time:seconds, signbias(dist-margin,bias)). 
   if dist-margin < 0 and not(burn_started) {
     set burn_started to true.
     throt_pid:reset(). // Erase the integral wind up from all the time it said "I don't need to throttle".
@@ -258,7 +261,11 @@ until stop_burn or aborting {
       // Adjust PID tuning as we go depending on TWR:
       pid_tune(eta_end).
 
-      lock throttle to (real_throt-minThrot)/(1-minThrot) + 0.001.
+      // Make sure it only executes the lock statement once, not each iteration:
+      if not(throt_is_locked) {
+        lock throttle to throt_formula(real_throt, minThrot).
+        set throt_is_locked to true.
+      }
       // From now on the engine stays on - so take these times out of the prediction:
       set spool to 0.  set ullage to 0.
     } else {
@@ -588,4 +595,31 @@ function geopos_later {
   return bod:geopositionlatlng(geo_in:lat, newlong).
 }
 
+function engine_ullage_secs {
+  local engs is LIST().
+  list engines in engs.
+  for eng in engs {
+    if eng:ignition and not(eng:flameout) and eng:ullage{
+      //assumes either 1 engine or at least uniform engines if a cluster.
+      return 4.
+    }
+  }
+  return 0.
+}
 
+function engine_minthrot {
+  local engs is LIST().
+  list engines in engs.
+  for eng in engs {
+    if eng:ignition and not(eng:flameout) {
+      //assumes either 1 engine or at least uniform engines if a cluster.
+      return eng:minthrottle. 
+    }
+  }
+  return 0.
+}
+
+function throt_formula {
+  parameter t_real, t_min.
+  return (t_real-t_min)/(1-t_min) + 0.001.
+}

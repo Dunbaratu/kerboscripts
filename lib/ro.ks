@@ -15,16 +15,8 @@ function ullage_status {
 
   local i is 0.
   until i >= engs:length {
-    // If this is a stock game, this module isn't there and ullage is always good:
-    if not(engs[i]:flameout) and engs[i]:hasmodule("ModuleEnginesRF") { 
-      local realFuel is engs[i]:getmodule("ModuleEnginesRF").
-      // Maybe some engines without Ullage problems don't say this and are okay always?
-      if realFuel:hasfield("propellant") {
-        local pStat is realFuel:getfield("propellant").
-        if pStat <> "Very Stable" and pStat <> "Nominal" {
-          return false.
-        }
-      }
+    if not(engs[i]:flameout) and engs[i]:fuelstability < 0.98 { 
+      return false.
     }
     set i to i + 1.
   }

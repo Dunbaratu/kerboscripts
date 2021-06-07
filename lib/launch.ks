@@ -9,6 +9,8 @@ function countdown {
   // launch conditions:
   sane_upward().
 
+  sane_avionics().
+
   from { local i is count. } until i = 0 step { set i to i - 1. } do {
     hudtext( "T minus " + i + "s" , 1, 1, 25, white, true).
     wait 1.
@@ -67,6 +69,7 @@ function launch {
   // }
 
   sane_upward().
+  sane_avionics().
 
   print "Staging until there is an active engine".
   lock throttle to 0.
@@ -222,6 +225,7 @@ function launch {
     
     if stager(engs, false) {
       until ship:availablethrustat(0) > 0 {
+        wait 0.2.
         local orig_RCS is RCS.
         set ship:control:fore to 1. RCS on. // RCS push if needed.  If not needed then no biggie.
         local actives is all_active_engines().
@@ -236,7 +240,6 @@ function launch {
 
     if throttle = 0 {
       set throttle_was_zero to true.
-      print "DEBUG! THROTTLE HIT ZERO JUST NOW!!!".
     }
 
     if still_must_thrust {
@@ -297,7 +300,15 @@ function launch {
     // ignitions:
     if throttle_was_zero and throttle > 0 {
       if kuniverse:timewarp:mode = "RAILS" set warp to 0. // come off rails to let the engine work:
-      set min_throt to 0.1. // perfectly circular isn't important, so still keep at least 10% to prevent boredom waiting for circularizing.
+      wait until kuniverse:timewarp:issettled. // let it finish de-warping.
+      if min_throt = 0 {
+        set ship:control:fore to 1. // ullage
+        wait 4.
+        set ship:control:fore to 0. // ullage
+        set min_throt to 0.1.
+      } else {
+        set min_throt to 0.1. // perfectly circular isn't important, so still keep at least 10% to prevent boredom waiting for circularizing.
+      }
     }
 
     if coast_circular {
@@ -306,7 +317,7 @@ function launch {
         set done to true.
       }
       else if periapsis > atmo_end and (ship:obt:trueanomaly < 90 or ship:obt:trueanomaly > 270) {
-        if apoapsis >= second_dest_ap {
+        if apoapsis >= second_dest_ap and kuniverse:timewarp:mode <> "RAILS" {
           hudtext("Ap high enough and now closer to Pe than Ap, so stopping.", 8, 2, 20, green, true).
           set done to true.
         }

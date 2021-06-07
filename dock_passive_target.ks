@@ -1,6 +1,6 @@
 run once "lib/dock".
 
-parameter roll_offset is 0.
+parameter roll_offset is 0, nerf is false.
 
 CLEARSCREEN.
 
@@ -42,7 +42,7 @@ hudtext_until_condition(
   8, 2, 20, yellow, true).
 
 print "DOCKING SCRIPT COMMENCING".
-do_dock(from_parts[0], tgt, grab_butt, roll_offset).
+do_dock(from_parts[0], tgt, grab_butt, roll_offset, nerf).
 
 
 // Display a hudtext and a sound if a condition is false, and keep checking the

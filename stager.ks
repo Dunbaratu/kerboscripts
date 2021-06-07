@@ -15,7 +15,9 @@ function stager {
   local new_engs is stg_eList.
   local unused_engs_exist is false.
   local reason is "".
-  
+
+  local ignited_before is get_ignited_set(stg_eList).
+
   // Maxthrust falsely reads zero sometimes when on rails, making
   // this check stage unnecesarily. Skip check if on rails:
   if (kuniverse:timewarp:mode = "RAILS" and kuniverse:timewarp:warp > 0) or
@@ -25,8 +27,8 @@ function stager {
 
   // simple dumb - check if nothing active,
   // then stage:
-  if ship:maxthrust = 0 {
-    set reason to "Staged because maxthrust = 0 when throttle=" + round(throttle,3).
+  if ship:availablethrust = 0 {
+    set reason to "Staged because availablethrust = 0 when throttle=" + round(throttle,3).
     if zeroThrot lock throttle to 0. wait 0.
     set want_stage to true.
   }
@@ -64,6 +66,19 @@ function stager {
     print reason.
     wait 0. // make decoupled engines go away before making list again.
     list engines in new_engs.
+    local new_igniteds is get_new_igniteds(new_engs, ignited_before).
+    if new_igniteds > 0 {
+      print "Stager just ignited " + new_igniteds + " new engine(s).".
+      print " |-- Waiting for new engine(s) to spool some thrust up.".
+      local startwait is time:seconds.
+      until availablethrust > 0 {
+        if (time:seconds > startwait + 6) {
+          print " |-- ERROR - after 6 seconds still no thrust at all.".
+          break.
+        }
+      }
+      print " `-- Done Waiting.".
+    }
     set did_stage to true.
   }
 
@@ -75,5 +90,31 @@ function stager {
     }
   }
   return did_stage.
+
+  // How many engines in the list are ignited that weren't in the old list?
+  function get_ignited_set {
+    parameter eng_list.
+
+    local eng_set is uniqueset().
+    for eng in eng_list {
+      if eng:ignition
+        eng_set:add(eng:UID).
+    }
+    return eng_set.
+  }
+
+  // How many engines in the new list are ignited now that weren't in the old list?
+  function get_new_igniteds {
+    parameter eng_list, old_ign_set.
+
+    local num is 0.
+    for eng in eng_list {
+      if eng:ignition and not(old_ign_set:contains(eng:UID)) {
+        set num to num + 1.
+      }
+    }
+    return num.
+  }
+  
 }.
 

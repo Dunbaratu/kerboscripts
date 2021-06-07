@@ -15,7 +15,7 @@ local grab_butt is false. // If true then "dock" with the butt of the part, not 
 // you've already done a LOCK STEERING to the right direction
 // to align to the target:
 function do_dock {
-  parameter from_part, to_part, grab_butt_in is false, roll_offset is 0.
+  parameter from_part, to_part, grab_butt_in is false, roll_offset is 0, nerf_rcs is false.
 
   local from_part_module is 0.
 
@@ -54,11 +54,13 @@ function do_dock {
   local old_rcs_value is RCS.
   RCS on.
 
-  local fore_control_pid         is PIDLoop( 4, 0.05, 0.5, -1, 1 ).
-  local top_want_speed_pid       is PIDLoop( 0.1, 0.0, 0.05, -2, 2 ).
-  local top_control_pid          is PIDLoop( 1, 0.0, 0.2, -1, 1 ).
-  local starboard_want_speed_pid is PIDLoop( 0.1, 0.0, 0.05, -2, 2 ).
-  local starboard_control_pid    is PIDLoop( 1, 0.0, 0.2, -1, 1 ).
+  local tuning is choose 0.3 if nerf_rcs else 1.
+
+  local fore_control_pid         is PIDLoop( 4 / tuning, 0.05 / tuning, 0.5 / tuning, -1, 1 ).
+  local top_want_speed_pid       is PIDLoop( 0.1 * tuning, 0.0 * tuning, 0.05 * tuning, -2, 2 ).
+  local top_control_pid          is PIDLoop( 1 / tuning, 0.0 / tuning, 0.2 * tuning, -1, 1 ).
+  local starboard_want_speed_pid is PIDLoop( 0.1 * tuning, 0.0 * tuning, 0.05 * tuning, -2, 2 ).
+  local starboard_control_pid    is PIDLoop( 1 / tuning, 0.0 / tuning, 0.2 / tuning, -1, 1 ).
 
   // These track the total accumulation of thrusting that has failed to
   // happen because the RCS nullzone suppressed it.  When they accumulate

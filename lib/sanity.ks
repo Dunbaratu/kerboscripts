@@ -38,3 +38,21 @@ function sane_upward {
     wait 4.
   }
 }
+
+function sane_avionics {
+  local proc_avs is ship:modulesnamed("ModuleProceduralAvionics").
+  if proc_avs:length = 0
+    return.
+  local av_sum is 0.
+  for av in proc_avs {
+    if av:hasfield("controllable") {
+      set av_sum to av_sum + av:getfield("controllable").
+    }
+  }
+  if av_sum < ship:mass {
+    hudtext( "SAINITY CHECK FAIL! Avioncs " + av_sum + "t when " + ceiling(ship:mass) + "t needed", 2, 1, 25, white, true).
+    getvoice(1):play(list(slidenote(400,600,0.5),slidenote(400,600,0.5))).
+    print "PLEASE PRESS CONTROL_C and break this program.".
+    wait 999999999999.
+  }
+}

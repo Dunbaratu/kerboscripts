@@ -1,3 +1,8 @@
+parameter
+  comp, // compass to initially aim at
+  pit, // pitch to imitially aim at
+  sec. // seconds to hold that before following srfprograde
+
 set launchsite to LATLNG(ship:latitude, ship:longitude).
 set first_eng to ship:partstagged("engine 1")[0].
 clearscreen.
@@ -26,13 +31,18 @@ until twr > 1.1 {
 print "Declamping.".
 stage.
 wait 1.
+lock steering to heading(comp,pit).
+wait sec.
+print "just following prograde.".
+lock steering to srfprograde.
 print "Waiting for liquid stage to end.".
 wait until maxthrust = 0.
 print "Waiting for top of trajectory.".
 wait until verticalspeed < 0.
+unlock steering.
 print "Decoupling from booster.".
 stage.
 print "Waiting until safe for opening chutes.".
-wait until alt:radar < 2_000 and verticalspeed < 250 .
+wait until alt:radar < 3_000 and verticalspeed < 300 .
 stage.
 print "Script over.".

@@ -246,7 +246,7 @@ function init_bank_pid {
   return PIDLOOP(3, 0.00, 5, -45, 45).
 }
 function init_wheel_pid {
-  return PIDLOOP(0.005, 0.002, 0.005, -1, 1).
+  return PIDLOOP(0.003, 0.0001, 0.001, -1, 1).
 }
 function init_throt_pid {
   return PIDLOOP(0.02, 0.002, 0.05, -0.5, 0.5).
@@ -535,7 +535,8 @@ if user_quit {
   set ship:control:pilotmainthrottle to 0. // TODO - look for reverse throttle availability?
   // keep straight down the runway while slowing down, using wheels,
   // not rudder:
-  set rollPID:Kp to 0.05.  set rollPID:Ki to 0.001.  set rollPID:Kd to 0.02. // temp. on ground.
+  set rollPID:Kp to 0.1.  set rollPID:Ki to 0.003.  set rollPID:Kd to 0.03. // temp. on ground.
+  lock steering to heading(wantCompass,0).
   until (status="LANDED" or status="SPLASHED") and groundspeed < 2 {
     local aOff is angle_off(wantCompass,compass_for(ship,2)).
     // aOff needs to be negative because wheelsteer is backward.
@@ -543,6 +544,7 @@ if user_quit {
     set ship:control:roll to rollPID:Update(time:seconds, roll_for(ship) - 0 ).
     wait 0.
   }
+  unlock steering.
   unlock steering.
   center_control().
   SAS OFF.

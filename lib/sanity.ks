@@ -40,13 +40,18 @@ function sane_upward {
 }
 
 function sane_avionics {
-  local proc_avs is ship:modulesnamed("ModuleProceduralAvionics").
-  if proc_avs:length = 0
-    return.
+  local avionics is ship:modulesnamed("ModuleProceduralAvionics").
+  for av in ship:modulesnamed("ModuleAvionics") {
+    avionics:add(av).
+  }
   local av_sum is 0.
-  for av in proc_avs {
-    if av:hasfield("controllable") {
-      set av_sum to av_sum + av:getfield("controllable").
+  if avionics:length > 0
+  {
+    for av in avionics {
+      // Both procedural and fixed avionics modules have this field:
+      if av:hasfield("controllable") {
+        set av_sum to av_sum + av:getfield("controllable").
+      }
     }
   }
   if av_sum < ship:mass {

@@ -57,7 +57,14 @@ function sane_avionics {
   if av_sum < ship:mass {
     hudtext( "SAINITY CHECK FAIL! Avioncs " + av_sum + "t when " + ceiling(ship:mass) + "t needed", 2, 1, 25, white, true).
     getvoice(1):play(list(slidenote(400,600,0.5),slidenote(400,600,0.5))).
-    print "PLEASE PRESS CONTROL_C and break this program.".
-    wait 999999999999.
+    print "Continue anyway? y/n?".
+    local ch is "".
+    until ch = "Y" or ch = "y" or ch = "n" or ch = "N" {
+      set ch to terminal:input:getchar().
+    }
+    if ch <> "Y" and ch <> "y" {
+      print "crashing script deliberately.".
+      print 1/0.
+    }
   }
 }

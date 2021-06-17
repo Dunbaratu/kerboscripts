@@ -217,6 +217,7 @@ function launch {
   local msg1_happened is false.
   local msg2_happened is false.
   local msg3_happened is false.
+  local msg4_cooldownstamp is 0.
   lock_throt_for_launch().
 
   until done {
@@ -245,22 +246,29 @@ function launch {
     if still_must_thrust {
       if apoapsis > second_dest_ap or apoapsis < 0 {
         if altitude > atmo_end {
-          set maintain_ap_mode to false.
-          set still_must_thrust to false.
-          if allow_zero {
-            set coast_circular to true.
-            if not(throttle_was_zero) {
-              set min_throt to 0.
+          if allow_zero and engines_last_ignition() {
+            if time:seconds > msg4_cooldownstamp {
+              hudtext("Not coasting to AP on an engine that can't be re-ignited.",5,2,20, yellow, true).
+              set msg4_cooldownstamp to time:seconds + 10.
+            }
+          } else {
+            set maintain_ap_mode to false.
+            set still_must_thrust to false.
+            if allow_zero {
+              set coast_circular to true.
+              if not(throttle_was_zero) {
+                set min_throt to 0.
 
-              do_fairings().
+                do_fairings().
 
-              // Wait 10s, but allow that wait to prematurely stop if near ap:
-              local wait_start is time:seconds.
-              wait until time:seconds > wait_start + 10 or eta:apoapsis < 15.
-              
-              print "Start mild time warp coast to Ap.".
-              set kuniverse:timewarp:mode to "rails".
-              set warp to 2.
+                // Wait 10s, but allow that wait to prematurely stop if near ap:
+                local wait_start is time:seconds.
+                wait until time:seconds > wait_start + 10 or eta:apoapsis < 15.
+                
+                print "Start mild time warp coast to Ap.".
+                set kuniverse:timewarp:mode to "rails".
+                set kuniverse:timewarp:rate to 10. // whatever rate gives you 10x warp.
+              }
             }
           } 
         } else {
@@ -501,7 +509,12 @@ function wanted_eta_apo {
     dest_spd is 2280.
 
   if coast_circular {
-    return 10.
+    // IF we assume an upper stage typically has an accelleration of about 0.5 g's,
+    // this is how much time is half the time to make orbital speed:
+    local r is altitude + body:radius.
+    local g is body:mu / (r*r).
+    local dV is (dest_spd - velocity:orbit:mag).
+    return 0.25 * dV / g.
   } else {
     local formula_eta is target_eta_apo * ship:velocity:surface:mag / target_eta_spd. 
     local min_wanted is target_eta_apo/4.

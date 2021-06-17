@@ -110,3 +110,18 @@ function pop_steering_mgr_config {
   set steeringmanager:RollPid:ki to prev_config[10].
   set steeringmanager:RollPid:kd to prev_config[11].
 }
+
+// Return true if any of the currently active engines are on their last ignition
+// such that zeroing the throttle means they won't ever be usable again:
+function engines_last_ignition {
+  local engs is all_active_engines().
+
+  for eng in engs {
+    if not(eng:flameout) {
+      if eng:ignitions = 0 {
+        return true.
+      }
+    }
+  }
+  return false.
+}

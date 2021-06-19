@@ -89,8 +89,15 @@ function launch {
   local twr_measured is 0.
   until twr_measured > TWR_for_launch {
     set twr_measured to (solid_thrust + current_thrust(actives)) / (ship:mass * g).
-    print "TWR " + round(twr_measured,2). // maybe eraseme and make into a readout?
+    print "TWR " + round(twr_measured,2) + ". Type G to Go Anyway, A to Abort.".
     wait 0.
+    if terminal:input:haschar() { 
+      local ch is terminal:input:getchar().
+      if ch = "g" break.
+      if ch = "a" {
+        lock throttle to 0. set ship:control:pilotmainthrottle to 0. print "done. " + (1/0).
+      }
+    }
   }
   print "Now TWR is > " + TWR_for_launch.
 

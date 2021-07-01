@@ -499,11 +499,16 @@ function update_steer_offsets {
   // Conditions to make it stop deflecting:
   // - very close to touchdown, or
   // - bypassed the landing and it's behind us.
-  if (eta_end < 10 and xyz_off:mag > 25) or (vdot(target_spot, ship:facing:vector) > 0) {
+  local reason is "".
+  if (eta_end < 10 and xyz_off:mag > 25)
+    set reason to "near end and site is " + xyz_off:mag + "m off".
+  else if (vdot(target_spot, ship:facing:vector) > 0)
+    set reason to "overshot the target".
+  if reason <> ""  {
     set pitch_off to 0.
     set yaw_off to 0.
     set stop_deflecting to true.
-    print "Deflecting disabled - just landing straight.".
+    print "Deflecting disabled because " +reason+" - just landing straight.".
     return.
   }
 

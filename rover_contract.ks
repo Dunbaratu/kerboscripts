@@ -18,7 +18,7 @@ if homeconnection:isconnected {
 
 runoncepath("lib/science", false, false, filter_tag).
 
-f wp_inputted ="None" {
+if wp_inputted ="None" {
   err_sound().
   PRINT "THIS PROGRAM NEEDS 1 PARAMETER:".
   PRINT " - The name (string) of a waypoint or waypoint cluser to visit.".
@@ -29,14 +29,9 @@ f wp_inputted ="None" {
   } else {
     wp_input_names:add(wp_inputted).
   }
-  local wp_list is list().
-  for wp in allwaypoints() {
-    for name in wp_input_names {
-      if wp:name:startswith(name) {
-        wp_list:add(wp).
-      }
-    }
-  }
+  local visited_wp_names is list().
+  local wp_list is generate_wp_list(wp_input_names, visited_wp_names).
+
   if wp_list:length = 0 {
     err_sound().
     PRINT "COULD NOT FIND ANY WAYPOINTS WITH THE NAME(S) GIVEN.".
@@ -68,11 +63,30 @@ f wp_inputted ="None" {
         }
         wait 0.
       }
+      wp_visited_list:add(which_point:name).
       wp_list:remove(which_point).
+      set wp_list to generate_wp_list(wp_input_names, visited_wp_names).
     }
   }
 }
 
+// Remake List after each contract in case the contract
+// is one of those that adds new waypoints one at a time
+// only when you complete the previous waypoint:
+function generate_wp_list {
+  parameter prefix_names, visited.
+
+  local the_list is list().
+  for wp in allwaypoints() {
+    for prefix in prefix_names {
+      if wp:name:startswith(prefix) {
+        if not(visited:contains(wp:name))
+          the_list:add(wp).
+      }
+    }
+  }
+  return the_list.
+}
 
 function err_sound {
   set getvoice(5):wave to "sawtooth".

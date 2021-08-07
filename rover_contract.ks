@@ -63,7 +63,7 @@ if wp_inputted ="None" {
         }
         wait 0.
       }
-      wp_visited_list:add(which_point:name).
+      visited_wp_names:add(wp_list[which_point]:name).
       wp_list:remove(which_point).
       set wp_list to generate_wp_list(wp_input_names, visited_wp_names).
     }

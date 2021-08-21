@@ -386,7 +386,7 @@ until user_quit or
     local cur_aim_spd is nav_list[cur_aim_i]["SPD"].
     local cur_aim_radius is nav_list[cur_aim_i]["RADIUS"].
     // transform AGL to ASL:
-    if cur_aim_AGL {
+    if cur_aim_AGL and defined(cur_aim_geo) {
       set cur_aim_alt to asl_from_agl(cur_aim_geo, cur_aim_alt).
       set nav_list[cur_aim_i]["AGL"] to False.
       set nav_list[cur_aim_i]["ALT"] to cur_aim_alt.

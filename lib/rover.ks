@@ -595,12 +595,12 @@ function collision_danger {
 
     
     // We now know left/right distances and left/right slopes - make the decision based on that:
-    if g_left_slope < 1.7 { // if less than about 60 degree slope
+    if g_left_slope < 0.6 { // if less than 30-ish degree slope
       // terrain hit not obstacle hit so pretend it's really far away:
       set dist_L0 to 500.
       set dist_L1 to 500.
     }
-    if g_right_slope < 1.7 { // if less than about 60 degree slope
+    if g_right_slope < 0.6 { // if less than 30-ish degree slope
       // terrain hit not obstacle hit so pretend it's really far away:
       set dist_R0 to 500.
       set dist_R1 to 500.

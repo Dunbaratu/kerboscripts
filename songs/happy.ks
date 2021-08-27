@@ -3,85 +3,51 @@ set song_happy to  LEXICON(
     local vv is getvoice(0).
     set vv:attack to 0.02.
     set vv:decay to 0.01.
-    set vv:sustain to 0.8.
-    set vv:release to 0.02.
-    set vv:wave to "triangle".
+    set vv:sustain to 1.
+    set vv:release to 0.5.
+    set vv:wave to "sawtooth".
+    set vv:volume to 0.5.
     set vv:tempo to 1.5.
     set vv to getvoice(1).
     set vv:attack to 0.05.
     set vv:decay to 0.0.
     set vv:sustain to 1.0.
     set vv:release to 0.2.
-    set vv:wave to "sine".
+    set vv:wave to "pulse".
     set vv:tempo to 1.5.
     },
   "voices", LIST(0, 1),
   0, LIST( // rhythm line
-    SLIDENOTE("C2", "A1", 0.2),
-    SLIDENOTE("E3", "C3", 0.2),
-    SLIDENOTE("C2", "A1", 0.2),
-    SLIDENOTE("E3", "C3", 0.2),
-    SLIDENOTE("C2", "A1", 0.2),
-    NOTE("E3", 0.1),
-    NOTE("C2", 0.1),
-    NOTE("E3", 0.1),
-    NOTE("C2", 0.1),
-    NOTE("E3", 0.1),
-    NOTE("C2", 0.1),
-    NOTE("E3", 0.1),
-    NOTE("C2", 0.1),
-    NOTE("E3", 0.1),
-    NOTE("C2", 0.1),
-    SLIDENOTE("E3", "C3", 0.2),
-    SLIDENOTE("C2", "A1", 0.2),
-    SLIDENOTE("E3", "C3", 0.2),
-    SLIDENOTE("C2", "A1", 0.2),
-    SLIDENOTE("E3", "C3", 0.2),
-    NOTE("E3", 0.1),
-    NOTE("C2", 0.1),
-    NOTE("E3", 0.1),
-    NOTE("C2", 0.1),
-    NOTE("E3", 0.1),
-    NOTE("C2", 0.1),
-    NOTE("E3", 0.1),
-    NOTE("C2", 0.1),
-    NOTE("E3", 0.05),
-    NOTE("E3", 0.05),
-    NOTE("E3", 0.05),
-    NOTE("E3", 0.05),
-    NOTE("E3", 0.05),
-    NOTE("C2", 0.05),
-    NOTE("C2", 0.2)
+    slidenote("E4", "C4", 0.25),
+    slidenote("C4", "E4", 0.50),
+    slidenote("F4", "D4", 0.25),
+    slidenote("D4", "F4", 0.50),
+    slidenote("E4", "C4", 0.25),
+    slidenote("C4", "E4", 0.50),
+    slidenote("F4", "D4", 0.25),
+    slidenote("D4", "F4", 0.50)
     ),
   1, LIST( // melody line
-    NOTE("D4", 0.2),
-    NOTE("E4", 0.2),
-    NOTE("F4", 0.2),
-    NOTE("E4", 0.4),
-    NOTE("R", 0.2),
-    SLIDENOTE("E5", "F5", 0.1),
-    SLIDENOTE("F5", "G5", 0.1),
-    SLIDENOTE("F5", "G5", 0.1),
-    NOTE("E5", 0.1),
-    NOTE("C5", 0.1),
-    NOTE("E5", 0.1),
-    SLIDENOTE("C5", "G5", 0.2),
-
-    SLIDENOTE("E5", "C5", 0.2),
-    SLIDENOTE("C5", "A6", 0.2),
-    SLIDENOTE("E5", "C5", 0.2),
-    SLIDENOTE("C5", "A6", 0.2),
-    SLIDENOTE("E5", "C5", 0.2),
-    NOTE("E5", 0.1),
-    NOTE("F5", 0.1),
-    SLIDENOTE("F5", "C5", 0.3),
-
-    NOTE("D6", 0.1),
-    NOTE("E6", 0.1),
-    NOTE("D6", 0.1),
-    NOTE("E6", 0.1),
-    NOTE("D6", 0.1),
-    NOTE("C6", 0.1),
-    NOTE("D6", 0.5, 0.35)
+    note("C3", 0.125),
+    note("D3", 0.125),
+    note("R",  0.125),
+    note("F3", 0.125),
+    note("G3", 0.125),
+    note("F3", 0.125),
+    note("G3", 0.25),
+    note("F#3", 0.25),
+    note("D3", 0.25),
+    note("E3", 0.25),
+    note("C3", 0.25),
+    note("C3", 0.125),
+    note("D3", 0.125),
+    note("R", 0.25),
+    note("F3", 0.125),
+    note("G3", 0.125),
+    note("D3", 0.125),
+    note("G3", 0.125),
+    note("C4", 0.125),
+    note("D4", 0.125),
+    note("F4", 0.5)
   )
 ).

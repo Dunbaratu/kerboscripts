@@ -284,7 +284,7 @@ until stop_burn or aborting {
   // A second stop condition is if we are about to start going up when we were
   // going down a moment before: (stop at a negative speed just shy of 0, so the
   // steering doesn't try to follow srfretorgrade as it swings quickly around.)
-  if not(started_descending) and verticalspeed < -0.25 {
+  if not(started_descending) and verticalspeed < -1.5 {
     set started_descending to true.
   }
   if started_descending and verticalspeed > -0.25  {

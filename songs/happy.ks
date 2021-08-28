@@ -6,7 +6,7 @@ set song_happy to  LEXICON(
     set vv:sustain to 1.
     set vv:release to 0.5.
     set vv:wave to "sawtooth".
-    set vv:volume to 0.5.
+    set vv:volume to 0.3.
     set vv:tempo to 1.5.
     set vv to getvoice(1).
     set vv:attack to 0.05.
@@ -18,14 +18,10 @@ set song_happy to  LEXICON(
     },
   "voices", LIST(0, 1),
   0, LIST( // rhythm line
-    slidenote("E4", "C4", 0.25),
-    slidenote("C4", "E4", 0.50),
-    slidenote("F4", "D4", 0.25),
-    slidenote("D4", "F4", 0.50),
-    slidenote("E4", "C4", 0.25),
-    slidenote("C4", "E4", 0.50),
-    slidenote("F4", "D4", 0.25),
-    slidenote("D4", "F4", 0.50)
+    slidenote("E1", "C3", 1),
+    slidenote("E1", "C3", 1),
+    slidenote("E1", "C3", 1),
+    slidenote("E1", "C3", 1)
     ),
   1, LIST( // melody line
     note("C3", 0.125),

@@ -110,6 +110,7 @@ function drive_to {
   set leveler_lasers to get_terrain_lasers(downward_lasers_name).
   set has_leveler_lasers to leveler_lasers:length > 0.
   all_lasers_toggle(true).
+  HUDTEXT("eraseme: all_lasers_toggle(true) line A", 3,2,20,yellow,true).
   
   // Only use the yaw disabler feature when there are leveler lazers AND
   // this is NOT segway mode.  (In segway mode we want to torque the
@@ -136,16 +137,19 @@ function drive_to {
   local prevForSpeed is 0.
 
   until geo_dist(geopos) < proximity_needed {
+    wait 0.
     tune_pid(steer_pid).
 
     local battery_ratio is ship:electriccharge / battery_full.
     if battery_ratio < 0.1 {
       set battery_panic to true.
       all_lasers_toggle(false).
+      HUDTEXT("eraseme: all_lasers_toggle(false) line B", 3,2,20,yellow,true).
     }
     if battery_ratio < 0.05 {
       set battery_panic to true.
       all_lasers_toggle(false).
+      HUDTEXT("eraseme: all_lasers_toggle(false) line C", 3,2,20,yellow,true).
       HUDTEXT("ALL CONTROLS OFF FOR HIBERNATION!", 3,2,20,yellow,false).
       brakes on.
       getvoice(1):play(list(note(200,0.3),note(150,0.3),note(130,0.4))).
@@ -270,6 +274,7 @@ function drive_to {
       set hill_sideways_mode to false.
       set hill_sideways_sign to 0.
       all_lasers_toggle(true).
+      HUDTEXT("eraseme: all_lasers_toggle(true) line D", 3,2,20,yellow,true).
       steeringmanager:resetpids().
       set reason to "eraseme - reason B".
     }
@@ -415,9 +420,9 @@ function drive_to {
         set wheelie_angle to wheelie_angle - 1.
       }
     }
-    wait 0.001.
   }
   all_lasers_toggle(false).
+  HUDTEXT("eraseme: all_lasers_toggle(false) line E", 3,2,20,yellow,true).
   set ship:control:neutralize to true.
   brakes on.
   enable_yaw().
@@ -435,6 +440,7 @@ function lasers_toggle {
   if not lasers:ISTYPE("LIST") 
     set lasers to LIST(lasers).
 
+  HUDTEXT("Toggling "+lasers:length+" Lasers to "+(choose "ON " if newState else "OFF "), 3,8,20,yellow,true). // eraseme
   for las in lasers {
     las:SETFIELD("Enabled", newState).
   }
@@ -442,6 +448,8 @@ function lasers_toggle {
 
 function all_lasers_toggle {
   parameter newState.
+
+  wait 0. // force this to occur in one tick:
 
   if has_left_lasers {
     lasers_toggle( left_lasers, newState ).

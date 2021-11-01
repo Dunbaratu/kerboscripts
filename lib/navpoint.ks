@@ -433,8 +433,8 @@ function gui_edit_course {
     local rway_name is r_name_cooked.
     local reverse is (j = 1).
     local spd is g_land_spd:text:tonumber(70).
-    local alt is g_land_alt:text:tonumber(10).
-    insert_into_course(make_landing_points(rway_name, reverse, spd, alt)).
+    local alti is g_land_alt:text:tonumber(10).
+    insert_into_course(make_landing_points(rway_name, reverse, spd, alti)).
     set done to true.
   }
 
@@ -522,7 +522,7 @@ function gui_edit_course {
       ).
     local hdg is g_landlatlng_hdg:text:tonumber(0).
     local spd is g_landlatlng_spd:text:tonumber(0).
-    local alt is g_landlatlng_alt:text:tonumber(10).
+    local alti is g_landlatlng_alt:text:tonumber(10).
     
     local runway_length is 2000.
     local meters_per_deg is ship:body:radius*2*constant():pi / 360.
@@ -545,7 +545,7 @@ function gui_edit_course {
         "AGL", True,
         "SPD", 0 )
     ).
-    insert_into_course(make_landing_points("ad-hoc-land", false, spd, alt)).
+    insert_into_course(make_landing_points("ad-hoc-land", false, spd, alti)).
   }
 
   function latlng_waypoint_picked {

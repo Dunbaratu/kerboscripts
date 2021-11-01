@@ -59,13 +59,13 @@ function MenuGetWidth {
   parameter menu.
 
   local width is 3.
-  local max is min(menu["maxwidth"],(terminal:width - menu["topx"] - 1)).
+  local maxw is min(menu["maxwidth"],(terminal:width - menu["topx"] - 1)).
 
   // It's possible the title is the widest thing so start with its width:
-  set width to min(max(3+menu["title"]:length, width), max).
+  set width to min(max(3+menu["title"]:length, width), maxw).
 
   for item in menu["contents"] {
-    set width to min(max(3+item[0]:length, width), max).
+    set width to min(max(3+item[0]:length, width), maxw).
   }
 
   return width.
@@ -75,8 +75,8 @@ function MenuGetHeight {
   parameter menu.
 
   local height is 2.
-  local max is min(menu["maxheight"],(terminal:height - menu["topY"] - 1)).
-  set height to min(2+menu["contents"]:length, max).
+  local maxw is min(menu["maxheight"],(terminal:height - menu["topY"] - 1)).
+  set height to min(2+menu["contents"]:length, maxw).
 
   return height.
 }

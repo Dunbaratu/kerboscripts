@@ -518,8 +518,8 @@ function wanted_eta_apo {
   if coast_circular {
     // IF we assume an upper stage typically has an accelleration of about 0.5 g's,
     // this is how much time is half the time to make orbital speed:
-    local r is altitude + body:radius.
-    local g is body:mu / (r*r).
+    local rad is altitude + body:radius.
+    local g is body:mu / (rad*rad).
     local dV is (dest_spd - velocity:orbit:mag).
     return 0.25 * dV / g.
   } else {

@@ -134,9 +134,9 @@ function orbit_altitude_at_ta {
 
   local sma is orbit_in:semimajoraxis.
   local ecc is orbit_in:eccentricity.
-  local r is sma*(1-ecc^2)/(1+ecc*cos(true_anom)).
+  local rad is sma*(1-ecc^2)/(1+ecc*cos(true_anom)).
 
-  return r - orbit_in:body:radius.
+  return rad - orbit_in:body:radius.
 }
 
 // How far ahead is obt1's true_anomaly measures from obt2's, in degrees?

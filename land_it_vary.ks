@@ -502,7 +502,7 @@ function update_steer_offsets {
   local reason is "".
   if (eta_end < 10 and xyz_off:mag > 25)
     set reason to "near end and site is " + xyz_off:mag + "m off".
-  else if (vdot(target_spot, ship:facing:vector) > 0)
+  else if (vdot(target_spot, ship:velocity:surface) < 0)
     set reason to "overshot the target".
   if reason <> ""  {
     set pitch_off to 0.

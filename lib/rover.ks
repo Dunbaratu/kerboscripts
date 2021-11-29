@@ -61,7 +61,7 @@ function drive_to {
   local orig_ship_parts is ship:parts:length.
 
   local steer_pid is PIDLOOP(0.001, 0.00002, 0.003, -1, 1).
-  local throttle_pid is PIDLOOP(0.5, 0.01, 0.2, -1, 1).
+  local throttle_pid is PIDLOOP(0.5, 0.01, 0.1, -1, 1).
   
   local steering_off_timestamp is 0.
   local steering_backup_timestamp is 0.
@@ -808,7 +808,7 @@ function wanted_speed {
   // Amount to suppress speed to when facing wrong way varies by gravity because it's an anti-flipover measure.
   local grav is ship:body:mu / ship:body:radius^2. 
 
-  set return_val to min( 0.5 + max(0, spot:distance - prox) / 10, cruise_spd).
+  set return_val to min( 1 + max(0, spot:distance - prox) / 10, cruise_spd).
   set return_val to min( return_val*abs((grav*6)/bear), return_val).
 
   // If there is an obstacle detector laser, use it.

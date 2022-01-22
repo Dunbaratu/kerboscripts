@@ -4,7 +4,7 @@ parameter
   sec. // seconds to hold that before following srfprograde
 
 set launchsite to LATLNG(ship:latitude, ship:longitude).
-set first_eng to ship:partstagged("engine 1")[0].
+set first_engs to ship:partstagged("engine 1").
 clearscreen.
 print "|".
 print "|".
@@ -24,7 +24,11 @@ stage.
 print "Waiting for TWR > 1.1".
 local twr is 0.
 until twr > 1.1 {
-  set twr to first_eng:thrust / (mass*(body:mu/(body:radius+altitude)^2)).
+  set totThr to 0.
+  for eng in first_engs {
+    set totThr to totThr + eng:thrust.
+  } 
+  set twr to totThr / (mass*(body:mu/(body:radius+altitude)^2)).
   print "TWR = " + round(twr,2).
   wait 0.1.
 }
@@ -48,7 +52,7 @@ print "Waiting for liquid stage to end.".
 wait until maxthrust = 0.
 print "Decoupling from booster.".
 stage.
-wait 1.
+wait 2.
 stage.
 wait until verticalspeed < 0.
 brakes on.

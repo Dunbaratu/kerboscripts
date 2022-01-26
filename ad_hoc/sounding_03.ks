@@ -4,7 +4,15 @@ parameter
   sec. // seconds to hold that before following srfprograde
 
 set launchsite to LATLNG(ship:latitude, ship:longitude).
-set first_engs to ship:partstagged("engine 1").
+until false {
+  set first_engs to ship:partstagged("engine 1").
+  if first_engs:length > 0
+    break.
+  print "WARNING - NO ENGINES FOUND TAGGED 'engine 1'!".
+  print "TYPE ANY KEY WHEN YOU HAVE CORRECTED THIS!".
+  wait until terminal:input:haschar().
+  terminal:input:getchar().
+}
 clearscreen.
 print "|".
 print "|".
@@ -52,7 +60,7 @@ print "Waiting for liquid stage to end.".
 wait until maxthrust = 0.
 print "Decoupling from booster.".
 stage.
-wait 2.
+wait 1.
 stage.
 wait until verticalspeed < 0.
 brakes on.

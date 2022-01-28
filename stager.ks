@@ -41,7 +41,7 @@ function stager {
   }
   for stg_eng in new_engs { 
     if stg_eng:ship = ship { // skip parts in the list no longer attached, if there are any
-      if stg_eng:name <> "sepMotor1" and stg_eng:tag <> "flameout no stage" {
+      if not(probably_sepratron(stg_eng)) {
         if (stg_eng:ignition and stg_eng:flameout) {
           set reason to "Staged because engine '" + stg_eng:title + "' flamed out when throttle=" + throttle.
           wait 0.
@@ -115,6 +115,29 @@ function stager {
     }
     return num.
   }
+
+  // Is this flamed-out engine likely just a tiny sepratron and is
+  // not actualy a booster in need of decoupling?  This check
+  // had to be more complex to handle RP-1 since RP-1 has many
+  // little parts that can serve as sepratrons:
+  function probably_sepratron {
+    parameter eng.
+    if eng:name = "sepMotor1" or eng:tag = "flameout no stage" 
+      return true.
+    // If its direct parent is a decoupler, it has to be a decouple-able
+    // booster.  It can't be a sepratron:
+    if eng:hasparent and eng:parent:istype("decoupler")
+      return false.
+
+    // The above checks should get a trustable answer in most cases.
+    // From here down it gets a bit guess-y and heuristic:
+
+    // If it's a small enough size, it's probably(?) a sepratron:
+    if eng:mass < 0.1
+      return true.
+
+    return false.
+  }
   
-}.
+}
 

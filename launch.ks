@@ -40,7 +40,7 @@ if launch_gui() {
   local old_roll_ts is steeringmanager:rollts.
   set steeringmanager:pitchts to steering_ts.
   set steeringmanager:yawts to steering_ts.
-  set steeringmanager:rollts to steering_ts.
+  set steeringmanager:rollts to steering_ts*2.
 
   launch(
     compass,

@@ -42,7 +42,7 @@ function stager {
   for stg_eng in new_engs { 
     if stg_eng:ship = ship { // skip parts in the list no longer attached, if there are any
       if not(probably_sepratron(stg_eng)) {
-        if (stg_eng:ignition and stg_eng:flameout) {
+        if (stg_eng:ignition and is_flameout(stg_eng)) {
           set reason to "Staged because engine '" + stg_eng:title + "' flamed out when throttle=" + throttle.
           wait 0.
           // If NO engines, kill throttle while transitioning.
@@ -132,10 +132,20 @@ function stager {
     // The above checks should get a trustable answer in most cases.
     // From here down it gets a bit guess-y and heuristic:
 
-    // If it's a small enough size, it's probably(?) a sepratron:
-    if eng:mass < 0.1
+    // If it's small AND disobeys the throttle, it's probably(?) a sepratron:
+    if eng:throttlelock and eng:mass < 0.2
       return true.
+    return false.
+  }
 
+  // This check now has to be more complex because RP-1 can make
+  // engines flameout just shy of using up all the fuel, which means
+  // they're flamed out even though the :flameout suffix won't report
+  // "true". (it appears as if the suffix is set based on fuel left.
+  function is_flameout {
+    parameter eng.
+    if eng:flameout or (eng:ignition and throttle > 0 and eng:thrust = 0)
+      return true.
     return false.
   }
   

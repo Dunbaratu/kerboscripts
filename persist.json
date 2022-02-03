@@ -7,6 +7,14 @@
         {
             "value": 2,
             "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
+        },
+        {
+            "value": "ullage_time",
+            "$type": "kOS.Safe.Encapsulation.StringValue"
+        },
+        {
+            "value": 0,
+            "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
         }
     ],
     "$type": "kOS.Safe.Encapsulation.Lexicon"

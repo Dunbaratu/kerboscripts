@@ -221,6 +221,7 @@ function launch {
   local allow_zero is ignitions > 1. // allow zeroing throttle only if we area allowing multiple ignitions to orbit.
   local still_must_thrust is true.
   local throttle_was_zero is false.
+  local allow_stager is true.
   local msg1_happened is false.
   local msg2_happened is false.
   local msg3_happened is false.
@@ -231,7 +232,8 @@ function launch {
 
     // Stager logic - if no thrust, stage until there is:
     
-    if stager(engs, false) {
+    print "eraseme: Calling stager while throttle = " + round(throttle,4).
+    if allow_stager and stager(engs, false) {
       until ship:availablethrustat(0) > 0 {
         wait 0.2.
         local orig_RCS is RCS.
@@ -257,8 +259,12 @@ function launch {
             if time:seconds > msg4_cooldownstamp {
               hudtext("Not coasting to AP on an engine that can't be re-ignited.",5,2,20, yellow, true).
               set msg4_cooldownstamp to time:seconds + 10.
+              // Don't try to stage while we're suppressing the coast, as that would consume limited
+              // ignitions in RealFuels engines pointlessly:
+              set allow_stager to false.
             }
           } else {
+            set allow_stager to true.
             set maintain_ap_mode to false.
             set still_must_thrust to false.
             if allow_zero {

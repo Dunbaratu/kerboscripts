@@ -10,6 +10,7 @@
 function stager {
   parameter stg_eList is 0. // IN/OUT: list of engins on ship.  Edited when staging to remove engines no longer attached.
   parameter zeroThrot is false. // set to true if you want ot zero throttle on staging because RO with ullage.
+
   local did_stage is false.
   local want_stage is false.
   local new_engs is stg_eList.
@@ -25,19 +26,45 @@ function stager {
     return false.
   }
 
-  // simple dumb - check if nothing active,
-  // then stage:
-  if ship:availablethrust = 0 {
-    set reason to "Staged because availablethrust = 0 when throttle=" + round(throttle,3).
-    if zeroThrot lock throttle to 0. wait 0.
-    set want_stage to true.
-  }
   if new_engs:istype("scalar") {
      local elist is 0.
      list engines in elist.
      for eng in elist {
        new_engs:add(eng).
      }
+  }
+
+  // simple dumb - check if nothing active,
+  // then stage:
+  if ship:availablethrust = 0 {
+    if throttle > 0 {
+      if defined(LIB_RO) and LIB_RO {
+        if engines_more_ignitions() {
+          print "Stager found current engine has more ignitions.  Trying again before giving up on this stage.".
+          local rcs_old is rcs.
+          local fore_old is ship:control:fore.
+          local pilotthrot_old is ship:control:pilotmainthrottle.
+          rcs on.
+          set ship:control:fore to 1.
+          local try_until is time:seconds + 4.
+          wait until time:seconds > try_until or ullage_status(new_engs).
+          print " `--> Ullage OK. Zeroing throttle to try again.".
+
+          // Zero throttle a moment, then let it go back to what it was:
+          set ship:control:pilotmainthrottle to 0.
+          local suppress_old is config:SUPPRESSAUTOPILOT.
+          set config:SUPPRESSAUTOPILOT to TRUE. // zero throttle without clobbering prev lock.
+          wait 0.1. // Let kOS respond to that and actually kill throttle.
+          set config:SUPPRESSAUTOPILOT to suppress_old.
+          set ship:control:pilotmainthrottle to pilotthrot_old.
+          set ship:control:fore to fore_old.
+          set rcs to rcs_old.
+        }
+      }
+    }
+    set reason to "Staged because availablethrust = 0 when throttle=" + round(throttle,3).
+    if zeroThrot lock throttle to 0. wait 0.
+    set want_stage to true.
   }
   for stg_eng in new_engs { 
     if stg_eng:ship = ship { // skip parts in the list no longer attached, if there are any

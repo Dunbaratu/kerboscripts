@@ -1,3 +1,5 @@
+global LIB_RO is true.
+
 // This will be a library of things specific to realism overhaul.
 // All functions in here should have a useful fallback behaviour
 // to follow when RO isn't installed so at least they don't break
@@ -111,16 +113,35 @@ function pop_steering_mgr_config {
   set steeringmanager:RollPid:kd to prev_config[11].
 }
 
-// Return true if any of the currently active engines are on their last ignition
+// Return true if any of the currently active non-flamout engines are on their last ignition
 // such that zeroing the throttle means they won't ever be usable again:
 function engines_last_ignition {
   local engs is all_active_engines().
 
   for eng in engs {
     if not(eng:flameout) {
-      if eng:ignitions = 0 {
+      // If it has no more ignitions or is a solid (which RealFuels doesn't properly flag as
+      // having 1 ignition even though in practical terms it does.)
+      if eng:ignitions = 0 or not(eng:allowshutdown) {
         return true.
       }
+    }
+  }
+  return false.
+}
+
+// Return true if any of the currently active engines have more ignitions,
+// regardless of whether they are flamed out or not:
+function engines_more_ignitions {
+  local engs is all_active_engines().
+
+  for eng in engs {
+    // ignitions = -1 if infinity, or >0 if countable ones remain:
+    // If engine is a one-shot no stopping engine (i.e. solids usually),
+    // RealFuels falsely reports it as having infinite ignitions instead of
+    // the correct number of '0'.  Treat it as if it has zero left in that case:
+    if eng:ignitions <> 0 and eng:allowshutdown {
+      return true.
     }
   }
   return false.

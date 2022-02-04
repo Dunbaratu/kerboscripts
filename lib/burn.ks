@@ -260,7 +260,14 @@ function do_burn_with_display {
         set node_aim_locked to false.
       }
     }
+    // done if deltaV emitted:
     set done to (dv_to_go <= 0 or (dv_to_go >= prev_dv_to_go)).
+    // or done if manuever node aim vector has spun too far off:
+    if not(done) and vang(ship:facing:vector, remember_node:deltaV) > 40 {
+      set done to true.
+      set node_aim_locked to false.
+      hudtext("Burn vector is starting to flip behind us - stopping here.", 5, 2, 30, red, true).
+    }
 
     // If seeking an Ap or Pe and all expected dV burned, keep
     // going anyway till Ap or Pe satisfied.

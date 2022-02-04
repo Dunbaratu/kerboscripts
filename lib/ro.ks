@@ -15,12 +15,12 @@ global LIB_RO is true.
 function ullage_status {
   parameter engs. // list of engines to check
 
-  local i is 0.
-  until i >= engs:length {
-    if not(engs[i]:flameout) and engs[i]:fuelstability < 0.98 { 
-      return false.
+  for eng in engs {
+    if eng:ullage { 
+      if not(eng:flameout) and eng:fuelstability < 0.98 { 
+        return false.
+      }
     }
-    set i to i + 1.
   }
   return true.
 } 
@@ -145,4 +145,62 @@ function engines_more_ignitions {
     }
   }
   return false.
+}
+
+// Push RCS until the engines in the list
+// have okay fuel stability:
+function push_rcs_until_ullage_ok {
+  parameter engs.
+  parameter give_up is 5. // seconds until giving up on ullage push working.
+  parameter do_print is false.
+
+  if do_print { print "Ullage: begin pushing rcs". }
+  local rcs_old is rcs.
+  local fore_old is ship:control:fore.
+  rcs on.
+  set ship:control:fore to 1.
+  set warp to 0. wait 0. wait until kuniverse:timewarp:issettled. // Because ullage push does nothing if on rails.
+  local try_until is time:seconds + give_up. // Be sure to start timer after warp is 0 else it means nothing.
+  local reason is "".
+  until reason <> "" {
+    if time:seconds > try_until {
+      set reason to "Ullage: gave up after " + give_up + " seconds".
+      break.
+    }
+    if ullage_status(engs) {
+      set reason to "Ullage Ok".
+      break.
+    }
+    wait 0.
+  }
+  if do_print print reason.
+
+  set ship:control:fore to fore_old.
+  set rcs to rcs_old.
+}
+
+// Zero throttle, de-activate and active active engines, then put throttle back:
+function attempt_reignition {
+  parameter engs.
+
+  // Zero throttle a moment, then let it go back to what it was to trigger a
+  // new ignition attempt on the engine:
+  local pilotthrot_old is ship:control:pilotmainthrottle.
+  set ship:control:pilotmainthrottle to 0.
+  local suppress_old is config:SUPPRESSAUTOPILOT. // affects lock throttle.
+  set config:SUPPRESSAUTOPILOT to TRUE. // zero throttle without clobbering prev lock.
+  wait 0. // Let kOS respond to that and actually kill throttle.
+
+  // realfuels won't re-try unless the engine is de-activated and activated again:
+  for eng in engs 
+    if eng:ignition 
+      eng:shutdown().
+  wait 0.
+  for eng in engs 
+    if eng:ignition
+      eng:activate().
+
+  // Put throttle back again to re-attempt:
+  set config:SUPPRESSAUTOPILOT to suppress_old.
+  set ship:control:pilotmainthrottle to pilotthrot_old.
 }

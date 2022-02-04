@@ -37,34 +37,19 @@ function stager {
   // simple dumb - check if nothing active,
   // then stage:
   if ship:availablethrust = 0 {
+    set want_stage to true.
     if throttle > 0 {
-      if defined(LIB_RO) and LIB_RO {
-        if engines_more_ignitions() {
-          print "Stager found current engine has more ignitions.  Trying again before giving up on this stage.".
-          local rcs_old is rcs.
-          local fore_old is ship:control:fore.
-          local pilotthrot_old is ship:control:pilotmainthrottle.
-          rcs on.
-          set ship:control:fore to 1.
-          local try_until is time:seconds + 4.
-          wait until time:seconds > try_until or ullage_status(new_engs).
-          print " `--> Ullage OK. Zeroing throttle to try again.".
+      if defined(LIB_RO) and LIB_RO and engines_more_ignitions() {
+        print "Stager found current engine has more ignitions.  Trying again before giving up on this stage.".
+        set want_stage to false. // don't try to stage after all if we can re-ignite this engine.
 
-          // Zero throttle a moment, then let it go back to what it was:
-          set ship:control:pilotmainthrottle to 0.
-          local suppress_old is config:SUPPRESSAUTOPILOT.
-          set config:SUPPRESSAUTOPILOT to TRUE. // zero throttle without clobbering prev lock.
-          wait 0.1. // Let kOS respond to that and actually kill throttle.
-          set config:SUPPRESSAUTOPILOT to suppress_old.
-          set ship:control:pilotmainthrottle to pilotthrot_old.
-          set ship:control:fore to fore_old.
-          set rcs to rcs_old.
-        }
-      }
+        // these are from lib/ro.ks
+        push_rcs_until_ullage_ok(new_engs, 5, true).
+        attempt_reignition(new_engs).
+      } 
     }
     set reason to "Staged because availablethrust = 0 when throttle=" + round(throttle,3).
     if zeroThrot lock throttle to 0. wait 0.
-    set want_stage to true.
   }
   for stg_eng in new_engs { 
     if stg_eng:ship = ship { // skip parts in the list no longer attached, if there are any
@@ -89,6 +74,9 @@ function stager {
 
   if want_stage and unused_engs_exist {
     wait until stage:ready.
+    if defined(LIB_RO) and LIB_RO {
+      push_rcs_until_ullage_ok(new_engs, 5, true).
+    }
     stage.
     print reason.
     wait 0. // make decoupled engines go away before making list again.

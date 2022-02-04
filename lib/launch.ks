@@ -232,7 +232,6 @@ function launch {
 
     // Stager logic - if no thrust, stage until there is:
     
-    print "eraseme: Calling stager while throttle = " + round(throttle,4).
     if allow_stager and stager(engs, false) {
       until ship:availablethrustat(0) > 0 {
         wait 0.2.

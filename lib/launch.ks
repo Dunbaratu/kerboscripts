@@ -398,7 +398,9 @@ function launch {
     do_keys().
   }
 
-  lock throttle to 0.  set ship:control:pilotmainthrottle to 0.
+  wait 0.
+  lock throttle to 0.
+  set ship:control:pilotmainthrottle to 0.
   unlock steering.
   wait 0.
 

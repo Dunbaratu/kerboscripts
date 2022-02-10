@@ -626,5 +626,7 @@ function engine_minthrot {
 
 function throt_formula {
   parameter t_real, t_min.
-  return (t_real-t_min)/(1-t_min) + 0.001.
+  if t_min >= 1.0 
+    set t_min to 0.999. // avoid div by zero below when engine is unthrottle-able.
+  return abs((t_real-t_min)/(1-t_min)) + 0.001.
 }

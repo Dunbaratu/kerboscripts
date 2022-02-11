@@ -44,16 +44,16 @@ function sane_avionics {
   for av in ship:modulesnamed("ModuleAvionics") {
     avionics:add(av).
   }
-  local av_sum is 0.
+  local av_most is 0.
   if avionics:length > 0 {
     for av in avionics {
       // Both procedural and fixed avionics modules have this field:
       if av:hasfield("controllable") {
-        set av_sum to av_sum + av:getfield("controllable").
+        set av_most to max(av_most, av:getfield("controllable")).
       }
     }
-    if av_sum < ship:mass {
-      hudtext( "SAINITY CHECK FAIL! Avioncs " + av_sum + "t when " + ceiling(ship:mass) + "t needed", 2, 1, 25, white, true).
+    if av_most < ship:mass {
+      hudtext( "SANITY CHECK FAIL! Avioncs " + av_most + "t when " + ceiling(ship:mass) + "t needed", 2, 1, 25, white, true).
       getvoice(1):play(list(slidenote(400,600,0.5),slidenote(400,600,0.5))).
       print "Continue anyway? y/n?".
       local ch is "".

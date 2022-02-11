@@ -88,7 +88,7 @@ function launch {
   local g is body:mu / (body:radius+altitude)^2.
   local twr_measured is 0.
   until twr_measured > TWR_for_launch {
-    set twr_measured to (solid_thrust + current_thrust(actives)) / (ship:mass * g).
+    set twr_measured to (solid_thrust + current_thrust(actives)) / (mass_no_clamps() * g).
     print "TWR " + round(twr_measured,2) + ". Type G to Go Anyway, A to Abort.".
     wait 0.
     if terminal:input:haschar() { 

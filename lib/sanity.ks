@@ -54,7 +54,7 @@ function sane_avionics {
     }
     local tonnes is mass_no_clamps().
     if av_most < tonnes {
-      hudtext( "SANITY CHECK FAIL! Avioncs " + av_most + "t when " + ceilingtonnes + "t needed", 2, 1, 25, white, true).
+      hudtext( "SANITY CHECK FAIL! Avioncs " + av_most + "t when " + tonnes + "t needed", 2, 1, 25, white, true).
       getvoice(1):play(list(slidenote(400,600,0.5),slidenote(400,600,0.5))).
       print "Continue anyway? y/n?".
       local ch is "".

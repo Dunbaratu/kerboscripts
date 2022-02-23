@@ -44,7 +44,7 @@ function stager {
         set want_stage to false. // don't try to stage after all if we can re-ignite this engine.
 
         // these are from lib/ro.ks
-        push_rcs_until_ullage_ok(new_engs, 5, true).
+        push_rcs_until_ullage_ok(new_engs, 8, true).
         attempt_reignition(new_engs).
       } 
     }
@@ -87,7 +87,7 @@ function stager {
   if want_stage and unused_engs_exist {
     wait until stage:ready.
     if defined(LIB_RO) and LIB_RO {
-      push_rcs_until_ullage_ok(new_engs, 5, true).
+      push_rcs_until_ullage_ok(new_engs, 8, true).
     }
     stage.
     print reason.

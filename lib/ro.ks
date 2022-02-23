@@ -151,7 +151,7 @@ function engines_more_ignitions {
 // have okay fuel stability:
 function push_rcs_until_ullage_ok {
   parameter engs.
-  parameter give_up is 5. // seconds until giving up on ullage push working.
+  parameter give_up is 8. // seconds until giving up on ullage push working.
   parameter do_print is false.
 
   if do_print { print "Ullage: begin pushing rcs". }
@@ -162,12 +162,19 @@ function push_rcs_until_ullage_ok {
   set warp to 0. wait 0. wait until kuniverse:timewarp:issettled. // Because ullage push does nothing if on rails.
   local try_until is time:seconds + give_up. // Be sure to start timer after warp is 0 else it means nothing.
   local reason is "".
+  local ok_tick_count is 0.
   until reason <> "" {
     if time:seconds > try_until {
       set reason to "Ullage: gave up after " + give_up + " seconds".
       break.
     }
-    if ullage_status(engs) {
+    // Count how many loop iterations in a row had okay ullage:
+    if ullage_status(engs)
+      set ok_tick_count to ok_tick_count + 1.
+    else 
+      set ok_tick_count to 0.
+    // Only when ullage has been okay for more than a brief instant do we trust it:
+    if ok_tick_count > 3 {
       set reason to "Ullage Ok".
       break.
     }

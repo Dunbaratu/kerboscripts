@@ -158,7 +158,7 @@ local throt_pid is PIDloop(1, 0, 0, pid_min, pid_max).
 // Adjust the min/max deflection allowed based on how much leeway our
 // throttle gives to correct for burning too low:
 local max_pitch_up is arccos(throt_predict_mult)/2.
-local max_pitch_down is arccos(throt_predict_mult)/5. // pitching down is less safe.
+local max_pitch_down is arccos(throt_predict_mult)/2. // pitching down is less safe.
 local max_yaw_off is arccos(throt_predict_mult)/3.
 local pitch_pid is PIDloop(1, 0, 0, -max_pitch_down, max_pitch_up).
 local yaw_pid is PIDloop(1, 0, 0, -max_yaw_off, max_yaw_off).
@@ -168,7 +168,7 @@ local bias is -2. // The bias factor in the PID making negative errors more seve
 local stop_deflecting is false. // set to true when giving up on deflecting landing site.
 local started_descending is false. // True once it passes Apoapsis and started going down.
 
-pid_tune(999999). // 999999 = dummy start value until the predictions start being calculated.
+pid_tune(999999,99999). // 999999 = dummy start value until the predictions start being calculated.
 
 set cnt_before to ship:parts:length.
 set timeslice_size to 2.0.
@@ -259,7 +259,7 @@ until stop_burn or aborting {
       }
 
       // Adjust PID tuning as we go depending on TWR:
-      pid_tune(eta_end).
+      pid_tune(eta_end, dist).
 
       // Make sure it only executes the lock statement once, not each iteration:
       if not(throt_is_locked) {
@@ -433,7 +433,7 @@ function info_block_update {
 }
 
 function pid_tune {
-  parameter burn_time. // how long is the burn to a stop expected to take?
+  parameter burn_time, stop_agl. // how long is the burn to a stop, what AGL do I have when stopped?
 
   // Adjust PID tuning as we go depending on TWR and dist to target:
   local twr is athrust / (ship:mass * mu / (bodRad+ship:altitude)^2).
@@ -449,6 +449,9 @@ function pid_tune {
   set yaw_pid:Kp to 50/(10+sqrt((10+burn_time)*50)*twr).
   set yaw_pid:Ki to 5/(sqrt((10+burn_time)*50)*twr).
   set yaw_pid:Kd to 10/(sqrt((10+burn_time)*50)*twr). 
+
+  // If predicted to go under terrain, disallow pitching down further:
+  set pitch_pid:minoutput to max(-max_pitch_down, min(0, (-max_pitch_down) - (stop_agl/2))).
 }
 
 // Return retrograde or up vectors depending on

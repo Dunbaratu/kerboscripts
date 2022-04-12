@@ -569,7 +569,10 @@ function terrain_distance {
     local groundPos is geo:position.
     local seaPos is geo:altitudeposition(0).
     set dist_ground to vdot(pos-groundPos,ship:up:vector).
-    set dist_sea to vdot(pos-seaPos,ship:up:vector).
+    if (body:hasocean)
+      set dist_sea to vdot(pos-seaPos,ship:up:vector).
+    else 
+      set dist_sea to dist_ground.
     set dist to min(dist_ground, dist_sea).
     set label_prefix to "Margin (terrain database guess): ".
   }

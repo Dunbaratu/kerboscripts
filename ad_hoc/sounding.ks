@@ -21,9 +21,9 @@ set ship:control:pilotmainthrottle to 1.
 lock throttle to 1.
 print "Starting engine.".
 stage.
-print "Waiting for TWR > 1.1".
+print "Waiting for TWR > 1.0".
 local twr is 0.
-until twr > 1.1 {
+until twr > 1.0 {
   set twr to first_eng:thrust / (mass*(body:mu/(body:radius+altitude)^2)).
   print "TWR = " + round(twr,2).
   wait 0.1.
@@ -43,6 +43,6 @@ unlock steering.
 print "Decoupling from booster.".
 stage.
 print "Waiting until safe for opening chutes.".
-wait until alt:radar < 3_000 and verticalspeed < 300 .
+wait until alt:radar < 2_000 and verticalspeed < 300 .
 stage.
 print "Script over.".

@@ -21,7 +21,7 @@
             "$type": "kOS.Safe.Encapsulation.StringValue"
         },
         {
-            "value": 0,
+            "value": 1,
             "$type": "kOS.Safe.Encapsulation.ScalarIntValue"
         }
     ],

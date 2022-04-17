@@ -25,21 +25,23 @@ local payload_cut_yet is false.
 local roll_angle is 180.
 
 function launch {
-  parameter dest_compass. // not exactly right when not 90.
-  parameter dest_pe. // first destination apoapsis.
-  parameter do_circ is true.
-  parameter eta_apo is 120.
-  parameter eta_spd is 1500.
-  parameter TWR_for_launch is 1.2.
-  parameter solid_thrust is 0.
-  parameter second_dest_ap is -1. // second destination apoapsis.
-  parameter second_dest_long is -1. // second destination longitude.
-  parameter atmo_end is ship:body:atm:height.
-  parameter goto_bod is "".
-  parameter bod_pe is -1.
-  parameter ignitions is 2.
-  parameter use_ag1 is false.
-  parameter set_roll is false.
+  parameter
+    dest_compass, // not exactly right when not 90.
+    dest_pe, // first destination apoapsis.
+    do_circ is true,
+    eta_apo is 120,
+    eta_spd is 1500,
+    TWR_for_launch is 1.2,
+    solid_thrust is 0,
+    second_dest_ap is -1, // second destination apoapsis.
+    second_dest_long is -1, // second destination longitude.
+    atmo_end is ship:body:atm:height,
+    goto_bod is "",
+    bod_pe is -1,
+    kick_limit is 40,
+    ignitions is 2,
+    use_ag1 is false,
+    set_roll is false.
 
   if second_dest_ap < 0 { set second_dest_ap to dest_pe. }
 
@@ -136,7 +138,7 @@ function launch {
   local slow_kick_amount is 1.
   until slow_kick_amount = 10 {
     set TWR_avail to AVAILABLETHRUST/(MASS*g).
-    lock clamp_pitch_down to min(50, max(0.5, slow_kick_amount*TWR_avail)).
+    lock clamp_pitch_down to min(kick_limit-5, max(0.5, slow_kick_amount*TWR_avail)).
     lock steering to lookdirup(heading(dest_compass, 85-clamp_pitch_down):forevector, roll_vector()).
     // kick over more slowly when there's atmosphere:
     if atmo_end = 0 

@@ -13,6 +13,7 @@ parameter
   atmo_end is ship:body:atm:height,
   goto_bod is "",
   bod_pe is -1,
+  kick_limit is 40,
   ignitions is 2,
   use_ag1 is false,
   afterlaunch is "".
@@ -55,6 +56,7 @@ if launch_gui() {
     atmo_end,
     goto_bod,
     bod_pe,
+    kick_limit,
     ignitions,
     use_ag1,
     set_roll).
@@ -174,6 +176,15 @@ function launch_gui {
     set bod_pe_field:text to bod_pe:tostring().
   }.
 
+  local kick_box is setting_ui:addhlayout().
+  kick_box:addlabel("Kickover degree limit: ").
+  local kick_field is kick_box:addtextfield(kick_limit:tostring()).
+  set kick_field:onconfirm to {
+    parameter str.
+    set kick_field:text to kick_field:text:tonumber(kick_limit):tostring().
+    set kick_limit to kick_field:text:tonumber().
+  }.
+
   local compass_box is setting_ui:addhlayout().
   compass_box:addlabel("Initial Compass: ").
   local compass_field is compass_box:addtextfield(compass:tostring()).
@@ -258,6 +269,7 @@ function launch_gui {
   if roll_90_button:pressed {set set_roll to 90. }
   if roll_0_button:pressed {set set_roll to 0. }
   set end_alt to end_alt_field:text:tonumber().
+  set kick_limit to kick_field:text:tonumber().
   set compass to compass_field:text:tonumber().
   set eta_apo to eta_apo_field:text:tonumber().
   set eta_apo_spd to eta_apo_spd_field:text:tonumber().

@@ -46,6 +46,11 @@ if do_gui {
   }
 }
 
+// throt_predict_mult should be in realThrot terms, so it CANNOT be less than
+// the effective min deep throttle:
+if throt_predict_mult < minThrot
+  set throt_predict_mult to minThrot + 0.001.
+
 if land_spot:hassuffix("geoposition") {
   // for any of the types that have a geoposition (vessel, waypoint, etc), use that:
   set land_spot to land_spot:geoposition.
@@ -204,7 +209,7 @@ until stop_burn or aborting {
   set prev_time to time:seconds.
   set prev_vspeed to verticalspeed.
 
-  local partial_throttle_thrust is (minThrot + (throt_predict_mult * (1 - minThrot))) * athrust.
+  local partial_throttle_thrust is throt_predict_mult * athrust.
   local ullage_safe is ullage_status(active_engs).
 
   set result to sim_land_spot(
@@ -618,16 +623,23 @@ function engine_ullage_secs {
   return 0.
 }
 
+// Gets effective min throttle given realFuels mod imposed limits:
+// Can handle mixed cases like 1 main unthrottleable engine with some
+// throttleable verniers assisting it because it averages out the total.
 function engine_minthrot {
   local engs is LIST().
+  local maxTH is 0, minTH is 0.
   list engines in engs.
   for eng in engs {
     if eng:ignition and not(eng:flameout) {
-      //assumes either 1 engine or at least uniform engines if a cluster.
-      return eng:minthrottle. 
+      set maxTH to maxTH + eng:availablethrust.
+      set minTH to minTH + eng:minthrottle * eng:availablethrust.
     }
   }
-  return 0.
+  if maxTH = 0
+    return 1. // Random guess since no engine is active and I can't math it out.
+  else
+    return minTH / maxTH.
 }
 
 function throt_formula {

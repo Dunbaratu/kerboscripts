@@ -49,7 +49,7 @@ function create_land_it_gui {
   local throt_box is throt_outer_box:addhbox().
 
   set throt_box:addlabel("Min Throttle:"):tooltip to
-    "(Legal values from 0.00 to 1.00) (For Realism Overhaul) " +
+    "(Legal values from 0.00 to 1.00) (Only meaningful with RealFuels mod) " +
     "Minimum actual throttle between 0 and 1, of the landing engine. " +
     "(i.e. if the throttle is <b>really</b> at 75% when the indicator is at " +
     "minimum, then put 0.75 here.)".
@@ -59,13 +59,18 @@ function create_land_it_gui {
   set land_it_gui["MINTHROT"] to min_throt.
 
   set throt_box:addlabel("Predict Landing Throttle:"):tooltip to
-    "(Legal values from 0.00 to 1.00) Calculate the suicide burn to use " +
-    "this much throttle. " +
-    "Should be very high, but not quite 1.0, as that would leave no " +
-    "room to adjust for varying conditions on the fly.".
+    "(Legal values from 0.00 to 1.00) Calculate the suicide burn as if the " +
+    "real throttle is here. If you are playing with the RealFuels mod, " +
+    "then this expressed in terms of the real throttle you end up with " +
+    "after accounting for an engine's min throttle.  (i.e. if you say 0.8 here, it " +
+    "means ACTUALLY 80% of max thrust, not 80% of the range between the min and max " +
+    "throttle as it would mean if you put the throttle control lever at 80%.) " +
+    "Because of this, it is an error to set this lower than the min thrust.".
+    
   local predict_throt is throt_box:addtextfield(init_predict:tostring()).
   set predict_throt:style:width to 50.
-  set predict_throt:onconfirm to range_enforce_onconfirm@:BIND( predict_throt, 0, 1 ).
+  set predict_throt:onconfirm to
+    range_enforce_onconfirm@:BIND( predict_throt, {return min_throt:text:tonumber(0).}, 1).
   set land_it_gui["PREDICTTHROT"] to predict_throt.
 
   local margin_outer_box is contents:addhbox().
@@ -256,11 +261,13 @@ function end_land_it_gui {
 }
 
 function range_enforce_onconfirm {
-  parameter field, min_val, max_val, value.
+  parameter field, min_val, max_val, value, places is 3.
 
   local num is value:toscalar.
-  set num to min( max_val, max( min_val, num)). // clamp [0..1].
-  set field:text to num:tostring().
+  local low_val is choose min_val:call() if min_val:istype("UserDelegate") else min_val.
+  local high_val is choose max_val:call() if max_val:istype("UserDelegate") else max_val.
+  set num to min( high_val, max( low_val, num)). // clamp [0..1].
+  set field:text to round(num, places):tostring().
 }
 
 // Generate a list of waypoints that are on the same body as I am orbiting now:

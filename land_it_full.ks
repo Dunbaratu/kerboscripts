@@ -10,6 +10,7 @@ parameter off_pitch is 0.
 parameter off_yaw is 0.
 parameter lib_vol is 1. //which volume has the lib dir?
 parameter songs_vol is 1. //which volume has the songs dir?
+parameter fudge is 0.95. // fudge factor for thrust prediction.
 
 runoncepath(lib_vol+":/lib/land").
 runoncepath(lib_vol+":/lib/song").
@@ -67,7 +68,7 @@ until landed {
   local burn_now is false.
   local calced_isp is isp_calc(0). // WARNING: by pre-calcing, this is wrong for atmo situations where it changes.
   local mu is ship:body:mu.
-  local athrust is ship:availablethrust.
+  local athrust is ship:availablethrust * fudge.
   until burn_now {
     set landed to (status = "LANDED" or status = "SPLASHED").
     if landed

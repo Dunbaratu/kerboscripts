@@ -103,22 +103,34 @@ function launch {
   }
   print "Now TWR is > " + TWR_for_launch.
 
-  print "Staging until accel > " + round((TWR_for_launch - 1) / 0.8,0.2) + " m/s^2:".
+  // Test to see if it's really accelerating up.  If not then keep staging
+  // until we are (assumes launch clamps is the reason we're not.)
+  print "Staging until accelerating up.".
+  local consistently_up is false.
+  wait 0. // force next measures to be from same tick:
   local tPrev is time:seconds.
   local vPrev is verticalspeed.
-  local acc_measured is 0.
-  local acc_threshold is (TWR_for_launch - 1) * 0.8.
-  until acc_measured > acc_threshold {
-    wait 0.5.
-    local tNow is time:seconds.
-    local vNow is verticalspeed. // use vertical-only speed so sideways shaking doesn't give false positives.
-    set acc_measured to (vNow - vPrev) / (tNow - tPrev).
-    set tPrev to tNow.
-    set vPrev to vNow.
-    if acc_measured < acc_threshold { 
+  until consistently_up {
+    // Prove it's actually acellerating upward and not just
+    // oscillating on springy launch clamps on the pad:
+    set consistently_up to true.
+    for measures in range(0,4) {
+      wait 0.2.
+      local tNow is time:seconds.
+      local vNow is verticalspeed. // use vertical-only speed so sideways shaking gets ignored.
+      local acc_measured is (vNow - vPrev) / (tNow - tPrev).
+      print "  measured vertical accel = "+round(acc_measured,3)+" m/s^2".
+      set tPrev to tNow.
+      set vPrev to vNow.
+      if acc_measured <= 0 {
+        set consistently_up to false.
+      }
+    }
+    if not(consistently_up) { 
+      print "   Not consitently accelerating up,".
+      print "     so, assuming launch clamp needs staging.".
       stage. 
     }
-    print "Accel now " + round(acc_measured,3) + " m/s^2".
   }
 
   print "We are now moving.".

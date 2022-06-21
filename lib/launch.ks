@@ -107,7 +107,7 @@ function launch {
   // until we are (assumes launch clamps is the reason we're not.)
   print "Staging until accelerating up.".
   local consistently_up is false.
-  wait 0. // force next measures to be from same tick:
+  wait 0.5. // get around buggy landing legs that "stick" for a moment.
   local tPrev is time:seconds.
   local vPrev is verticalspeed.
   until consistently_up {
@@ -127,7 +127,7 @@ function launch {
       }
     }
     if not(consistently_up) { 
-      print "   Not consitently accelerating up,".
+      print "   Not consistently accelerating up,".
       print "     so, assuming launch clamp needs staging.".
       stage. 
     }

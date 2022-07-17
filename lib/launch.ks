@@ -243,20 +243,15 @@ function launch {
   lock_throt_for_launch().
 
   until done {
-
+    wait 0. // make sure recent throttle changes take effect before checking thrust for staging.
     // Stager logic - if no thrust, stage until there is:
-    
     if allow_stager and stager(engs, false) {
+      wait 0.2.
       until ship:availablethrustat(0) > 0 {
         wait 0.2.
-        local orig_RCS is RCS.
-        set ship:control:fore to 1. RCS on. // RCS push if needed.  If not needed then no biggie.
-        local actives is all_active_engines().
-        wait until ullage_status(actives).
+        push_rcs_until_ullage_ok(engs, 10, true).
         stager(engs, false).
-        set ship:control:fore to 0.
         lock_throt_for_launch().
-        set RCS to orig_RCS.
       }
       lock_throt_for_launch().
     }
@@ -336,9 +331,8 @@ function launch {
       if kuniverse:timewarp:mode = "RAILS" set warp to 0. // come off rails to let the engine work:
       wait until kuniverse:timewarp:issettled. // let it finish de-warping.
       if min_throt = 0 {
-        set ship:control:fore to 1. // ullage
-        wait 4.
-        set ship:control:fore to 0. // ullage
+        local ull_engs is all_active_engines().
+        push_rcs_until_ullage_ok(ull_engs, 10, true).
         set min_throt to 0.1.
       } else {
         set min_throt to 0.1. // perfectly circular isn't important, so still keep at least 10% to prevent boredom waiting for circularizing.

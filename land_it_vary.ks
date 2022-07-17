@@ -292,7 +292,7 @@ until stop_burn or aborting {
   if not(started_descending) and verticalspeed < -1.5 {
     set started_descending to true.
   }
-  if started_descending and verticalspeed > -0.25  {
+  if started_descending and verticalspeed > -0.25 and groundspeed < 2 {
     set stop_burn to true.
   }
 

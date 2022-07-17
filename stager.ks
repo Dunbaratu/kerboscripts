@@ -44,7 +44,7 @@ function stager {
         set want_stage to false. // don't try to stage after all if we can re-ignite this engine.
 
         // these are from lib/ro.ks
-        push_rcs_until_ullage_ok(new_engs, 8, true).
+        push_rcs_until_ullage_ok(new_engs, 10, true).
         attempt_reignition(new_engs).
       } 
     }
@@ -87,7 +87,7 @@ function stager {
   if want_stage and unused_engs_exist {
     wait until stage:ready.
     if defined(LIB_RO) and LIB_RO {
-      push_rcs_until_ullage_ok(new_engs, 8, true).
+      push_rcs_until_ullage_ok(new_engs, 10, true).
     }
     stage.
     print reason.
@@ -171,9 +171,19 @@ function stager {
   // "true". (it appears as if the suffix is set based on fuel left.
   function is_flameout {
     parameter eng.
-    if eng:flameout or (eng:ignition and throttle > 0 and eng:thrust = 0)
-      return true.
-    return false.
+    // Something in RP-1 is making a newly throttled-up engine not
+    // start returning a nonzero value for several ticks.  So this needs to
+    // continue being true over a few ticsk to assume it really is flamed out:
+    for tries in range(0,2) {
+      if eng:flameout or (eng:ignition and throttle > 0 and eng:thrust = 0) {
+        // Try again after a moment.
+        wait 0.2.
+      } else {
+        return false.
+      }
+    }
+    // Only if it appeared to be flamed out two tries in a row are we sure of this:
+    return true.
   }
   
 }

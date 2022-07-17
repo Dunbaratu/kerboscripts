@@ -206,6 +206,7 @@ function attempt_reignition {
   for eng in engs 
     if eng:ignition
       eng:activate().
+  wait 0.
 
   // Put throttle back again to re-attempt:
   set config:SUPPRESSAUTOPILOT to suppress_old.

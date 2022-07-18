@@ -1,5 +1,6 @@
 
 wait until ship:unpacked.
+core:doevent("open terminal").
 // Only run boot when launching, not when reloading vessel already
 // in space:
 if ship:periapsis < 100 and (status = "LANDED" or status = "PRELAUNCH") {

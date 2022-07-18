@@ -1,4 +1,5 @@
 wait until ship:unpacked.
+core:doevent("open terminal").
 wait 2. // need to let Remote tech find itself.
 print "waiting for Remote Tech to find itself.".
 wait 2.

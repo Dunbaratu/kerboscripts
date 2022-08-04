@@ -163,7 +163,7 @@ local throt_pid is PIDloop(1, 0, 0, pid_min, pid_max).
 // Adjust the min/max deflection allowed based on how much leeway our
 // throttle gives to correct for burning too low:
 local max_pitch_up is arccos(throt_predict_mult)/2.
-local max_pitch_down is arccos(throt_predict_mult)/2. // pitching down is less safe.
+local max_pitch_down is arccos(throt_predict_mult)/5. // pitching down is less safe.
 local max_yaw_off is arccos(throt_predict_mult)/3.
 local pitch_pid is PIDloop(1, 0, 0, -max_pitch_down, max_pitch_up).
 local yaw_pid is PIDloop(1, 0, 0, -max_yaw_off, max_yaw_off).

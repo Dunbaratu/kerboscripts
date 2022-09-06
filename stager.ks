@@ -7,6 +7,8 @@
 //
 // Call repeatedly in a program's main loop as you are burning.
 @LAZYGLOBAL OFF.
+local g0 is 9.81.
+
 function stager {
   parameter stg_eList is 0. // IN/OUT: list of engins on ship.  Edited when staging to remove engines no longer attached.
   parameter zeroThrot is false. // set to true if you want ot zero throttle on staging because RO with ullage.
@@ -18,6 +20,8 @@ function stager {
   local reason is "".
 
   local ignited_before is get_ignited_set(stg_eList).
+
+  set g0 to body:mu/((altitude+body:radius)^2).
 
   // Maxthrust falsely reads zero sometimes when on rails, making
   // this check stage unnecesarily. Skip check if on rails:
@@ -168,14 +172,21 @@ function stager {
   // This check now has to be more complex because RP-1 can make
   // engines flameout just shy of using up all the fuel, which means
   // they're flamed out even though the :flameout suffix won't report
-  // "true". (it appears as if the suffix is set based on fuel left.
+  // "true". (it appears as if the suffix is set based on fuel left.)
   function is_flameout {
     parameter eng.
+
+    // When thrust has tapered off so low the engine can't even push a fraction
+    // of its own weight, assume that's just as good as flamed out:
+    function pathetic_TWR {
+      return eng:thrust/(eng:mass*g0) < 0.3.
+    }
+
     // Something in RP-1 is making a newly throttled-up engine not
     // start returning a nonzero value for several ticks.  So this needs to
     // continue being true over a few ticsk to assume it really is flamed out:
     for tries in range(0,2) {
-      if eng:flameout or (eng:ignition and throttle > 0 and eng:thrust = 0) {
+      if eng:flameout or (eng:ignition and throttle > 0 and pathetic_TWR()) {
         // Try again after a moment.
         wait 0.2.
       } else {

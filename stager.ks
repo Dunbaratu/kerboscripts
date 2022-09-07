@@ -176,22 +176,33 @@ function stager {
   function is_flameout {
     parameter eng.
 
-    // When thrust has tapered off so low the engine can't even push a fraction
-    // of its own weight, assume that's just as good as flamed out:
-    function pathetic_TWR {
-      return eng:thrust/(eng:mass*g0) < 0.3.
+    // Thrust to weight of the engine itself (can it push its own mass):
+    function self_TWR {
+      return eng:thrust/(eng:mass*g0).
     }
 
     // Something in RP-1 is making a newly throttled-up engine not
     // start returning a nonzero value for several ticks.  So this needs to
     // continue being true over a few ticsk to assume it really is flamed out:
+    local twr is 0.
+    local prev_twr is -1.
     for tries in range(0,2) {
-      if eng:flameout or (eng:ignition and throttle > 0 and pathetic_TWR()) {
-        // Try again after a moment.
+      set twr to self_TWR().
+      if eng:flameout or
+        (
+          // Engine thrust is pathetic..
+          eng:ignition and throttle > 0 and twr < 0.3
+          and
+          // .. and it's getting worse (rather than still spooling up):
+          twr < prev_twr
+        ) {
+        // Try again after a moment.  Verify this is true several
+        // times in a row before believing it:
         wait 0.2.
       } else {
         return false.
       }
+      set prev_twr to twr.
     }
     // Only if it appeared to be flamed out two tries in a row are we sure of this:
     return true.

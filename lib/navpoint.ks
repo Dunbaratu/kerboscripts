@@ -308,6 +308,26 @@ LEXICON(
       "AGL", True,
       "SPD", 0,
       "SYSTEM", "JNSQ")
+  ),
+
+  "JNSQ's MCMcAuliffe",
+  LIST(
+    LEXICON (
+      "BODYNAME", "Kerbin",
+      "LAT", 10.090280,
+      "LNG", -67.303925,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "JNSQ"),
+    LEXICON (
+      "BODYNAME", "Kerbin",
+      "LAT", 10.090339,
+      "LNG", -67.21456,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "JNSQ")
   )
 ).
 

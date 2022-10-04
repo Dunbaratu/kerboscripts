@@ -71,7 +71,7 @@ function do_burn_with_display {
     row is 0, // desired location to print message.
     ullage_time is -999.
 
-  local remember_node is want_dv.
+  local remember_node is want_Dv.
 
   local full_ap_rate is 0.0001. // to avoid a div by zero on first pass.
   local full_pe_rate is 0.0001. // to avoid a div by zero on first pass.
@@ -263,7 +263,8 @@ function do_burn_with_display {
     // done if deltaV emitted:
     set done to (dv_to_go <= 0 or (dv_to_go >= prev_dv_to_go)).
     // or done if manuever node aim vector has spun too far off:
-    if not(done) and vang(ship:facing:vector, remember_node:deltaV) > 40 {
+    local remember_dV is (CHOOSE remember_node:deltaV IF remember_node:istype("node") ELSE remember_node).
+    if not(done) and vang(ship:facing:vector, remember_dV) > 40 {
       set done to true.
       set node_aim_locked to false.
       hudtext("Burn vector is starting to flip behind us - stopping here.", 5, 2, 30, red, true).

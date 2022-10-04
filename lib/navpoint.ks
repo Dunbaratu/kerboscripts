@@ -10,7 +10,7 @@
 // "SPD", optional, a desired m/s speed to approach this navpoint at.
 // Note if ALT=0, and AGL=True, then this navpoint is meant to be landed.  
 
-parameter system is "STOCK". // set to "STOCK", "BH", "RSS" or "GPP" or "JNSQ"...
+parameter system is "JNSQ". // set to "STOCK", "BH", "RSS" or "GPP" or "JNSQ"...
 
 // A list of known runways in the universe (stock):
 // A runway definition is 2 points - the endpoints.
@@ -248,6 +248,46 @@ LEXICON(
       "AGL", True,
       "SPD", 0,
       "SYSTEM", "BH")
+  ),
+
+  "JNSQ's KSC",
+  LIST(
+    LEXICON (
+      "BODYNAME", "Kerbin",
+      "LAT", 0.0177674,
+      "LNG", -91.84524,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "JNSQ"),
+    LEXICON (
+      "BODYNAME", "Kerbin",
+      "LAT", 0.0178196,
+      "LNG", -91.76136,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "JNSQ")
+  ),
+
+  "JNSQ's Boneyard",
+  LIST(
+    LEXICON (
+      "BODYNAME", "Kerbin",
+      "LAT", -0.956926,
+      "LNG", -92.29402,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "JNSQ"),
+    LEXICON (
+      "BODYNAME", "Kerbin",
+      "LAT", -0.956825,
+      "LNG", -92.372215,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "JNSQ")
   )
 ).
 

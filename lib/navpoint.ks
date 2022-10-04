@@ -288,6 +288,26 @@ LEXICON(
       "AGL", True,
       "SPD", 0,
       "SYSTEM", "JNSQ")
+  ),
+
+  "JNSQ's Smusgrave",
+  LIST(
+    LEXICON (
+      "BODYNAME", "Kerbin",
+      "LAT", -6.62953,
+      "LNG", -108.196266,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "JNSQ"),
+    LEXICON (
+      "BODYNAME", "Kerbin",
+      "LAT", -6.629532,
+      "LNG", -108.287216,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "JNSQ")
   )
 ).
 

@@ -328,7 +328,88 @@ LEXICON(
       "AGL", True,
       "SPD", 0,
       "SYSTEM", "JNSQ")
+  ),
+
+  "JNSQ's Welcome Island",
+  LIST(
+    LEXICON (
+      "BODYNAME", "Kerbin",
+      "LAT", -0.411935,
+      "LNG", -86.555259,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "JNSQ"),
+    LEXICON (
+      "BODYNAME", "Kerbin",
+      "LAT", -0.41205,
+      "LNG", -86.466896,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "JNSQ")
+  ),
+
+  "JNSQ's Base S24A N/S",
+  LIST(
+    LEXICON (
+      "BODYNAME", "Kerbin",
+      "LAT", -24.5992,
+      "LNG", -75.9397,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "JNSQ"),
+    LEXICON (
+      "BODYNAME", "Kerbin",
+      "LAT", -24.68945,
+      "LNG", -75.93967,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "JNSQ")
+  ),
+
+  "JNSQ's Base S24A E/W",
+  LIST(
+    LEXICON (
+      "BODYNAME", "Kerbin",
+      "LAT", -24.67165,
+      "LNG", -75.82216,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "JNSQ"),
+    LEXICON (
+      "BODYNAME", "Kerbin",
+      "LAT", -24.67191,
+      "LNG", -75.92145,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "JNSQ")
+  ),
+
+  "JNSQ's Darude Runway",
+  LIST(
+    LEXICON (
+      "BODYNAME", "Kerbin",
+      "LAT", -6.51990,
+      "LNG", -143.98593,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "JNSQ"),
+    LEXICON (
+      "BODYNAME", "Kerbin",
+      "LAT", -6.51994,
+      "LNG", -144.06700,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "JNSQ")
   )
+
 ).
 
 local course is list(). // list of NAVpoint lexicons currently being used.

@@ -2,6 +2,8 @@ run once "/lib/sanity".
 run once "stager".
 run once "/lib/ro".
 
+global global_min_throt is 0.001.
+
 function countdown {
   parameter count.
 
@@ -43,6 +45,8 @@ function launch {
     use_ag1 is false,
     set_roll is false.
 
+  clearscreen. for x in range (0,10) print " ".
+
   if second_dest_ap < 0 { set second_dest_ap to dest_pe. }
 
   if body:atm:exists {
@@ -57,7 +61,7 @@ function launch {
   local dest_sma is (body:radius*2 + dest_pe + second_dest_ap)/2.
   local dest_rad is ship:body:radius + dest_pe.
   local dest_spd is sqrt( body:mu*(2/dest_rad - 1/dest_sma) ).
-  local min_throt is 0.001.
+  local min_throt is global_min_throt.
   local coast_circular is false.
   local maintain_ap_mode is false.
 
@@ -294,7 +298,7 @@ function launch {
           } 
         } else {
           set maintain_ap_mode to true.
-          set min_throt to 0.001.
+          set min_throt to global_min_throt.
           do_fairings().
         }
       } else if altitude > atmo_end { // out of atmo on an atmo world, yet apoapsis still not high enough.
@@ -333,9 +337,9 @@ function launch {
       if min_throt = 0 {
         local ull_engs is all_active_engines().
         push_rcs_until_ullage_ok(ull_engs, 10, true).
-        set min_throt to 0.1.
+        set min_throt to global_min_throt.
       } else {
-        set min_throt to 0.1. // perfectly circular isn't important, so still keep at least 10% to prevent boredom waiting for circularizing.
+        set min_throt to global_min_throt. // perfectly circular isn't important, so still keep at least 10% to prevent boredom waiting for circularizing.
       }
     }
 
@@ -440,11 +444,13 @@ function launch {
     print "| CURRENT | APO:          m  ETA:      s | Max   |" at (0,1).
     print "|         | PER:          m              | Voff  |" at (0,2).
     print "|         | SPD:          m/s            | (V,v) |" at (0,3).
-    print "| ------------------------------0--------|       |" at (0,4).
-    print "| WANTED  | APO:          m  ETA:      s |       |" at (0,5).
-    print "|         | PER:          m              |       |" at (0,6).
-    print "|         | SPD:          m/s            |       |" at (0,7).
-    print " ================================================" at (0,8).
+    print "|         |                              |       |" at (0,4).
+    print "| ---------------------------------------|       |" at (0,5).
+    print "| WANTED  | APO:          m  ETA:      s | Min   |" at (0,6).
+    print "|         | PER:          m              | Throt |" at (0,7).
+    print "|         | SPD:          m/s            | (T,t) |" at (0,8).
+    print "|         |                              |       |" at (0,9).
+    print " ================================================" at (0,10).
     print "      " at (17,1).
     print round(apoapsis) at (17,1).
     print "      " at (33,1).
@@ -453,20 +459,23 @@ function launch {
     print round(periapsis) at (17,2).
     print "       " at (17,3).
     print round(which_vel():mag) at (17,3).
-    print "      " at (17,5).
-    print second_dest_ap at (17,5).
-    print "      " at (34,5).
-    print round(wanted_eta_apo(coast_circular,dest_spd),1) at (34,5).
     print "      " at (17,6).
-    print dest_pe at (17,6).
+    print second_dest_ap at (17,6).
+    print "      " at (34,6).
+    print round(wanted_eta_apo(coast_circular,dest_spd),1) at (34,6).
     print "      " at (17,7).
-    print round(dest_spd) at (17,7).
+    print dest_pe at (17,7).
+    print "      " at (17,8).
+    print round(dest_spd) at (17,8).
     print "    " at (43,4).
     print round(vertoff_allow,2) at (43,4).
+    print "     " at (43,9).
+    print round(global_min_throt,3) at (43,9).
   }
 
   // Terminal input keys can change some parameters:
   function do_keys {
+    local global_min_t_inc is choose 0.05 if global_min_throt >= 0.05 else 0.01.
     if not(terminal:input:haschar())
       return.
     local ch is terminal:input:getchar().
@@ -475,6 +484,16 @@ function launch {
       set vertoff_allow to vertoff_allow + 0.01.
     } else if unchar(ch) = unchar("v") {
       set vertoff_allow to max(vertoff_allow - 0.01, 0).
+    } else if unchar(ch) = unchar("T") {
+      set global_min_throt to global_min_throt + global_min_t_inc.
+      if min_throt < global_min_throt
+        set min_throt to global_min_throt.
+      lock_throt_for_launch().
+    } else if unchar(ch) = unchar("t") {
+      set global_min_throt to global_min_throt - global_min_t_inc.
+      if min_throt > global_min_throt
+        set min_throt to global_min_throt.
+      lock_throt_for_launch().
     }
   }
 

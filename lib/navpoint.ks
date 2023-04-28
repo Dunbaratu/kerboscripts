@@ -408,7 +408,48 @@ LEXICON(
       "AGL", True,
       "SPD", 0,
       "SYSTEM", "JNSQ")
+  ),
+
+  "JNSQ's N76 N/S",
+  LIST(
+    LEXICON (
+      "BODYNAME", "Kerbin",
+      "LAT", 76.12236,
+      "LNG", 102.23169,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "JNSQ"),
+    LEXICON (
+      "BODYNAME", "Kerbin",
+      "LAT", 76.0322418,
+      "LNG", 102.23185,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "JNSQ")
+  ),
+
+  "JNSQ's N76 E/W",
+  LIST(
+    LEXICON (
+      "BODYNAME", "Kerbin",
+      "LAT", 76.049789,
+      "LNG", 102.301422,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "JNSQ"),
+    LEXICON (
+      "BODYNAME", "Kerbin",
+      "LAT", 76.04951377,
+      "LNG", 102.676193,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "JNSQ")
   )
+
 
 ).
 

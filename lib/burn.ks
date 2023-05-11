@@ -182,7 +182,14 @@ function do_burn_with_display {
   }
   // Start Real burn:
   lock throttle to mythrot.
+
+  // The one or two ticks between issuing lock throttle and KSP actually doing it
+  // can sometmes be enough time to lose fuel stability.  So make sure the engines
+  // have been ignited before killing the RCS ullage push:
+  wait 0.1.
+
   set ship:control:fore to 0.
+
   set rcs to remember_RCS.
 
   print  "Burn dV remaining:         m/s" at (col,row).

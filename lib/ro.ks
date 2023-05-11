@@ -17,7 +17,7 @@ function ullage_status {
 
   for eng in engs {
     if eng:ullage { 
-      if not(eng:flameout) and eng:fuelstability < 0.98 { 
+      if not(eng:flameout) and eng:fuelstability < 1.0 {
         return false.
       }
     }

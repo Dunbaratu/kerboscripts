@@ -39,7 +39,7 @@ if skips = 0 {
     print "Waiting until steering has settled in.".
     wait until steeringmanager:angleerror < 5.
     print "Burning until there's a crossing point.".
-    lock throttle to 1.
+    ullage_then_throttle(1, 10).
 
     until intersect_ta >= 0 {
       // using cruder, faster approximation for this repeated check:
@@ -89,7 +89,15 @@ if skips <= 1 {
     wait 0.
   }
 
+  clearscreen.
   print "Embiggening orbit until matching a rendezvous time.".
+  print " ".
+  print " ".
+  print " ".
+  print " ".
+  print " ".
+  print " ".
+  print " ".
   print " ".
   print " ".
   print " ".
@@ -107,37 +115,72 @@ if skips <= 1 {
   set found to false.
   set my_rendezvous_utime to 0. // will calculate later in the loop.
   set num_orbits to 0. // how many orbits until a hit.
+  // A list of previous time_diff for all 4x4 comparisons:
+  local prev_time_diffs is LIST(
+    LIST( 0, 0, 0, 0),
+    LIST( 0, 0, 0, 0),
+    LIST( 0, 0, 0, 0),
+    LIST( 0, 0, 0, 0)
+    ).
+  local iterations to 0.
+  local rcs_adjusting is false.
+
   set burn_start_time to time:seconds.
-  lock throttle to 1.
+  ullage_then_throttle(1, 10).
   until found {
     wait 0.1.
     local i is 0.
     until found or i = 4 {
       set my_rendezvous_utime to burn_start_time + ship:obt:period * i.
-      print "[" + i + "], my ETA = " + utime_to_eta_time(my_rendezvous_utime,1) + "s  " at (2,15+i).
+      print "[" + i + "] Compare my " + utime_to_eta_time(my_rendezvous_utime,1) + "s  to target's:" at (0,10+4*i).
       local j is 0.
       until found or j = 4 {
         local other_rendezvous_utime is rendezvous_utimes[j].
+        print utime_to_eta_time(other_rendezvous_utime,1)+"s " at (10*j ,10+4*i).
         local time_diff is my_rendezvous_utime - other_rendezvous_utime.
-        print "other ETA = " + utime_to_eta_time(other_rendezvous_utime,1)+"s  " at (30,15+j).
-        if abs(time_diff) < rendezvous_tolerance_1 {
-          lock throttle to 0.2.
+        print round(time_diff) at (10*j,11+4*i).
+        local diff_sign is (time_diff > 0).
+        local prev_diff_sign is (prev_time_diffs[i][j] > 0).
+        print (choose "+" if diff_sign else "-") + "/" +
+          (choose "+" if prev_diff_sign else "-") at (10*j ,12+4*i).
+        list engines in engs.
+        if not(rcs_adjusting) {
+          if abs(time_diff) < rendezvous_tolerance_1 {
+            lock throttle to 0.2.
+          }
+          if abs(time_diff) < rendezvous_tolerance_2 {
+            lock throttle to 0.05.
+          }
+          if abs(time_diff) < rendezvous_tolerance_3 {
+            lock throttle to 0.005.
+          }
         }
-        if abs(time_diff) < rendezvous_tolerance_2 {
-          lock throttle to 0.05.
+        if iterations >= 1 and (diff_sign <> prev_diff_sign) {
+           // We crossed the point of closest rendezvous, continuing
+           // in the same dirction now will make it worse.
+           if rcs_adjusting {
+             // If we did so while rcs adjusting, we're done.
+             set ship:control:fore to 0.
+             set found to true.
+           }
+           else {
+             // If we did so while main engine thrusting, then switch
+             // to RCS adjustnging mode and back up a bit until we
+             // cross nearest rendezvous again:.
+             lock throttle to 0.
+             set rcs_adjusting to true.
+             rcs on.
+             set ship:control:fore to -1. // start backing up a bit.
+             set num_orbits to i.
+             print "Fine Tuning with RCS backing up a bit now." at (5,29).
+           }
         }
-        if abs(time_diff) < rendezvous_tolerance_3 {
-          lock throttle to 0.005.
-        }
-        if abs(time_diff) < rendezvous_tolerance_4 {
-          lock throttle to 0.
-          set found to true.
-          set num_orbits to i.
-        }
+        set prev_time_diffs[i][j] to time_diff.
         set j to j+1.
       }
       set i to i+1.
     }
+    set iterations to iterations + 1.
   }
 
 }
@@ -167,7 +210,7 @@ if skips <= 2 {
 
   print "Burning until rel vel killed.".
 
-  lock throttle to 1.
+  ullage_then_throttle(1, 10).
   set      rel_spd to -99999.
   // Burn until either hitting zero rel vel, or rel vel starts
   // getting bigger:
@@ -204,6 +247,8 @@ if skips <= 3 {
         vang(mysteerpoint, ship:facing:forevector) < 2
       and
         abs(steeringmanager:angleerror) < 1.5. 
+    list engines in engs.
+    push_rcs_until_ullage_ok(engs).
     lock throttle to 1/(0.01*maxAccel).
     wait until vdot(rel_vel,mysteerpoint:normalized) > 4+min(30,(mysteerpoint:mag/200)).
     sas off.
@@ -217,6 +262,7 @@ if skips <= 3 {
 
     // Kill all speed once angle to target > 70 deg from my velocity.
     set mysteer to - rel_vel:vec.
+    push_rcs_until_ullage_ok(engs).
     lock throttle to rel_vel:mag/(0.05+maxAccel).
     print "... Killing relative speed to zero.".
 
@@ -235,4 +281,14 @@ function utime_to_eta_time {
   parameter utime, decimals is 0.
 
   return round(utime - time:seconds, decimals).
+}
+
+function ullage_then_throttle {
+  parameter throt, giveup, engs is 0.
+
+  if engs:istype("scalar") and engs = 0 {
+    list engines in engs.
+  }
+  push_rcs_until_ullage_ok( engs, giveup, false ).
+  lock throttle to throt.
 }

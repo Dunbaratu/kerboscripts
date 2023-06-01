@@ -390,17 +390,21 @@ function launch {
       if not(payload_cut_yet) {
 	local cut_parts_list is ship:partstagged("payload cutoff"). // expensive walk - don't do it too much.
 	if cut_parts_list:length > 0 {
-	  if allow_zero
-            lock throttle to 0. // suppress while staging parts.
+          // Even if allow_zero is false, this locking to zero should still happen because
+          // this is for detaching the currently lit engine and not using it any further:
+          lock throttle to 0. // So decoupled stages don't thrust and smash into upper stages.
 	  wait 1.
+
 	  until cut_parts_list:length = 0 {
 	    hudtext("Pe above " + round(payload_cut_pe) + "m.  Decoupling until payload cutoff parts gone", 6, 2, 20, green, true).
 	    wait until stage:ready.
 	    stage.
 	    set cut_parts_list to ship:partstagged("payload cutoff"). // expensive walk - don't do it too much.
 	  }
-          if allow_zero // put it back now that staging is done.
-            lock_throt_for_launch().
+          // Start new engine only after ullage pushing:
+          local ull_engs is all_active_engines().
+          push_rcs_until_ullage_ok(ull_engs, 10, true).
+          lock_throt_for_launch().
 	}
 	set payload_cut_yet to true.
       }

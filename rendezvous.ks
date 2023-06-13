@@ -76,9 +76,10 @@ if skips <= 1 {
 
   print "Now waiting until hitting the intersect point.".
   set wait_left to 99999.
+  print "                                                  " at (0,0).
   until wait_left <= 0 {
     set wait_left to intersect_first_utime - time:seconds.
-    print "Wait " + round(wait_left,0) + " s   " at (5,0).
+    print "[[  Wait " + round(wait_left,0) + " s  ]]" at (5,0).
     if wait_left < 50 {
       if warp > 0 {
         set warp to 0.
@@ -91,6 +92,11 @@ if skips <= 1 {
 
   clearscreen.
   print "Embiggening orbit until matching a rendezvous time.".
+  print " ".
+  print " ".
+  print " ".
+  print " ".
+  print " ".
   print " ".
   print " ".
   print " ".
@@ -132,17 +138,17 @@ if skips <= 1 {
     local i is 0.
     until found or i = 4 {
       set my_rendezvous_utime to burn_start_time + ship:obt:period * i.
-      print "[" + i + "] Compare my " + utime_to_eta_time(my_rendezvous_utime,1) + "s  to target's:" at (0,10+4*i).
+      print "[" + i + "] Compare my " + utime_to_eta_time(my_rendezvous_utime,1) + "s  to target's:" at (0,3+5*i).
       local j is 0.
       until found or j = 4 {
         local other_rendezvous_utime is rendezvous_utimes[j].
-        print utime_to_eta_time(other_rendezvous_utime,1)+"s " at (10*j ,10+4*i).
+        print (utime_to_eta_time(other_rendezvous_utime,1)+"s "):padleft(7) at (10*j ,4+5*i).
         local time_diff is my_rendezvous_utime - other_rendezvous_utime.
-        print round(time_diff) at (10*j,11+4*i).
+        print (round(time_diff)):tostring():padleft(5) at (10*j,5+5*i).
         local diff_sign is (time_diff > 0).
         local prev_diff_sign is (prev_time_diffs[i][j] > 0).
         print (choose "+" if diff_sign else "-") + "/" +
-          (choose "+" if prev_diff_sign else "-") at (10*j ,12+4*i).
+          (choose "+" if prev_diff_sign else "-") at (10*j ,6+5*i).
         list engines in engs.
         if not(rcs_adjusting) {
           if abs(time_diff) < rendezvous_tolerance_1 {
@@ -172,7 +178,7 @@ if skips <= 1 {
              rcs on.
              set ship:control:fore to -1. // start backing up a bit.
              set num_orbits to i.
-             print "Fine Tuning with RCS backing up a bit now." at (5,29).
+             print "Fine Tuning with RCS backing up a bit now." at (5,2).
            }
         }
         set prev_time_diffs[i][j] to time_diff.
@@ -197,7 +203,7 @@ if skips <= 2 {
   set rendezvous_eta to 99999.
   until rendezvous_eta <= 0 {
     set rendezvous_eta to my_rendezvous_pre_time - time:seconds.
-    print "Wait " + round(rendezvous_eta,0) + " s   " at (5,0).
+    print "[[      Wait " + round(rendezvous_eta,0) + " s       ]]" at (0,0).
     if rendezvous_eta < 50 {
       if warp > 0 {
         set warp to 0.

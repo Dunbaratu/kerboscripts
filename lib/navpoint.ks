@@ -10,7 +10,7 @@
 // "SPD", optional, a desired m/s speed to approach this navpoint at.
 // Note if ALT=0, and AGL=True, then this navpoint is meant to be landed.  
 
-parameter system is "JNSQ". // set to "STOCK", "BH", "RSS" or "GPP" or "JNSQ"...
+parameter system is "RSS". // set to "STOCK", "BH", "RSS" or "GPP" or "JNSQ"...
 
 // A list of known runways in the universe (stock):
 // A runway definition is 2 points - the endpoints.
@@ -76,20 +76,20 @@ LEXICON(
       "SYSTEM", "Stock")
   ),
 
-  "CANAVERAL",
+  "CAPE SPACE SHUTTLE",
   LIST(
     LEXICON (
       "BODYNAME", "Earth",
-      "LAT", 28.6128470369,
-      "LNG", -80.618108108,
+      "LAT", 28.65780448914,
+      "LNG", -80.71656799316,
       "ALT", 0,
       "AGL", True,
       "SPD", 0,
       "SYSTEM", "RSS"),
     LEXICON (
       "BODYNAME", "Earth",
-      "LAT", 28.6128470369,
-      "LNG", -80.59236999,
+      "LAT", 28.6224098205566,
+      "LNG", -80.6933135986328,
       "AGL", True,
       "SPD", 0,
       "SYSTEM", "RSS")

@@ -378,7 +378,7 @@ function launch {
       }
     }
     
-    if verticalspeed < -5 and still_must_thrust {
+    if verticalspeed < -5 and periapsis < body:atm:height and still_must_thrust {
       abort on.
       hudtext("INVOKING ABORT ACTION!!! BECAUSE FALLING.", 15, 2, 30, red, true).
       set done to true.

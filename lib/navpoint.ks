@@ -190,6 +190,25 @@ LEXICON(
       "SYSTEM", "RSS")
   ),
 
+  "NZ KSC",
+  LIST(
+    LEXICON (
+      "BODYNAME", "Earth",
+      "LAT", -39.2559731096646,
+      "LNG", 177.848687662757,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "RSS"),
+    LEXICON (
+      "BODYNAME", "Earth",
+      "LAT", -39.2559658896384,
+      "LNG", 177.877886147977,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "RSS")
+  ),
+
   "KSC 'Kerbin=Gael'",
   LIST(
     LEXICON (

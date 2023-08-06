@@ -35,13 +35,13 @@ local suppress_control is false.
 local last_save_time is time:seconds.
 local oldSAS is SAS.
 
-on abort {
+on AG10 {
   brakes on.
   unlock wheelthrottle.
   unlock wheelsteering.
   set ship:control:neutralize to true.
   steeringmanager_init().
-  print "Abort Action Group: deliberate error to quit.".
+  print "AG10: deliberate error to quit.".
   unlock steering.
   sas on.
   print 1 / 0. // force exit.
@@ -358,7 +358,7 @@ function drive_to {
     print "geodist to target is " + round(geo_dist(geopos),2).
     print "ocean_check is " + ocean_check.
     print "eraseme: hill_sideways_sign is " + hill_sideways_sign + " " + reason.
-    print "USE Abort Action group to kill program and park.".
+    print "USE Action Group 10 to kill program and park.".
     print "PID TIGHTNESS. Use arrow left/right keys: " + pid_tightness.
     print "USE +/- keys to adjust wheelie angle: " + wheelie_angle.
     print "User Cruise speed. Use up/down arrows: " + round(cruise_spd).

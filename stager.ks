@@ -55,7 +55,13 @@ function stager {
     set reason to "Staged because availablethrust = 0 when throttle=" + round(throttle,3).
     if zeroThrot lock throttle to 0. wait 0.
   }
+  // Visited_engs is a string used like an array where each char is a bool.
+  // (space ' ' = not visited, and 'V' = visted.)
+  local visited_engs is uniqueset().
   for stg_eng in new_engs { 
+    if visited_engs:contains(stg_eng) {
+        next.
+    }
     if stg_eng:ship = ship { // skip parts in the list no longer attached, if there are any
       if not(probably_sepratron(stg_eng)) {
         if (stg_eng:ignition and is_flameout(stg_eng)) {
@@ -67,6 +73,7 @@ function stager {
             local eng is stg_eng:SYMMETRYPARTNER(idx).
             if not(eng:ignition) or not(is_flameout(eng)) {
               set all_out to false.
+              visited_engs:add(eng). // don't need to check again in the above loop.
             }
           }
           if all_out {

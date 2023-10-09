@@ -152,6 +152,25 @@ LEXICON(
       "SYSTEM", "RSS")
   ),
 
+  "JP - Uchinoura",
+  LIST(
+    LEXICON (
+      "BODYNAME", "Earth",
+      "LAT", 31.2363696,
+      "LNG", 131.0750199,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "RSS"),
+    LEXICON (
+      "BODYNAME", "Earth",
+      "LAT", 31.23632494,
+      "LNG", 131.101235598,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "RSS")
+  ),
+
   "Woomera",
   LIST(
     LEXICON (
@@ -185,6 +204,25 @@ LEXICON(
       "BODYNAME", "Earth",
       "LAT", 34.5857582,
       "LNG", -120.616584778,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "RSS")
+  ),
+
+  "NZ KSC",
+  LIST(
+    LEXICON (
+      "BODYNAME", "Earth",
+      "LAT", -39.2559731096646,
+      "LNG", 177.848687662757,
+      "ALT", 0,
+      "AGL", True,
+      "SPD", 0,
+      "SYSTEM", "RSS"),
+    LEXICON (
+      "BODYNAME", "Earth",
+      "LAT", -39.2559658896384,
+      "LNG", 177.877886147977,
       "AGL", True,
       "SPD", 0,
       "SYSTEM", "RSS")

@@ -30,7 +30,7 @@ print "  -/+ = raise/lower current speed:".
 print "   V  = toggle hide/show aim vectors.".
 print "   G  = toggle gui editing panel.".
 print "   S  = sea mode (no gear).".
-print "Action Group Abort = quit, give player control".
+print "Action Group 10 = quit, give player control".
 print " ".
 display_user_pid_adjust().
 sas off.
@@ -337,7 +337,7 @@ set vd_aimpos to vecdraw(v(0,0,0),v(1,0,0),RGBA(1,1,0,2),"aimpoint",1,draw_arg,0
 set user_quit to false.
 set need_pid_reinit to false.
 
-on abort set user_quit to true.
+on AG10 set user_quit to true.
 
 when alt:radar < 200 then {
   if not gear and not sea_mode {

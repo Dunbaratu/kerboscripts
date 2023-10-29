@@ -264,6 +264,11 @@ function launch {
       set throttle_was_zero to true.
     }
 
+    // Deploy fairings at the equivalent atm pressure of ~60km on Kerbin.
+    if body:atm:altitudepressure(altitude) < 0.00002 {
+      do_fairings().
+    }
+
     if still_must_thrust {
       if apoapsis > second_dest_ap or apoapsis < 0 {
         if altitude > atmo_end {
@@ -283,9 +288,6 @@ function launch {
               set coast_circular to true.
               if not(throttle_was_zero) {
                 set min_throt to 0.
-
-                do_fairings().
-
                 // Wait 10s, but allow that wait to prematurely stop if near ap:
                 local wait_start is time:seconds.
                 wait until time:seconds > wait_start + 10 or eta:apoapsis < 15.
@@ -299,7 +301,6 @@ function launch {
         } else {
           set maintain_ap_mode to true.
           set min_throt to global_min_throt.
-          do_fairings().
         }
       } else if altitude > atmo_end { // out of atmo on an atmo world, yet apoapsis still not high enough.
         if atmo_end > 0 and apoapsis < 0.8*second_dest_ap and min_throt < 0.5 {

@@ -16,10 +16,17 @@ print "Type ([) to Bank more left.".
 print "Type (]) to Bank more right.".
 print "Type (q) to Quit.".
 set tuning to 0.005.
-set tgt_v_spd to 0.
-set tgt_bank to 0.
+
+// Start at whatever attitude the plane is doing when the script began:
+// At least to the nearest even number so the scripts +/- 2 adjustments
+// can "land on" zero.
+set tgt_v_spd to round(verticalspeed/2)*2. // nearest even number.
+set tgt_bank to round(get_bank()/2)*2. // nearest even number.
+
 set p_pid to pidloop(tuning, tuning/10, tuning/3, -1, 1).
 set r_pid to pidloop(tuning, tuning/10, tuning/3, -1, 1).
+
+tune_pid(). // make initial values take hold.
 
 set done to false.
 until done {

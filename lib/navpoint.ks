@@ -10,7 +10,7 @@
 // "SPD", optional, a desired m/s speed to approach this navpoint at.
 // Note if ALT=0, and AGL=True, then this navpoint is meant to be landed.  
 
-parameter system is "STOCK". // set to "STOCK", "BH", "RSS" or "GPP" or "JNSQ"...
+parameter system is "RSS". // set to "STOCK", "BH", "RSS" or "GPP" or "JNSQ"...
 
 // A list of known runways in the universe (stock):
 // A runway definition is 2 points - the endpoints.

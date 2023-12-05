@@ -59,37 +59,36 @@ function stager {
   // (space ' ' = not visited, and 'V' = visted.)
   local visited_engs is uniqueset().
   for stg_eng in new_engs { 
-    if visited_engs:contains(stg_eng) {
-        next.
-    }
-    if stg_eng:ship = ship { // skip parts in the list no longer attached, if there are any
-      if not(probably_sepratron(stg_eng)) {
-        if (stg_eng:ignition and is_flameout(stg_eng)) {
-          local all_out is true.
-          // It doesn't count as flamed out if it has symmetrical partners still going:
-          // (Needed for RealFuels where there is a second or two of random variance
-          // in booster duration so some will flameout while others are still going.)
-          for idx in range(1, stg_eng:SYMMETRYCOUNT) {
-            local eng is stg_eng:SYMMETRYPARTNER(idx).
-            if not(eng:ignition) or not(is_flameout(eng)) {
-              set all_out to false.
-              visited_engs:add(eng). // don't need to check again in the above loop.
+    if not(visited_engs:contains(stg_eng)) {
+      if stg_eng:ship = ship { // skip parts in the list no longer attached, if there are any
+        if not(probably_sepratron(stg_eng)) {
+          if (stg_eng:ignition and is_flameout(stg_eng)) {
+            local all_out is true.
+            // It doesn't count as flamed out if it has symmetrical partners still going:
+            // (Needed for RealFuels where there is a second or two of random variance
+            // in booster duration so some will flameout while others are still going.)
+            for idx in range(1, stg_eng:SYMMETRYCOUNT) {
+              local eng is stg_eng:SYMMETRYPARTNER(idx).
+              if not(eng:ignition) or not(is_flameout(eng)) {
+                set all_out to false.
+                visited_engs:add(eng). // don't need to check again in the above loop.
+              }
             }
-          }
-          if all_out {
-            set reason to "Staged because engine '" + stg_eng:title + "' (and its symmetrical partners) flamed out when throttle=" + throttle.
-            wait 0.
-            // If NO engines, kill throttle while transitioning.
-            // If *some* thrust (i.e. we staged a side booster but the core is still going), don't 
-            // zero throttle as that would kill the still working engine:
-            if zeroThrot and ship:maxthrust = 0 { 
-              lock throttle to 0.
+            if all_out {
+              set reason to "Staged because engine '" + stg_eng:title + "' (and its symmetrical partners) flamed out when throttle=" + throttle.
               wait 0.
+              // If NO engines, kill throttle while transitioning.
+              // If *some* thrust (i.e. we staged a side booster but the core is still going), don't 
+              // zero throttle as that would kill the still working engine:
+              if zeroThrot and ship:maxthrust = 0 { 
+                lock throttle to 0.
+                wait 0.
+              }
+              set want_stage to true.
             }
-            set want_stage to true.
+          } else { // At least 1 engine exists that is either still running or hasn't been started:
+            set unused_engs_exist to true.
           }
-        } else { // At least 1 engine exists that is either still running or hasn't been started:
-          set unused_engs_exist to true.
         }
       }
     }

@@ -11,6 +11,7 @@ parameter off_yaw is 0.
 parameter lib_vol is 1. //which volume has the lib dir?
 parameter songs_vol is 1. //which volume has the songs dir?
 parameter fudge is 0.95. // fudge factor for thrust prediction.
+parameter altitude_start is 0. // when to begin the algorithm.
 
 runoncepath(lib_vol+":/lib/land").
 runoncepath(lib_vol+":/lib/song").
@@ -31,12 +32,6 @@ if ship:availablethrust <= 0 {
   set vv:loop to true.
   vv:play(LIST(NOTE(0,0.3), SLIDENOTE(600,700,0.3,0.2),SLIDENOTE(600,700,0.3,0.2),SLIDENOTE(600,700,0.3,0.2))).
 
-
-if config:ipu < 800 {
-  print "Setting IPU to min of 800 because this script needs it.".
-  set config:ipu to 800.
-}
-
   clearscreen.
   print "=== NO NO NO NO NO NO, YOU IDIOT ===".
   print "  THERE ARE NO THRUSTABLE ENGINES!  ".
@@ -51,6 +46,17 @@ if config:ipu < 800 {
   vv:play(NOTE(0,0.1)). // silence the song.
   wait 0.1. // KSP doesn't calc isp right if you don't do this.
 }
+
+if config:ipu < 800 {
+  print "Setting IPU to min of 800 because this script needs it.".
+  set config:ipu to 800.
+}
+
+if altitude_start > 0 {
+  print "Waiting until alt < "+altitude_start+" to begin program.".
+  wait until altitude < altitude_start.
+}
+
 
 local first_aim is true.
 

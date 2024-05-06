@@ -99,16 +99,16 @@ LEXICON(
   LIST(
     LEXICON (
       "BODYNAME", "Earth",
-      "LAT", 32.343997,
-      "LNG", -106.394778,
+      "LAT", 32.9477,
+      "LNG", -106.43398,
       "ALT", 0,
       "AGL", True,
       "SPD", 0,
       "SYSTEM", "RSS"),
     LEXICON (
       "BODYNAME", "Earth",
-      "LAT", 32.324673,
-      "LNG", -106.40648239,
+      "LAT", 32.9477,
+      "LNG", -106.40697,
       "AGL", True,
       "SPD", 0,
       "SYSTEM", "RSS")

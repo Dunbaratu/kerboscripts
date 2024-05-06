@@ -22,10 +22,12 @@ set yokePull to 0.
 set yokeRoll to 0.
 set shipRoll to 0.
 set shipCompass to 0.
-local user_pid_adjust is 0.
+local user_pitch_pid_adjust is 0.
+local user_roll_pid_adjust is 0.
 
 clearscreen.
-print "Arrows= Smooth <_______________> Tight. (PIDs)".
+print "Pitch(U/D ARROW): Smooth <_______________> Tight.".
+print " Roll(L/R ARROW): Smooth <_______________> Tight.".
 print "  -/+ = raise/lower current speed:".
 print "   V  = toggle hide/show aim vectors.".
 print "   G  = toggle gui editing panel.".
@@ -292,19 +294,27 @@ function handle_input_key {
       set nav_list to (gui_edit_course( cur_aim_i, list_change_new_sync_val@)):COPY.
     } else if ch = "s" {
       set sea_mode to not sea_mode.
+    } else if ch = TERMINAL:INPUT:DOWNCURSORONE {
+      set user_pitch_pid_adjust to max(-7, user_pitch_pid_adjust - 1).
+      display_user_pid_adjust().
+    } else if ch = TERMINAL:INPUT:UPCURSORONE {
+      set user_pitch_pid_adjust to min(7, user_pitch_pid_adjust + 1).
+      display_user_pid_adjust().
     } else if ch = TERMINAL:INPUT:LEFTCURSORONE {
-      set user_pid_adjust to max(-7, user_pid_adjust - 1).
+      set user_roll_pid_adjust to max(-7, user_roll_pid_adjust - 1).
       display_user_pid_adjust().
     } else if ch = TERMINAL:INPUT:RIGHTCURSORONE {
-      set user_pid_adjust to min(7, user_pid_adjust + 1).
+      set user_roll_pid_adjust to min(7, user_roll_pid_adjust + 1).
       display_user_pid_adjust().
     }
   }
 }
 
 function display_user_pid_adjust {
-  print "_______________" at (16,0).
-  print "|" at (23 + user_pid_adjust, 0).
+  print "_______________" at (26,0).
+  print "|" at (33 + user_pitch_pid_adjust, 0).
+  print "_______________" at (26,1).
+  print "|" at (33 + user_roll_pid_adjust, 1).
 }
 
 
@@ -317,14 +327,15 @@ function pid_tune_for_conditions {
   // Tighten when close to ground so it will hurry up and flare:
   local tightener is max(1.0, 0.01*(200 - alt:radar)).
 
-  local user_pid_coef is 1.5^user_pid_adjust.
-  set pitchPID:Kp to pitch_base_Kp * dampener * tightener * user_pid_coef.
-  set pitchPID:Ki to pitch_base_Ki * dampener * tightener * user_pid_coef.
-  set pitchPID:Kd to pitch_base_Kd * dampener * tightener * user_pid_coef.
+  local user_pitch_pid_coef is 1.5^user_pitch_pid_adjust.
+  set pitchPID:Kp to pitch_base_Kp * dampener * tightener * user_pitch_pid_coef.
+  set pitchPID:Ki to pitch_base_Ki * dampener * tightener * user_pitch_pid_coef.
+  set pitchPID:Kd to pitch_base_Kd * dampener * tightener * user_pitch_pid_coef.
 
-  set rollPID:Kp to roll_base_Kp * dampener * tightener * user_pid_coef.
+  local user_roll_pid_coef is 1.5^user_roll_pid_adjust.
+  set rollPID:Kp to roll_base_Kp * dampener * tightener * user_roll_pid_coef.
   set rollPID:Ki to roll_base_Ki * dampener * tightener. // NOT ^ user_pid_coef
-  set rollPID:Kd to roll_base_Kd * dampener * tightener * user_pid_coef.
+  set rollPID:Kd to roll_base_Kd * dampener * tightener * user_roll_pid_coef.
 }
 
 // Start one position back from the end of the waypoint list, so there is
@@ -374,10 +385,10 @@ until user_quit or
   }
 
   if cur_aim_i < 0 {
-    print "WAITING for NAVPOINT." at (10,6).
+    print "WAITING for NAVPOINT." at (10,7).
     // Let the user change the course index from gui if they did:
   } else {
-    print "                     " at (10,6).
+    print "                     " at (10,7).
 
     local cur_way_geo is nav_list[cur_aim_i]["GEO"].
     local cur_spd_want is nav_list[cur_aim_i]["SPD"].
@@ -503,13 +514,13 @@ until user_quit or
     set yokeRoll to rollPID:Update(time:seconds, shipRoll - wantBank ).
     set ship:control:pilotrolltrim to yokeRoll.
 
-    displayCompass(5,8).
-    displayRoll(5,12).
-    displayPitch(5,16).
-    displaySpeed(5,20).
-    displayOffset(5,24,offset_angle).
+    displayCompass(5,9).
+    displayRoll(5,13).
+    displayPitch(5,17).
+    displaySpeed(5,21).
+    displayOffset(5,25,offset_angle).
     displayProgress(cur_aim_i, cur_way_geo, cur_aim_alt, cur_aim_radius, sea_mode, 3,27).
-    print round(cur_aim_spd,0) + " m/s " at (39,1).
+    print round(cur_aim_spd,0) + " m/s " at (39,2).
 
     if (not has_been_airborne) and
        not(ship:status = "LANDED" or ship:status = "SPLASHED") and 
